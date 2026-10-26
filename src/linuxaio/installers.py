@@ -33,6 +33,7 @@ EXT_PACKAGE = {
     "workspace-indicator@gnome-shell-extensions.gcampax.github.com": "gnome-shell-extensions",
 }
 EXT_NAMES = {
+    "just-perfection-desktop@just-perfection": "Just Perfection",
     "rounded-window-corners@fxgn": "Rounded Window Corners Reborn",
     "user-theme@gnome-shell-extensions.gcampax.github.com": "User Themes",
     "workspace-indicator@gnome-shell-extensions.gcampax.github.com": "Workspace Indicator",
@@ -110,9 +111,12 @@ def install_extension(uuid: str, log=usercmd.log) -> str:
         ok, out = usercmd.run(["gnome-extensions", "install", "--force", str(z)])
         if not ok:
             raise InstallError("miss.failed", out)
-    ok, _ = usercmd.run(["gnome-extensions", "enable", uuid])
+    from .gnome import ext_compatible, ext_set
+    ext_set(uuid, True)
+    if ext_compatible(uuid) is False:
+        return "incompatible"
     # Unter Wayland kennt die laufende Shell neu installierte Erweiterungen erst nach dem Neuanmelden
-    return "ok" if ok and uuid in (usercmd.query(["gnome-extensions", "list", "--enabled"]) or "") else "relogin"
+    return "ok" if uuid in (usercmd.query(["gnome-extensions", "list", "--enabled"]) or "") else "relogin"
 
 
 def packages_for(key: str, backend: str) -> list:

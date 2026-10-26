@@ -72,12 +72,21 @@ def current() -> int | None:
     return int(m.group(1)) if m else None
 
 
+def _gs(ext_dir) -> list:
+    """gsettings with the extension's own schema folder (its schema is not installed system-wide)."""
+    return ["gsettings", "--schemadir", str(ext_dir / "schemas")] if ext_dir else ["gsettings"]
+
+
 def set_extension_radius(radius: int) -> bool:
     """Radius der Erweiterung im a{sv}-Wörterbuch ändern (Rest bleibt, wie er ist)."""
-    if not usercmd.has_key(EXT_SCHEMA, EXT_KEY) and not usercmd.DRY:
+    from .gnome import ext_dir
+    d = ext_dir(EXT_UUID)
+    if not d and not usercmd.DRY:
         return False
-    raw = usercmd.query(["gsettings", "get", EXT_SCHEMA, EXT_KEY]) or ""
+    raw = usercmd.query(_gs(d) + ["get", EXT_SCHEMA, EXT_KEY]) or ""
+    if usercmd.DRY and not raw:
+        raw = "{'borderRadius': <uint32 15>}"
     new, n = re.subn(r"('borderRadius':\s*<(?:uint32\s+)?)(\d+)(>)", lambda m: f"{m.group(1)}{int(radius)}{m.group(3)}", raw)
     if not n:
         return False
-    return usercmd.run(["gsettings", "set", EXT_SCHEMA, EXT_KEY, new])[0]
+    return usercmd.run(_gs(d) + ["set", EXT_SCHEMA, EXT_KEY, new])[0]
