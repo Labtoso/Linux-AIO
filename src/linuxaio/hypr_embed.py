@@ -74,10 +74,19 @@ class HyprEmbed(hgui.MainWindow):
         super().__init__()
         self.gear.hide()                 # Einstellungen stecken in Sonstiges › Erweitert
         add_advanced(self)
-        if popout:                       # eigenes Fenster: frei verschiebbar, Doppelklick maximiert
+        if popout:                       # eigenes Fenster: frei verschiebbar, maximierbar
             self.setWindowTitle("Hypr Studio – Linux AIO")
             self.status.hide()
             self.btn_log.hide()
+            from hyprstudio import theme as htheme
+            from .widgets import draw_icon
+            self.btn_max = QtWidgets.QToolButton()
+            self.btn_max.setIconSize(self.btn_min.iconSize())
+            self.btn_max.setIcon(draw_icon("max", htheme.MUTED, 18))
+            self.btn_max.clicked.connect(lambda: self.showNormal() if self.isMaximized() else self.showMaximized())
+            row = next((lo for lo in self.findChildren(QtWidgets.QHBoxLayout) if lo.indexOf(self.btn_min) >= 0), None)
+            if row is not None:
+                row.insertWidget(row.indexOf(self.btn_min) + 1, self.btn_max)
             return
         self.setWindowFlags(Qt.WindowType.Widget)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
