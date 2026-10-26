@@ -247,6 +247,34 @@ class Extras(unittest.TestCase):
         self.assertEqual(f4.read_text(encoding="utf-8"), "/* eigenes */\nwindow { color: red; }\n")
         self.assertEqual(buttons.current(), "")
 
+    def test_button_css_draws_on_icon(self):
+        from linuxaio import buttons
+        css = buttons.css("macos", 4)
+        self.assertIn("windowcontrols > button.close > image { background-color: #ff5f57; }", css)
+        self.assertIn("windowcontrols > button { background: none;", css)   # Knopf selbst durchsichtig
+        self.assertIn("-gtk-icon-size", css)
+        self.assertNotIn("-gtk-icon-size", buttons.css("macos", 3))         # GTK3 kennt das nicht
+        self.assertNotIn("filter:", css + buttons.css("macos", 3))
+
+    def test_corners_block(self):
+        from linuxaio import buttons, corners
+        f4, f3 = corners.files()
+        f4.parent.mkdir(parents=True, exist_ok=True)
+        f4.write_text("/* eigenes */\n", encoding="utf-8")
+        buttons.apply("nord", lambda s: None)
+        corners.apply(6, lambda s: None)
+        corners.apply(30, lambda s: None)                     # auf 24 begrenzt, ersetzt den Block
+        text = f4.read_text(encoding="utf-8")
+        self.assertEqual(text.count(corners.START), 1)
+        self.assertIn(":root { --window-radius: 24px; }", text)
+        self.assertIn("decoration { border-radius: 24px; }", f3.read_text(encoding="utf-8"))
+        self.assertEqual(corners.current(), 24)
+        corners.remove(lambda s: None)
+        self.assertIsNone(corners.current())
+        self.assertEqual(buttons.current(), "nord")           # Knopf-Theme bleibt unberührt
+        buttons.remove(lambda s: None)
+        self.assertEqual(f4.read_text(encoding="utf-8"), "/* eigenes */\n")
+
     def test_layout_without_close(self):
         self.assertEqual(gnome.build_layout("right", True, True, True, close=False), "appmenu:minimize,maximize")
         self.assertFalse(gnome.parse_layout("appmenu:minimize")["close"])
@@ -395,6 +423,15 @@ class Ui(unittest.TestCase):
         self.assertNotIn("close", gvals()["org.gnome.desktop.wm.preferences button-layout"])
         self.assertTrue(pg.warn.isVisibleTo(pg))
         pg.sw_close.click()
+
+    def test_corner_slider(self):
+        from linuxaio import corners
+        pg = self.panel("gnome", "windows")
+        pg.slider.setValue(8)
+        pg._apply_corners()
+        self.assertEqual(corners.current(), 8)
+        pg.b_orig.click()
+        self.assertIsNone(corners.current())
 
     def test_titlebar_clicks(self):
         pg = self.panel("gnome", "titlebar")

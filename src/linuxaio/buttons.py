@@ -13,9 +13,9 @@ THEMES = {
     "macos": {"titel": "macOS", "shape": "circle", "size": 14, "close": "#ff5f57", "min": "#febc2e",
               "max": "#28c840", "icons": "hover"},
     "round": {"titel": "Rund", "shape": "circle", "size": 24, "close": "#3a424d", "min": "#3a424d",
-              "max": "#3a424d", "icons": "always"},
+              "max": "#3a424d", "icons": "always", "icon_color": "#e6edf5"},
     "square": {"titel": "Eckig", "shape": "square", "size": 24, "close": "#3a424d", "min": "#3a424d",
-               "max": "#3a424d", "icons": "always"},
+               "max": "#3a424d", "icons": "always", "icon_color": "#e6edf5"},
     "minimal": {"titel": "Minimal", "shape": "flat", "size": 24, "close": "", "min": "", "max": "",
                 "icons": "always"},
     "windows": {"titel": "Windows", "shape": "wide", "size": 30, "close": "", "min": "", "max": "",
@@ -29,34 +29,51 @@ THEMES = {
 }
 
 
-def _rules(sel_btn: str, sel_img: str, p: dict) -> list:
+def _rules(sel_btn: str, sel_img: str, p: dict, gtk: int = 4) -> list:
+    """libadwaita streckt die Knöpfe auf die Leistenhöhe → Punkt/Kachel wird auf das Symbol (image) gemalt,
+    der Knopf selbst bleibt durchsichtig (so macht es libadwaita auch)."""
     size = int(p.get("size", 24))
-    radius = {"circle": "100%", "square": "4px", "wide": "0", "flat": "6px"}[p["shape"]]
-    width = size * 2 if p["shape"] == "wide" else size
-    out = [f"{sel_btn} {{ min-width: {width}px; min-height: {size}px; padding: 0; margin: 0 3px;"
-           f" border-radius: {radius}; box-shadow: none; border: none;"
-           f" background-image: none; }}",
-           f"{sel_btn} {sel_img} {{ background: none; box-shadow: none; }}"]
-    for cls, key in (("close", "close"), ("minimize", "min"), ("maximize", "max")):
-        col = p.get(key) or "transparent"
-        out.append(f"{sel_btn}.{cls} {{ background-color: {col}; }}")
-    if p.get("hover_close"):
-        out.append(f"{sel_btn}.close:hover {{ background-color: {p['hover_close']}; color: #ffffff; }}")
-    if p.get("icons") == "hover":
-        out.append(f"{sel_btn} {sel_img} {{ opacity: 0; }}")
-        out.append(f"{sel_btn}:hover {sel_img} {{ opacity: 1; }}")
-        out.append(f"{sel_btn} {sel_img} {{ color: rgba(0,0,0,0.6); }}")
-    elif p.get("icons") == "never":
-        out.append(f"{sel_btn} {sel_img} {{ opacity: 0; }}")
+    shape = p["shape"]
+    img = f"{sel_btn} {sel_img}"
+    out = [f"{sel_btn} {{ background: none; box-shadow: none; border: none; outline: none;"
+           f" min-width: 0; min-height: 0; padding: 0 {4 if shape != 'wide' else 0}px; margin: 0; }}"]
+    if shape in ("circle", "square"):
+        icon = max(8, size - 6) if gtk == 4 else 16
+        pad = max(0, (size - icon) // 2) if gtk == 4 else max(0, (size - 16) // 2)
+        radius = "100%" if shape == "circle" else "4px"
+        size_rule = f" -gtk-icon-size: {icon}px;" if gtk == 4 else ""
+        out.append(f"{img} {{ border-radius: {radius}; padding: {pad}px; min-width: 0; min-height: 0;"
+                   f" box-shadow: none;{size_rule} }}")
+        for cls, key in (("close", "close"), ("minimize", "min"), ("maximize", "max")):
+            out.append(f"{sel_btn}.{cls} {sel_img} {{ background-color: {p.get(key) or 'transparent'}; }}")
+        dark = "rgba(0,0,0,0.65)"
+        light = p.get("icon_color")
+        if p.get("icons") == "hover":
+            out.append(f"{img} {{ color: transparent; }}")
+            out.append(f"{sel_btn}:hover {sel_img} {{ color: {light or dark}; }}")
+        elif p.get("icons") == "never":
+            out.append(f"{img} {{ color: transparent; }}")
+        elif light:
+            out.append(f"{img} {{ color: {light}; }}")
+        out.append(f"{sel_btn}:hover {sel_img}, {sel_btn}:active {sel_img} {{ box-shadow: inset 0 0 0 20px rgba(255,255,255,0.15); }}")
+    elif shape == "wide":     # Windows: breite Flächen, Schließen wird rot
+        out.append(f"{sel_btn} {{ min-width: {size + 16}px; border-radius: 0; }}")
+        out.append(f"{img} {{ background: none; box-shadow: none; }}")
+        out.append(f"{sel_btn}:hover {{ background-color: rgba(127,127,127,0.18); }}")
+        if p.get("hover_close"):
+            out.append(f"{sel_btn}.close:hover {{ background-color: {p['hover_close']}; color: #ffffff; }}")
+    else:                     # flat: nur Symbole
+        out.append(f"{img} {{ background: none; box-shadow: none; }}")
+        out.append(f"{sel_btn}:hover {sel_img} {{ background-color: rgba(127,127,127,0.18); border-radius: 6px; }}")
     return out
 
 
 def css(name: str, gtk: int = 4) -> str:
     p = THEMES[name]
     if gtk == 4:
-        rules = _rules("windowcontrols > button", "> image", p)
+        rules = _rules("windowcontrols > button", "> image", p, 4)
     else:
-        rules = _rules("headerbar button.titlebutton", "image", p) + _rules(".titlebar button.titlebutton", "image", p)
+        rules = _rules("headerbar button.titlebutton", "image", p, 3) + _rules(".titlebar button.titlebutton", "image", p, 3)
     return "\n".join([f"{START}: {name} */", *rules, END])
 
 
