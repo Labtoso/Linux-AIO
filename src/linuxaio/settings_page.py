@@ -44,6 +44,9 @@ def make_section(host, de: str, key: str):
         return G.TitlebarPage(host)
     if key == "windows":
         return G.WindowsPage(host)
+    if key == "fonts":
+        from .font_page import FontsPage
+        return FontsPage(host)
     if key == "topbar":
         return G.TopbarPage(host)
     if key == "autostart":

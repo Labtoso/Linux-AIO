@@ -229,6 +229,72 @@ class Remote(unittest.TestCase):
         self.assertEqual(cm.exception.key, "remote.badrepo")
 
 
+class Fonts(unittest.TestCase):
+    def setUp(self):
+        from linuxaio import fonts, remote
+        self.fonts, self.remote = fonts, remote
+        ttf = b"\x00\x01\x00\x00" + b"x" * 40
+        meta = {"familyMetadataList": [
+            {"family": "Caveat", "category": "Handwriting", "popularity": 50, "isOpenSource": True},
+            {"family": "Brand", "category": "Serif", "popularity": 1, "isBrandFont": True}]}
+        lst = {"manifest": {"files": [{"filename": "OFL.txt", "contents": "SIL OFL"}],
+                            "fileRefs": [{"filename": "static/Caveat-Regular.ttf", "url": "https://fonts.gstatic.com/s/a.ttf"},
+                                         {"filename": "Caveat[wght].ttf", "url": "https://fonts.gstatic.com/s/v.ttf"},
+                                         {"filename": "evil.ttf", "url": "https://evil.example/x.ttf"}]}}
+        nerd = make_txz({"HackNerdFont-Regular.ttf": ttf, "LICENSE.md": b"MIT", "readme.md": b"x"},
+                        {"link.ttf": "/etc/passwd"})
+        rel = {"tag_name": "v3.5.1", "assets": [{"name": "Hack.tar.xz", "size": len(nerd),
+                                                 "browser_download_url": "https://github.com/n/Hack.tar.xz"}]}
+
+        def fake(url, timeout=20, accept=""):
+            if url.startswith(fonts.GOOGLE_META):
+                return b")]}'\n" + json.dumps(meta).encode()
+            if "download/list" in url:
+                return b")]}'\n" + json.dumps(lst).encode()
+            if "api.github.com" in url:
+                return json.dumps(rel).encode()
+            if url.endswith("Hack.tar.xz"):
+                return nerd
+            if "gstatic" in url:
+                return ttf
+            raise AssertionError(url)
+        remote.fetch = fake
+        shutil.rmtree(fonts.cache_dir(), ignore_errors=True)
+
+    def tearDown(self):
+        self.remote.fetch = self.remote._get
+
+    def test_catalog_and_install(self):
+        items, err = self.fonts.catalog()
+        self.assertEqual(err, "")
+        self.assertEqual([i["family"] for i in items], ["Caveat", "Hack Nerd Font"])   # Markenschrift raus
+        d = self.fonts.install(items[0], lambda s: None)
+        self.assertTrue(str(d).startswith(str(usercmd.DRY_HOME)))
+        self.assertEqual(sorted(x.name for x in d.iterdir()), ["Caveat[wght].ttf", "OFL.txt"])  # variabel bevorzugt
+        n = self.fonts.install(items[1], lambda s: None)
+        self.assertEqual(sorted(x.name for x in n.iterdir()), ["HackNerdFont-Regular.ttf", "LICENSE.md"])  # kein Link
+        self.assertTrue(self.fonts.remove("Caveat", lambda s: None))
+        self.assertIsNone(self.fonts.installed("Caveat"))
+        self.assertFalse(self.fonts.remove("../../etc", lambda s: None))
+
+    def test_bad_font_rejected(self):
+        self.remote.fetch, old = (lambda url, timeout=20, accept="": b"<html>" if "gstatic" in url
+                                  else old(url, timeout, accept)), self.remote.fetch
+        with self.assertRaises(self.remote.SourceError) as cm:
+            self.fonts.install_google("Caveat", lambda s: None)
+        self.assertEqual(cm.exception.key, "fonts.bad")
+        self.assertIsNone(self.fonts.installed("Caveat"))
+
+    def test_offline(self):
+        import urllib.error
+
+        def offline(url, timeout=20, accept=""):
+            raise urllib.error.URLError("kein Netz")
+        self.remote.fetch = offline
+        items, err = self.fonts.catalog()
+        self.assertEqual((items, err), ([], "remote.offline"))
+
+
 class Extras(unittest.TestCase):
     def test_button_css_markers(self):
         from linuxaio import buttons

@@ -238,3 +238,28 @@ EXTRA["en"].update({
 
 EXTRA["de"]["about.version"] = "Version"
 EXTRA["en"]["about.version"] = "Version"
+
+EXTRA["de"].update({
+    "font.store": "Schriften installieren", "font.search": "Schrift suchen …", "font.onlyinst": "Nur installierte",
+    "font.f.all": "Alle", "font.f.Sans Serif": "Sans", "font.f.Serif": "Serif", "font.f.Monospace": "Mono",
+    "font.f.Display": "Display", "font.f.Handwriting": "Handschrift", "font.f.Nerd Font": "Nerd Fonts",
+    "font.cat.Sans Serif": "Sans Serif · Google Fonts", "font.cat.Serif": "Serif · Google Fonts",
+    "font.cat.Monospace": "Monospace · Google Fonts", "font.cat.Display": "Display · Google Fonts",
+    "font.cat.Handwriting": "Handschrift · Google Fonts", "font.cat.Nerd Font": "Nerd Font · mit Symbolen",
+    "font.use": "Verwenden", "font.more": "Mehr laden", "font.loading": "Schriften werden geladen …",
+    "font.none": "Keine Schrift gefunden", "font.nopreview": "Vorschau nach dem Installieren",
+    "font.applied": "{name} ist jetzt Schrift für: {where}",
+    "fonts.nofiles": "Keine Schriftdateien gefunden", "fonts.bad": "Datei ist keine Schrift – abgebrochen",
+})
+EXTRA["en"].update({
+    "font.store": "Install fonts", "font.search": "Search fonts …", "font.onlyinst": "Installed only",
+    "font.f.all": "All", "font.f.Sans Serif": "Sans", "font.f.Serif": "Serif", "font.f.Monospace": "Mono",
+    "font.f.Display": "Display", "font.f.Handwriting": "Handwriting", "font.f.Nerd Font": "Nerd Fonts",
+    "font.cat.Sans Serif": "Sans serif · Google Fonts", "font.cat.Serif": "Serif · Google Fonts",
+    "font.cat.Monospace": "Monospace · Google Fonts", "font.cat.Display": "Display · Google Fonts",
+    "font.cat.Handwriting": "Handwriting · Google Fonts", "font.cat.Nerd Font": "Nerd Font · with icons",
+    "font.use": "Use", "font.more": "Load more", "font.loading": "Loading fonts …",
+    "font.none": "No font found", "font.nopreview": "Preview after installing",
+    "font.applied": "{name} is now the font for: {where}",
+    "fonts.nofiles": "No font files found", "fonts.bad": "File is not a font – aborted",
+})

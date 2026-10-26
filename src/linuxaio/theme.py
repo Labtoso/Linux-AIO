@@ -97,6 +97,11 @@ def qss(accent: str) -> str:
     QSpinBox#Spin, QDoubleSpinBox#Spin {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 8px;
         padding: 5px 8px; }}
     QSpinBox#Spin:focus, QDoubleSpinBox#Spin:focus {{ border-color: {accent}; }}
+    QCheckBox::indicator {{ width: 16px; height: 16px; border-radius: 4px; border: 1px solid {BORDER};
+        background: {SURFACE2}; }}
+    QCheckBox::indicator:checked {{ background: {accent}; border-color: {accent}; }}
+    QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {{ width: 0; border: none; }}
+    QAbstractSpinBox::up-arrow, QAbstractSpinBox::down-arrow {{ width: 0; height: 0; }}
     QFontComboBox#Combo {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 10px; padding: 6px 10px; }}
     QListWidget {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 10px; }}
     QDialog {{ background: {SURFACE}; }}
