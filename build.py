@@ -27,7 +27,8 @@ NAME = f"labtoso-linuxaio-{VER}"
 INST = ROOT / "installer"
 DIST = ROOT / "dist"
 OLD = ROOT / "old"
-BUILD = ROOT / "build"
+# AppDir auf der lokalen Platte: Cloud-Ordner (pCloud) speichern kein Ausführen-Recht → AppRun liefe nicht
+BUILD = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "LabtosoStudios" / "linuxaio" / "build"
 SIZES = (16, 32, 48, 64, 128, 256)
 APPIMAGE = f"Linux-AIO-{VER}-x86_64.AppImage"
 ZIPNAME = f"Linux-AIO-{VER}.zip"
