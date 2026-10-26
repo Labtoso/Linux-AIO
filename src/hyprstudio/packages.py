@@ -11,6 +11,8 @@ PACKAGES = {
     "rofi": ("launcher", "rofi", {"pacman": ["rofi"], "apt": ["rofi"], "dnf": ["rofi-wayland"], "zypper": ["rofi"]}),
     "wofi": ("launcher", "wofi", {"pacman": ["wofi"], "apt": ["wofi"], "dnf": ["wofi"], "zypper": ["wofi"]}),
     "fuzzel": ("launcher", "fuzzel", {"pacman": ["fuzzel"], "apt": ["fuzzel"], "dnf": ["fuzzel"], "zypper": ["fuzzel"]}),
+    "walker": ("launcher", "walker", {"pacman": ["walker"]}),
+    "tofi": ("launcher", "tofi", {"apt": ["tofi"]}),
     "waybar": ("bar", "waybar", {"pacman": ["waybar"], "apt": ["waybar"], "dnf": ["waybar"], "zypper": ["waybar"]}),
     "nerdfont": ("bar", "font:JetBrainsMono Nerd Font", {"pacman": ["ttf-jetbrains-mono-nerd", "ttf-nerd-fonts-symbols-mono"]}),
     "kitty": ("tools", "kitty", {"pacman": ["kitty"], "apt": ["kitty"], "dnf": ["kitty"], "zypper": ["kitty"]}),
@@ -156,7 +158,7 @@ UPDATE_GROUPS = {  # Gruppe → Pakete (nur installierte werden aktualisiert)
     "hyprland": ["hyprland", "hyprlock", "hypridle", "hyprpaper", "hyprcursor", "hyprpicker", "hyprpolkitagent",
                  "hyprsunset", "xdg-desktop-portal-hyprland", "hyprutils", "hyprlang", "hyprgraphics", "aquamarine"],
     "waybar": ["waybar"],
-    "launcher": ["rofi", "rofi-wayland", "wofi", "fuzzel"],
+    "launcher": ["rofi", "rofi-wayland", "wofi", "fuzzel", "walker"],
 }
 
 

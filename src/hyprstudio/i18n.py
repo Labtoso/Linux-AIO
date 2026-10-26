@@ -393,3 +393,6 @@ def set_lang(lang: str) -> None:
 def t(key: str, **kw) -> str:
     s = TEXT[_lang].get(key) or TEXT["de"].get(key) or key
     return s.format(**kw) if kw else s
+
+TEXT["de"].update({"app.walker": "Walker", "app.tofi": "Tofi", "pkg.walker": "Walker", "pkg.tofi": "Tofi"})
+TEXT["en"].update({"app.walker": "Walker", "app.tofi": "Tofi", "pkg.walker": "Walker", "pkg.tofi": "Tofi"})

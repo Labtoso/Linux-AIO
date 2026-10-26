@@ -66,12 +66,20 @@ def add_advanced(win):
 class HyprEmbed(hgui.MainWindow):
     """Hypr-Studio-Fenster als eingebettetes Widget: ohne Fensterrahmen, Titel, Minimieren/Schließen."""
 
-    def __init__(self, host, popout: bool = False):
+    def __init__(self, host, popout: bool = False, launcher_only: bool = False):
         if usercmd.DRY:   # Testmodus: auch Hypr Studios eigene Einstellungen nicht im echten Home
             hwidgets.CONFIG = usercmd.CACHE / "testmodus" / "hyprstudio.json"
         self.host = host
         self.popout = popout
+        self.launcher_only = launcher_only
         super().__init__()
+        if launcher_only:            # Linux AIO › Launcher: nur Hypr Studios Launcher-Seite
+            self.tabs.hide()
+            hgui.MainWindow.set_tab(self, "launcher")
+        else:                        # der Launcher hat in Linux AIO einen eigenen Tab
+            self.tabs.btns["launcher"].hide()
+            if self.cfg.get("tab") == "launcher":
+                hgui.MainWindow.set_tab(self, "hypr")
         self.gear.hide()                 # Einstellungen stecken in Sonstiges › Erweitert
         add_advanced(self)
         if popout:                       # eigenes Fenster: frei verschiebbar, maximierbar
@@ -101,6 +109,13 @@ class HyprEmbed(hgui.MainWindow):
         # eigene Fußzeile weg: Status und Protokoll laufen über Linux AIO
         self.status.hide()
         self.btn_log.hide()
+
+    def set_tab(self, tab: str):
+        if getattr(self, "launcher_only", False):
+            tab = "launcher"
+        elif tab == "launcher":
+            tab = "hypr"
+        super().set_tab(tab)
 
     def logview_toggle(self, on: bool):
         try:

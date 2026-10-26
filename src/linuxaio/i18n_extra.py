@@ -342,3 +342,6 @@ EXTRA["en"].update({
 
 EXTRA["de"].update({"gn.files.restart": "Dateien neu starten"})
 EXTRA["en"].update({"gn.files.restart": "Restart Files"})
+
+EXTRA["de"]["tab.launcher"] = "Launcher"
+EXTRA["en"]["tab.launcher"] = "Launcher"

@@ -254,7 +254,8 @@ ACTIONS = {
 }
 MOUSE_ACTIONS = ("drag", "resize")
 # Aktion „Launcher öffnen“: Auswahl im Kürzel → Befehl
-LAUNCHER_CMDS = {"llauncher": "l-launcher", "rofi": "rofi -show drun", "wofi": "wofi --show drun", "fuzzel": "fuzzel"}
+LAUNCHER_CMDS = {"llauncher": "l-launcher", "rofi": "rofi -show drun", "wofi": "wofi --show drun", "fuzzel": "fuzzel",
+                 "walker": "walker", "tofi": "tofi-drun --drun-launch=true"}
 
 
 LAUNCHER_TOGGLE = True  # zweites Drücken der Launcher-Taste schließt ihn (Launcher-Tab › Verhalten)

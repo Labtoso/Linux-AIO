@@ -14,7 +14,7 @@ from .settings_page import SettingsPage
 from .widgets import DRY, Runner, Segmented, SettingsPanel, app_icon, chevron_file, draw_icon, load_cfg, save_cfg
 
 
-TABS = ("de", "sddm", "ply", "settings")
+TABS = ("de", "sddm", "ply", "launcher", "settings")
 
 
 class AboutDialog(QtWidgets.QDialog):
@@ -160,6 +160,10 @@ class MainWindow(QtWidgets.QWidget):
         usercmd.set_logger(self.logline.emit)
         self.settings_page = SettingsPage(self)
         self.stack.addWidget(self.settings_page)
+        self.launcher_page = QtWidgets.QWidget()        # wird beim ersten Öffnen gebaut (Hypr Studios Launcher)
+        QtWidgets.QVBoxLayout(self.launcher_page).setContentsMargins(0, 0, 0, 0)
+        self.launcher_page.drawer_anchor = lambda: self.launcher_page
+        self.stack.addWidget(self.launcher_page)
         cl.addWidget(self.stack, 1)
 
         self.footer = QtWidgets.QWidget()
@@ -350,8 +354,14 @@ class MainWindow(QtWidgets.QWidget):
         self.cfg["tab"] = tab
         save_cfg(self.cfg)
         self.tabs.select(tab)
+        if tab == "launcher" and not hasattr(self, "_launcher"):
+            from .hypr_embed import HyprEmbed
+            self._launcher = HyprEmbed(self, launcher_only=True)
+            self.launcher_page.layout().addWidget(self._launcher)
+        if tab == "launcher":
+            self._launcher.sync_look(self.cfg.get("lang", "en"), self.cfg.get("theme", "blue"))
         self.stack.setCurrentWidget({"de": self.de_page, "sddm": self.sddm_page, "ply": self.ply_page,
-                                     "settings": self.settings_page}[tab])
+                                     "launcher": self.launcher_page, "settings": self.settings_page}[tab])
         if self.btn_log.isChecked():
             QtCore.QTimer.singleShot(0, lambda: self.logview.setGeometry(self._log_rect(True)))
 

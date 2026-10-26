@@ -7,8 +7,9 @@ from pathlib import Path
 
 from .model import MARK, _backup_foreign, muted_color, norm, rgba_css, undo_file
 
-APPS = ("rofi", "wofi", "fuzzel", "llauncher")
-COMMANDS = {"rofi": "rofi -show drun", "wofi": "wofi --show drun", "fuzzel": "fuzzel", "llauncher": "l-launcher"}
+APPS = ("rofi", "wofi", "fuzzel", "walker", "tofi", "llauncher")
+COMMANDS = {"rofi": "rofi -show drun", "wofi": "wofi --show drun", "fuzzel": "fuzzel", "walker": "walker",
+            "tofi": "tofi-drun --drun-launch=true", "llauncher": "l-launcher"}
 
 LAUNCHER_DEFAULT = {
     "app": "rofi",
@@ -402,6 +403,65 @@ def fuzzel_ini(s: dict) -> str:
     return f"# {MARK} – automatisch erzeugt, wird beim Anwenden überschrieben\n" + "\n".join(main) + "\n"
 
 
+def _rgba(c: str) -> str:
+    """#rrggbbaa → rgba() for GTK CSS."""
+    h = c.lstrip("#")
+    h = (h + "ff")[:8] if len(h) in (6, 8) else "000000ff"
+    r, g, b, a = (int(h[i:i + 2], 16) for i in (0, 2, 4, 6))
+    return f"rgba({r},{g},{b},{a / 255:.2f})"
+
+
+def walker_css(s: dict) -> str:
+    """Walker 2.x theme (GTK4 CSS); missing layout files fall back to Walker's default theme."""
+    return f"""/* {MARK} – generated, overwritten when applied */
+* {{ all: unset; font-family: "{s['font']}"; font-size: {s['font_size']}pt; }}
+scrollbar {{ opacity: 0; }}
+.normal-icons {{ -gtk-icon-size: {s['icon_size']}px; }}
+.large-icons {{ -gtk-icon-size: {s['icon_size'] + 8}px; }}
+.box-wrapper {{ background: {_rgba(s['bg'])}; padding: {s['padding']}px; border-radius: {s['radius']}px;
+  border: {s['border_width']}px solid {_rgba(s['border'])}; min-width: {s['width']}px; }}
+.input {{ caret-color: {_rgba(s['accent'])}; background: {_rgba(s['input_bg'])}; padding: 10px;
+  color: {_rgba(s['fg'])}; border-radius: {s['el_radius']}px; }}
+.input placeholder {{ opacity: 0.5; }}
+.list {{ color: {_rgba(s['fg'])}; }}
+.item-box {{ border-radius: {s['el_radius']}px; padding: {s['spacing'] + 6}px; }}
+child:selected .item-box, row:selected .item-box {{ background: {_rgba(s['sel'])}; color: {_rgba(s['sel_fg'])}; }}
+.item-subtext {{ font-size: {max(8, s['font_size'] - 2)}pt; opacity: 0.55; }}
+.keybinds {{ padding-top: 8px; font-size: {max(8, s['font_size'] - 2)}pt; color: {_rgba(s['fg'])}; opacity: 0.6; }}
+.preview {{ border: 1px solid {_rgba(s['border'])}; border-radius: {s['el_radius']}px; color: {_rgba(s['fg'])}; }}
+"""
+
+
+def walker_config(cfg_home: Path) -> str:
+    """config.toml: only the theme line is set, everything else stays as it is."""
+    f = cfg_home / "walker" / "config.toml"
+    try:
+        text = f.read_text(encoding="utf-8")
+    except OSError:
+        text = ""
+    import re as _re
+    if _re.search(r'^theme\s*=', text, _re.M):
+        return _re.sub(r'^theme\s*=.*$', 'theme = "hyprstudio"', text, count=1, flags=_re.M)
+    return 'theme = "hyprstudio"\n' + text
+
+
+def tofi_config(s: dict) -> str:
+    lines = [f"# {MARK} – generated, overwritten when applied",
+             f"font = {s['font']}", f"font-size = {s['font_size']}",
+             f"width = {s['width']}", f"height = {max(200, s['lines'] * (s['font_size'] * 2 + s['spacing'] * 2) + 90)}",
+             f"background-color = {s['bg']}", f"text-color = {s['fg']}", f"prompt-color = {s['accent']}",
+             f"selection-color = {s['sel_fg']}", f"selection-background = {s['sel']}",
+             f"input-background = {s['input_bg']}",
+             f"border-width = {s['border_width']}", f"border-color = {s['border']}", "outline-width = 0",
+             f"corner-radius = {s['radius']}", f"padding-top = {s['padding']}", f"padding-bottom = {s['padding']}",
+             f"padding-left = {s['padding']}", f"padding-right = {s['padding']}",
+             f'prompt-text = "{s["prompt"] + " " if s["show_prompt"] else ""}"',
+             f'placeholder-text = "{s["placeholder"]}"', f"num-results = {s['lines']}",
+             f"result-spacing = {s['spacing'] + 4}", f"fuzzy-match = {'true' if s['matching'] == 'fuzzy' else 'false'}",
+             "drun-launch = true", f"anchor = {dict(center='center', top='top', bottom='bottom')[s['position']]}"]
+    return "\n".join(lines) + "\n"
+
+
 # ---------- Schreiben ----------
 
 def files(s: dict, cfg_home: Path, home_for_theme: Path | None = None, per_app: dict | None = None) -> list:
@@ -423,7 +483,8 @@ def app_of_cmd(cmd: str) -> str | None:
     if c.startswith("hypr-studio --launcher"):
         return "llauncher"
     first = Path(c.split(" ", 1)[0]).name if c else ""
-    return {"rofi": "rofi", "wofi": "wofi", "fuzzel": "fuzzel", "l-launcher": "llauncher"}.get(first)
+    return {"rofi": "rofi", "wofi": "wofi", "fuzzel": "fuzzel", "walker": "walker", "tofi-drun": "tofi",
+            "tofi": "tofi", "l-launcher": "llauncher"}.get(first)
 
 
 def _files_for(app: str, s: dict, cfg_home: Path) -> list:
@@ -439,6 +500,11 @@ def _files_for(app: str, s: dict, cfg_home: Path) -> list:
     if app == "wofi":
         d = cfg_home / "wofi"
         return [(d / "config", wofi_config(s)), (d / "style.css", wofi_css(s))]
+    if app == "walker":
+        d = cfg_home / "walker"
+        return [(d / "themes" / "hyprstudio" / "style.css", walker_css(s)), (d / "config.toml", walker_config(cfg_home))]
+    if app == "tofi":
+        return [(cfg_home / "tofi" / "config", tofi_config(s))]
     return [(cfg_home / "fuzzel" / "fuzzel.ini", fuzzel_ini(s))]
 
 
