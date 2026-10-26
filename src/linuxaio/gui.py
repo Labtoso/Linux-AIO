@@ -14,7 +14,7 @@ from .settings_page import SettingsPage
 from .widgets import DRY, Runner, Segmented, SettingsPanel, app_icon, chevron_file, draw_icon, load_cfg, save_cfg
 
 
-TABS = ("de", "sddm", "ply", "launcher", "settings")
+TABS = ("de", "sddm", "ply", "settings")
 
 
 class AboutDialog(QtWidgets.QDialog):
@@ -78,6 +78,10 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.cfg = load_cfg()
+        if self.cfg.get("version") != linuxaio.__version__:   # each new version starts in English
+            self.cfg["lang"] = "en"
+            self.cfg["version"] = linuxaio.__version__
+            save_cfg(self.cfg)
         set_lang(self.cfg.get("lang", "en"))
         if self.cfg.get("theme") not in theme.THEMES:
             self.cfg["theme"] = "blue"
@@ -160,10 +164,7 @@ class MainWindow(QtWidgets.QWidget):
         usercmd.set_logger(self.logline.emit)
         self.settings_page = SettingsPage(self)
         self.stack.addWidget(self.settings_page)
-        self.launcher_page = QtWidgets.QWidget()        # wird beim ersten Öffnen gebaut (Hypr Studios Launcher)
-        QtWidgets.QVBoxLayout(self.launcher_page).setContentsMargins(0, 0, 0, 0)
-        self.launcher_page.drawer_anchor = lambda: self.launcher_page
-        self.stack.addWidget(self.launcher_page)
+
         cl.addWidget(self.stack, 1)
 
         self.footer = QtWidgets.QWidget()
@@ -213,6 +214,7 @@ class MainWindow(QtWidgets.QWidget):
         self.panel.lang_changed.connect(self.set_language)
         self.panel.theme_changed.connect(self.set_theme)
         self.panel.about_requested.connect(self.show_about)
+        self._add_app_settings()
         self.anim = QtCore.QPropertyAnimation(self.panel, b"pos", self)
         self.anim.setDuration(220)
         self.anim.setEasingCurve(QtCore.QEasingCurve.Type.OutCubic)
@@ -354,14 +356,8 @@ class MainWindow(QtWidgets.QWidget):
         self.cfg["tab"] = tab
         save_cfg(self.cfg)
         self.tabs.select(tab)
-        if tab == "launcher" and not hasattr(self, "_launcher"):
-            from .hypr_embed import HyprEmbed
-            self._launcher = HyprEmbed(self, launcher_only=True)
-            self.launcher_page.layout().addWidget(self._launcher)
-        if tab == "launcher":
-            self._launcher.sync_look(self.cfg.get("lang", "en"), self.cfg.get("theme", "blue"))
         self.stack.setCurrentWidget({"de": self.de_page, "sddm": self.sddm_page, "ply": self.ply_page,
-                                     "launcher": self.launcher_page, "settings": self.settings_page}[tab])
+                                     "settings": self.settings_page}[tab])
         if self.btn_log.isChecked():
             QtCore.QTimer.singleShot(0, lambda: self.logview.setGeometry(self._log_rect(True)))
 
@@ -397,6 +393,36 @@ class MainWindow(QtWidgets.QWidget):
         self.dim.hide()
         self.content.setGraphicsEffect(None)
 
+    def _add_app_settings(self):
+        """Tux › app settings: interface size and Hypr Studio mode (besides language, colour, About)."""
+        from .app_page import restart
+        lay = self.panel.layout()
+        pos = lay.indexOf(self.panel.b_about) - 1      # direkt unter den Farben, vor dem Abstand
+        self.l_scale = QtWidgets.QLabel()
+        self.l_scale.setObjectName("Label")
+        self.seg_scale = Segmented(("100", "90", "80"), prefix="app.scale.")
+        self.seg_scale.select(str(self.cfg.get("ui_scale", "100")))
+        self.seg_scale.changed.connect(lambda v: self._app_opt("ui_scale", v))
+        self.l_hypr = QtWidgets.QLabel()
+        self.l_hypr.setObjectName("Label")
+        self.seg_hypr = Segmented(("embed", "window"), prefix="app.hypr.")
+        self.seg_hypr.select(self.cfg.get("hypr_mode", "embed"))
+        self.seg_hypr.changed.connect(lambda v: self._app_opt("hypr_mode", v))
+        self.b_restart = QtWidgets.QPushButton()
+        self.b_restart.setObjectName("Primary")
+        self.b_restart.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.b_restart.clicked.connect(restart)
+        self.b_restart.hide()
+        lay.insertSpacing(pos, 10)
+        for i, w in enumerate((self.l_scale, self.seg_scale, self.l_hypr, self.seg_hypr, self.b_restart)):
+            lay.insertWidget(pos + 1 + i, w)
+
+    def _app_opt(self, key, value):
+        self.cfg[key] = value
+        self.save()
+        self.b_restart.show()
+        self.set_status(t("app.restart.need"))
+
     def show_about(self):
         AboutDialog(self).exec()
 
@@ -427,7 +453,13 @@ class MainWindow(QtWidgets.QWidget):
         self.btn_close.setIcon(draw_icon("close", theme.MUTED, 16))
 
     def retranslate(self):
-        self.gear.setToolTip(t("settings"))
+        self.gear.setToolTip(t("app.settings"))
+        if hasattr(self, "seg_scale"):
+            self.l_scale.setText(t("app.scale"))
+            self.l_hypr.setText(t("app.hypr"))
+            self.b_restart.setText(t("app.restart"))
+            self.seg_scale.retranslate()
+            self.seg_hypr.retranslate()
         self.btn_min.setToolTip(t("minimize"))
         self.btn_max.setToolTip(t("maximize"))
         self.btn_close.setToolTip(t("close"))

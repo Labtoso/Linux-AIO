@@ -292,39 +292,42 @@ Categories=System;Settings;
 """
 
 ZIP_INSTALL = """#!/bin/sh
-# Linux AIO @VER@ – install for the current user (~/.local). Installs everything it needs:
-# Python 3, PySide6 (Qt), polkit, gsettings, fontconfig, xz – via pacman, apt, dnf or zypper.
-set -e
+# Linux AIO @VER@ – install for the current user (~/.local)
 HERE="$(cd "$(dirname "$0")" && pwd)"
 cd /tmp   # never run pkexec/sudo from cloud folders
 BIN="$HOME/.local/bin"
 APPS="$HOME/.local/share/applications"
 ICON="$HOME/.local/share/icons/hicolor/256x256/apps/de.labtosostudios.linuxaio.png"
-
+BUNDLED=@BUNDLED@   # 1 = the AppImage brings its own Python + PySide6
+N=5
+fail() { echo ""; echo "  ERROR: $1"; echo "  Linux AIO was NOT installed completely."; exit 1; }
+step() { printf "[%s/%s] %s ... " "$1" "$N" "$2"; }
+ok() { echo "done"; }
 root() { if command -v pkexec >/dev/null 2>&1; then pkexec "$@"; else sudo "$@"; fi; }
 have_qt() { python3 -c "import PySide6.QtWidgets" 2>/dev/null || python3 -c "import PyQt6.QtWidgets" 2>/dev/null; }
 
-BUNDLED=@BUNDLED@   # 1 = the AppImage brings its own Python + PySide6
+echo "Linux AIO @VER@ installer"
+echo ""
+step 1 "Checking requirements"
 if [ "$BUNDLED" = 1 ]; then
-  : # nothing to install
-elif ! command -v python3 >/dev/null 2>&1 || ! have_qt; then
-  echo "==> Installing Python 3 and Qt for Python (password needed)"
+  echo "nothing needed (the AppImage brings Python and Qt)"
+elif command -v python3 >/dev/null 2>&1 && have_qt; then
+  echo "Python and Qt found"
+else
+  echo "installing Python 3 and Qt for Python (password needed)"
   if command -v pacman >/dev/null; then root pacman -S --needed --noconfirm python pyside6 polkit glib2 fontconfig xz
-  elif command -v apt-get >/dev/null; then root apt-get update; root apt-get install -y python3 python3-pyside6.qtwidgets python3-pyside6.qtsvg python3-pyside6.qtnetwork policykit-1 libglib2.0-bin fontconfig xz-utils || root apt-get install -y python3 python3-pyqt6 python3-pyqt6.qtsvg pkexec libglib2.0-bin fontconfig xz-utils
+  elif command -v apt-get >/dev/null; then root apt-get update && root apt-get install -y python3 python3-pyside6.qtwidgets python3-pyside6.qtsvg python3-pyside6.qtnetwork policykit-1 libglib2.0-bin fontconfig xz-utils
   elif command -v dnf >/dev/null; then root dnf install -y python3 python3-pyside6 polkit glib2 fontconfig xz
   elif command -v zypper >/dev/null; then root zypper -n in python3 python3-pyside6 polkit glib2-tools fontconfig xz
-  elif command -v python3 >/dev/null 2>&1; then python3 -m pip install --user PySide6 || true
   fi
-fi
-if [ "$BUNDLED" != 1 ] && ! have_qt; then
-  echo "!! Qt for Python could not be installed automatically. Install PySide6 for your system and run this again."
-  exit 1
+  have_qt || fail "Qt for Python could not be installed. Install PySide6 for your system and run this again."
 fi
 
-mkdir -p "$BIN" "$APPS"
 APP="$(ls "$HERE"/Linux-AIO-*-x86_64.AppImage 2>/dev/null | sort -V | tail -n1)"
+step 2 "Copying the app to $BIN"
+mkdir -p "$BIN" "$APPS" || fail "cannot create $BIN"
 if [ -n "$APP" ]; then
-  install -m755 "$APP" "$BIN/Linux-AIO.AppImage"
+  install -m755 "$APP" "$BIN/Linux-AIO.AppImage" || fail "cannot copy the AppImage"
   cat > "$BIN/linux-aio" <<'EOS'
 #!/bin/sh
 # without FUSE the AppImage runs extracted
@@ -332,14 +335,19 @@ command -v fusermount3 >/dev/null 2>&1 || command -v fusermount >/dev/null 2>&1 
 exec "$HOME/.local/bin/Linux-AIO.AppImage" "$@"
 EOS
 else
-  install -m755 "$HERE/Linux-AIO.pyz" "$BIN/Linux-AIO.pyz"
+  install -m755 "$HERE/Linux-AIO.pyz" "$BIN/Linux-AIO.pyz" || fail "cannot copy the app"
   printf '#!/bin/sh\\nexec python3 "$HOME/.local/bin/Linux-AIO.pyz" "$@"\\n' > "$BIN/linux-aio"
 fi
 chmod 755 "$BIN/linux-aio"
-install -Dm644 "$HERE/linux-aio.png" "$ICON"
-# Tux on the AppImage file itself in the file manager (GNOME/GVfs metadata)
-[ -f "$BIN/Linux-AIO.AppImage" ] && gio set "$BIN/Linux-AIO.AppImage" metadata::custom-icon "file://$ICON" >/dev/null 2>&1 || true
-cat > "$APPS/de.labtosostudios.linuxaio.desktop" <<EOD
+ok
+
+step 3 "Installing the icon"
+install -Dm644 "$HERE/linux-aio.png" "$ICON" || fail "cannot install the icon"
+gtk-update-icon-cache -q "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
+ok
+
+step 4 "Adding the start menu entry"
+cat > "$APPS/de.labtosostudios.linuxaio.desktop" <<EOD || fail "cannot write the start menu entry"
 [Desktop Entry]
 Type=Application
 Name=Linux AIO
@@ -353,33 +361,54 @@ StartupWMClass=de.labtosostudios.linuxaio
 StartupNotify=false
 EOD
 update-desktop-database "$APPS" >/dev/null 2>&1 || true
-gtk-update-icon-cache -q "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
-echo "==> Done: Linux AIO @VER@ is in the app menu (command: linux-aio)"
+ok
+
+step 5 "Setting the file icon in the file manager"
+if [ -f "$BIN/Linux-AIO.AppImage" ] && gio set "$BIN/Linux-AIO.AppImage" metadata::custom-icon "file://$ICON" >/dev/null 2>&1; then
+  ok
+else
+  echo "skipped (no GVfs)"
+fi
+
+echo ""
+echo "Linux AIO @VER@ installed successfully."
+echo "  App:          $BIN/linux-aio"
+echo "  Start menu:   $APPS/de.labtosostudios.linuxaio.desktop"
+echo "  Settings:     $HOME/.config/LabtosoStudios/linuxaio.json (kept across updates)"
+echo "Start it from the app menu or run: linux-aio"
 """
 
 ZIP_UNINSTALL = """#!/bin/sh
 # Remove Linux AIO (app, start menu entry, icon). Settings and cursors only after asking.
 cd /tmp
 BIN="$HOME/.local/bin"
-rm -f "$BIN/linux-aio" "$BIN/Linux-AIO.AppImage" "$BIN/Linux-AIO.pyz"
+N=4
+step() { printf "[%s/%s] %s ... " "$1" "$N" "$2"; }
+echo "Linux AIO uninstaller"
+echo ""
+step 1 "Removing the app from $BIN"
+rm -f "$BIN/linux-aio" "$BIN/Linux-AIO.AppImage" "$BIN/Linux-AIO.pyz"; echo "done"
+step 2 "Removing the start menu entry and icon"
 rm -f "$HOME/.local/share/applications/de.labtosostudios.linuxaio.desktop"
 rm -f "$HOME/.local/share/icons/hicolor/"*/apps/de.labtosostudios.linuxaio.png
 update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
-echo "==> Linux AIO removed"
-
-printf "Also delete the Linux AIO settings? [y/N] "
+echo "done"
+step 3 "Settings"
+printf "delete $HOME/.config/LabtosoStudios/linuxaio.json? [y/N] "
 read -r a
 case "$a" in
-  y|Y|j|J) rm -f "$HOME/.config/LabtosoStudios/linuxaio.json"; rm -rf "$HOME/.cache/LabtosoStudios/linuxaio"
-           echo "    settings deleted" ;;
-  *) echo "    settings kept" ;;
+  y|Y|j|J) rm -f "$HOME/.config/LabtosoStudios/linuxaio.json"; rm -rf "$HOME/.cache/LabtosoStudios/linuxaio"; echo "      deleted" ;;
+  *) echo "      kept" ;;
 esac
-printf "Also delete the installed Bibata cursors (~/.local/share/icons/Bibata-Material-*)? [y/N] "
+step 4 "Cursors"
+printf "delete the installed Bibata cursors (~/.local/share/icons/Bibata-Material-*)? [y/N] "
 read -r b
 case "$b" in
-  y|Y|j|J) rm -rf "$HOME"/.local/share/icons/Bibata-Material-*; echo "    cursors deleted" ;;
-  *) echo "    cursors kept" ;;
+  y|Y|j|J) rm -rf "$HOME"/.local/share/icons/Bibata-Material-*; echo "      deleted" ;;
+  *) echo "      kept" ;;
 esac
+echo ""
+echo "Linux AIO removed."
 """
 
 
