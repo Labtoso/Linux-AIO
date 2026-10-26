@@ -9,6 +9,10 @@ from .theme_page import ThemePage
 from .widgets import ChipRow
 
 
+def _pm(img):
+    return QtGui.QPixmap.fromImage(img) if img is not None else None
+
+
 class PlymouthPage(ThemePage):
     mod = plymouth
     act = "ply"
@@ -18,25 +22,51 @@ class PlymouthPage(ThemePage):
     prompt_args = ("ply-setup",)
     has_test = False
 
-    def local_animation(self, th):
-        """Animierte Vorschau aus den Bildern des installierten Themes (wird pro Theme zwischengespeichert)."""
+    def local_animation(self, th, tile: bool = False):
+        """Vorschau aus den Bildern des Themes. Kachel: ein fertiges Standbild. Große Vorschau: alle Einzelbilder
+        in voller Länge als Schleife – im Hintergrund geladen, damit der Tab-Wechsel nicht hängt."""
         cache = self.__dict__.setdefault("_anim_cache", {})
-        if th["path"] in cache:
-            return cache[th["path"]]
+        key = (th["path"], tile)
+        if key in cache:
+            return cache[key]
         a = plymouth.preview_assets(Path(th["path"]))
-        result = None
-        if a["frames"] or a["logo"]:
-            def load(f, limit=700):
-                pm = QtGui.QPixmap(f) if f else None
-                if pm is not None and not pm.isNull() and max(pm.width(), pm.height()) > limit:
-                    pm = pm.scaled(limit, limit, Qt.AspectRatioMode.KeepAspectRatio,
-                                   Qt.TransformationMode.SmoothTransformation)
-                return pm if pm is not None and not pm.isNull() else None
-            frames = [pm for pm in (load(f) for f in a["frames"]) if pm is not None]
-            result = {"frames": frames, "logo": load(a["logo"]), "bgimg": load(a["background"], 1600),
-                      "bg": a["bg"], "bg2": a["bg2"], "ha": a["ha"], "va": a["va"], "wva": a["wva"]}
-        cache[th["path"]] = result
-        return result
+        if not (a["frames"] or a["logo"]):
+            cache[key] = None
+            return None
+
+        def load(f, limit=700):
+            img = QtGui.QImage(f) if f else QtGui.QImage()
+            if not img.isNull() and max(img.width(), img.height()) > limit:
+                img = img.scaled(limit, limit, Qt.AspectRatioMode.KeepAspectRatio,
+                                 Qt.TransformationMode.SmoothTransformation)
+            return None if img.isNull() else img
+
+        def build(frames):
+            return {"frames": [QtGui.QPixmap.fromImage(i) for i in frames if i is not None],
+                    "logo": _pm(load(a["logo"])), "bgimg": _pm(load(a["background"], 1600)),
+                    "bg": a["bg"], "bg2": a["bg2"], "ha": a["ha"], "va": a["va"], "wva": a["wva"]}
+        if tile:      # Standbild: letztes Bild der Animation (dort ist das Logo komplett)
+            still = a["frames"][-1:] if a["frames"] else []
+            result = build([load(f) for f in still])
+            cache[key] = result
+            return result
+        first = build([load(a["frames"][-1])] if a["frames"] else [])
+        cache[key] = first
+        if len(a["frames"]) > 1:
+            from .form import start_job
+            files = list(a["frames"])
+            start_job(self, lambda: [load(f) for f in files],
+                      lambda ok, imgs, k=key, p=th["path"]: self._frames_done(ok, imgs, k, p, build))
+        return first
+
+    def _frames_done(self, ok, imgs, key, path, build):
+        if not ok:
+            return
+        full = build(imgs)
+        self.__dict__.setdefault("_anim_cache", {})[key] = full
+        it = self.item() if self.mode == "local" else None
+        if it and it["path"] == path:
+            self.big.set_animation(full)
 
     def reload_local(self):
         self.__dict__["_anim_cache"] = {}

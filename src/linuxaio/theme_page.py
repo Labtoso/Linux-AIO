@@ -229,7 +229,7 @@ class ThemePage(QtWidgets.QWidget):
     def installed(self) -> bool:
         return self.mod.is_installed()
 
-    def local_animation(self, th):
+    def local_animation(self, th, tile: bool = False):
         return None
 
     # ----- Daten -----
@@ -351,7 +351,7 @@ class ThemePage(QtWidgets.QWidget):
         self.strip.add(tile)
 
     def _local_picture(self, th, pic):
-        anim = self.local_animation(th)
+        anim = self.local_animation(th, tile=pic is not self.big)
         if anim:
             pic.set_animation(anim)
             return

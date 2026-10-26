@@ -45,11 +45,8 @@ def store_state_file() -> Path:
 
 
 def load_store_state() -> dict:
-    import json
-    try:
-        return json.loads(store_state_file().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
+    from .system import load_state_file
+    return load_state_file(store_state_file())
 
 
 def is_installed() -> bool:
@@ -141,13 +138,14 @@ def preview_assets(path: Path) -> dict:
             groups.setdefault(m.group("base").lower(), []).append((int(m.group("num")), p))
     frames = []
     if groups:
+        # die lange Hauptanimation zuerst (two-step: animation-* = das eigentliche Bild, throbber-* nur Ladepunkte)
         def rank(item):
             base, lst = item
-            pref = next((i for i, k in enumerate(("throbber", "animation", "spinner", "loading", "frame", "progress"))
+            pref = next((i for i, k in enumerate(("animation", "throbber", "spinner", "loading", "frame", "progress"))
                          if k in base), 9)
-            return (pref, -len(lst))
+            return (-len(lst), pref)
         base, lst = min(((b, l) for b, l in groups.items() if len(l) >= 3), key=rank, default=(None, []))
-        frames = [str(p) for _, p in sorted(lst)][:150]
+        frames = [str(p) for _, p in sorted(lst)][:600]
     in_groups = {str(p) for lst in groups.values() for _, p in lst}
     named = {p.stem.lower(): p for p in pngs}
     logo = next((named[n] for n in ("watermark", "logo", "header-image", "splash", "distro-logo") if n in named), None)
