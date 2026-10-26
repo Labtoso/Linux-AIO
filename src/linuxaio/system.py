@@ -14,6 +14,28 @@ ACCOUNTS_DIR = Path("/var/lib/AccountsService/users")
 STATE_FILE = Path("/var/lib/labtoso-linuxaio/state.json")
 
 
+LEGACY = ("labtoso-linuxaio", "labtoso-desddmmanager")   # Vorgänger DE SDDM Manager
+
+
+def load_state_file(path: Path) -> dict:
+    """State read from /var/lib (survives updates); entries of the predecessor app are merged in."""
+    import json
+    data = {}
+    old = Path(str(path).replace(*LEGACY))
+    for p in (old, path):
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(d, dict):
+            for k, v in d.items():
+                if isinstance(v, dict) and isinstance(data.get(k), dict):
+                    data[k] = {**data[k], **v}
+                else:
+                    data[k] = v
+    return data
+
+
 def detect_backend() -> str | None:
     forced = os.environ.get("DEMANAGER_BACKEND")
     if forced in catalog.BACKENDS:

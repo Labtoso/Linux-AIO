@@ -31,10 +31,7 @@ def state_path() -> Path:
 
 
 def load_state() -> dict:
-    try:
-        return json.loads(state_path().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
+    return system.load_state_file(state_path())
 
 
 def save_state(st: dict) -> None:

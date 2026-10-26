@@ -200,13 +200,13 @@ EXTRA["en"].update({
 EXTRA["de"].update({
     "gn.btn.close": "Schließen",
     "gn.btn.noclose": "Ohne Schließen-Knopf: Fenster mit Alt+F4 (oder deinem Kürzel, z. B. Super+Q) schließen.",
-    "gn.btns": "Knopf-Themes", "gn.btns.note": "Wirkt in GTK-3- und GTK-4-Programmen (Dateien, Text-Editor, Einstellungen …) nach deren Neustart; „Dateien“ läuft im Hintergrund weiter – dafür einmal ab- und anmelden. Firefox/Zen, Chrome/Electron und Qt/KDE-Programme zeichnen eigene Knöpfe und folgen nicht.",
+    "gn.btns": "Knopf-Themes", "gn.btns.note": "Wirkt in Programmen nach deren Neustart. „Dateien“ läuft im Hintergrund weiter – „Dateien neu starten“ beendet es kurz.",
     "gn.btns.restart": "Knopf-Theme gesetzt – Programme neu starten",
 })
 EXTRA["en"].update({
     "gn.btn.close": "Close",
     "gn.btn.noclose": "Without a close button: close windows with Alt+F4 (or your shortcut, e.g. Super+Q).",
-    "gn.btns": "Button themes", "gn.btns.note": "Applies to GTK 3 and GTK 4 apps (Files, Text Editor, Settings …) after restarting them; Files keeps running in the background – log out and in once. Firefox/Zen, Chrome/Electron and Qt/KDE apps draw their own buttons and do not follow.",
+    "gn.btns": "Button themes", "gn.btns.note": "Takes effect in apps after restarting them. Files keeps running in the background – “Restart Files” quits it briefly.",
     "gn.btns.restart": "Button theme set – restart apps",
 })
 
@@ -263,3 +263,82 @@ EXTRA["en"].update({
     "font.applied": "{name} is now the font for: {where}",
     "fonts.nofiles": "No font files found", "fonts.bad": "File is not a font – aborted",
 })
+
+EXTRA["de"].update({
+    "maximize": "Maximieren",
+    "miss.incompatible": "{name} installiert, unterstützt diese GNOME-Version aber noch nicht",
+    "gn.ext.incompatible": "Nicht für diese GNOME-Version",
+    "gn.ext.force": "Trotzdem aktivieren",
+    "gn.ext.force.ask": "Die Erweiterung gibt diese GNOME-Version nicht an. GNOME kann die Versionsprüfung für alle Erweiterungen abschalten – dann läuft sie meist trotzdem, im schlimmsten Fall wird sie beim Anmelden deaktiviert. Danach ab- und wieder anmelden. Fortfahren?",
+})
+EXTRA["en"].update({
+    "maximize": "Maximise",
+    "miss.incompatible": "{name} installed, but it does not support this GNOME version yet",
+    "gn.ext.incompatible": "Not for this GNOME version",
+    "gn.ext.force": "Enable anyway",
+    "gn.ext.force.ask": "The extension does not list this GNOME version. GNOME can turn off the version check for all extensions – it usually works then; at worst it is disabled again at login. Log out and back in afterwards. Continue?",
+})
+
+EXTRA["de"].update({
+    "gn.btns.moz": "Auch in Firefox und Zen (userChrome.css)",
+    "gn.sup.gtk": "GTK 3/4: ja", "gn.sup.moz": "Firefox/Zen: ja", "gn.sup.chromium": "Chromium: teilweise",
+    "gn.sup.electron": "Electron: nein", "gn.sup.qt": "Qt/KDE: nein",
+    "gn.sup.moz.tip": "Über userChrome.css im Profil; nur runde und eckige Themes",
+    "gn.sup.chromium.tip": "Im Browser „Systemtitelleiste und -rahmen verwenden“ einschalten – dann zeichnet GTK die Knöpfe",
+    "gn.sup.electron.tip": "Electron-Programme (z. B. Discord, VS Code, Slack) zeichnen eigene Knöpfe",
+    "gn.sup.qt.tip": "Qt-Programme folgen unter GNOME nicht; unter Plasma regelt das das Fensterdekorations-Design",
+})
+EXTRA["en"].update({
+    "gn.btns.moz": "Also in Firefox and Zen (userChrome.css)",
+    "gn.sup.gtk": "GTK 3/4: yes", "gn.sup.moz": "Firefox/Zen: yes", "gn.sup.chromium": "Chromium: partly",
+    "gn.sup.electron": "Electron: no", "gn.sup.qt": "Qt/KDE: no",
+    "gn.sup.moz.tip": "Via userChrome.css in the profile; round and square themes only",
+    "gn.sup.chromium.tip": "Turn on “Use system title bar and borders” in the browser – GTK then draws the buttons",
+    "gn.sup.electron.tip": "Electron apps (e.g. Discord, VS Code, Slack) draw their own buttons",
+    "gn.sup.qt.tip": "Qt apps do not follow under GNOME; on Plasma the window decoration theme controls this",
+})
+
+EXTRA["de"].update({
+    "sec.app": "Programm", "app.title": "Linux AIO", "app.scale": "Größe der Oberfläche",
+    "app.scale.100": "100 %", "app.scale.90": "90 %", "app.scale.80": "80 %",
+    "app.hypr": "Hypr Studio", "app.hypr.embed": "Eingebettet", "app.hypr.window": "Eigenes Fenster",
+    "app.hypr.open": "Hypr Studio öffnen", "app.restart": "Neu starten", "app.restart.need": "Wirkt nach einem Neustart",
+})
+EXTRA["en"].update({
+    "sec.app": "App", "app.title": "Linux AIO", "app.scale": "Interface size",
+    "app.scale.100": "100 %", "app.scale.90": "90 %", "app.scale.80": "80 %",
+    "app.hypr": "Hypr Studio", "app.hypr.embed": "Embedded", "app.hypr.window": "Separate window",
+    "app.hypr.open": "Open Hypr Studio", "app.restart": "Restart", "app.restart.need": "Takes effect after a restart",
+})
+
+EXTRA["de"].update({
+    "bar.editor": "Leisten-Editor", "bar.tip": "Auf ein Element klicken: zeigen oder ausblenden",
+    "bar.needs": "Braucht die Erweiterung „Just Perfection“",
+    "bar.activities": "Aktivitäten", "bar.clock": "Uhr", "bar.notify": "Benachrichtigungen", "bar.keyboard": "Tastatur",
+    "bar.a11y": "Barrierefreiheit", "bar.screenshare": "Bildschirmfreigabe", "bar.quick": "Schnelleinstellungen",
+    "bar.power": "Akku",
+    "bar.clockpos": "Uhr", "bar.pos.0": "Mitte", "bar.pos.1": "Rechts", "bar.pos.2": "Links",
+    "bar.place": "Leiste", "bar.place.0": "Oben", "bar.place.1": "Unten",
+    "qs.dark": "Schnelleinstellung Dunkler Stil", "qs.night": "Schnelleinstellung Nachtlicht",
+    "qs.dnd": "Schnelleinstellung Nicht stören", "qs.airplane": "Schnelleinstellung Flugmodus",
+    "qs.backlight": "Schnelleinstellung Tastaturbeleuchtung",
+    "pw.menu": "Power-Menü", "pw.logout": "„Abmelden“ immer zeigen", "pw.switch": "„Benutzer wechseln“",
+    "pw.lock": "„Sperren“",
+})
+EXTRA["en"].update({
+    "bar.editor": "Bar editor", "bar.tip": "Click an element to show or hide it",
+    "bar.needs": "Needs the “Just Perfection” extension",
+    "bar.activities": "Activities", "bar.clock": "Clock", "bar.notify": "Notifications", "bar.keyboard": "Keyboard",
+    "bar.a11y": "Accessibility", "bar.screenshare": "Screen sharing", "bar.quick": "Quick settings",
+    "bar.power": "Battery",
+    "bar.clockpos": "Clock", "bar.pos.0": "Centre", "bar.pos.1": "Right", "bar.pos.2": "Left",
+    "bar.place": "Bar", "bar.place.0": "Top", "bar.place.1": "Bottom",
+    "qs.dark": "Quick setting Dark style", "qs.night": "Quick setting Night light",
+    "qs.dnd": "Quick setting Do not disturb", "qs.airplane": "Quick setting Airplane mode",
+    "qs.backlight": "Quick setting Keyboard backlight",
+    "pw.menu": "Power menu", "pw.logout": "Always show “Log out”", "pw.switch": "“Switch user”",
+    "pw.lock": "“Lock”",
+})
+
+EXTRA["de"].update({"gn.files.restart": "Dateien neu starten"})
+EXTRA["en"].update({"gn.files.restart": "Restart Files"})

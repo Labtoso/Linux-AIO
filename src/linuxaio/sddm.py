@@ -57,10 +57,8 @@ def store_state_file() -> Path:
 
 
 def load_store_state() -> dict:
-    try:
-        return json.loads(store_state_file().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
+    from .system import load_state_file
+    return load_state_file(store_state_file())
 
 
 def read_ini(path: Path) -> configparser.ConfigParser:

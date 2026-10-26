@@ -78,7 +78,7 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.cfg = load_cfg()
-        set_lang(self.cfg.get("lang", "de"))
+        set_lang(self.cfg.get("lang", "en"))
         if self.cfg.get("theme") not in theme.THEMES:
             self.cfg["theme"] = "blue"
         if self.cfg.get("tab") not in TABS:
@@ -98,7 +98,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.resize(1360, 880)
-        self.setMinimumSize(880, 560)   # kleiner als das Layout: Inhalt scrollt statt sich zu überlappen
+        self.setMinimumSize(900, 600)   # Seiten mit viel Inhalt scrollen selbst (kein zweiter Scrollbalken außen)
 
         outer = QtWidgets.QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -117,14 +117,15 @@ class MainWindow(QtWidgets.QWidget):
         head = QtWidgets.QHBoxLayout()
         left = QtWidgets.QHBoxLayout()
         left.setSpacing(10)
-        self.gear = QtWidgets.QToolButton()
-        self.gear.setIconSize(QtCore.QSize(22, 22))
+        self.gear = QtWidgets.QToolButton()        # Tux-Logo, öffnet die App-Einstellungen
+        self.gear.setIconSize(QtCore.QSize(26, 26))
+        self.gear.setFixedSize(36, 36)
         self.gear.setCursor(Qt.CursorShape.PointingHandCursor)
         self.gear.clicked.connect(self.toggle_settings)
         self.title = QtWidgets.QLabel(linuxaio.APP_NAME)
         self.title.setObjectName("Title")
-        left.addWidget(self.gear)
-        left.addWidget(self.title)
+        left.addWidget(self.gear, 0, Qt.AlignmentFlag.AlignVCenter)
+        left.addWidget(self.title, 0, Qt.AlignmentFlag.AlignVCenter)
         left.addStretch()
         self.tabs = Segmented(TABS, prefix="tab.")
         self.tabs.setObjectName("TabBox")
@@ -133,12 +134,16 @@ class MainWindow(QtWidgets.QWidget):
         right.addStretch()
         self.btn_min = QtWidgets.QToolButton()
         self.btn_min.clicked.connect(self.showMinimized)
+        self.btn_max = QtWidgets.QToolButton()
+        self.btn_max.clicked.connect(lambda: self.showNormal() if self.isMaximized() else self.showMaximized())
         self.btn_close = QtWidgets.QToolButton()
         self.btn_close.setObjectName("CloseBtn")
         self.btn_close.clicked.connect(self.close)
-        for b in (self.btn_min, self.btn_close):
-            b.setIconSize(QtCore.QSize(18, 18))
-            right.addWidget(b)
+        right.setSpacing(6)
+        for b in (self.btn_min, self.btn_max, self.btn_close):
+            b.setIconSize(QtCore.QSize(16, 16))
+            b.setFixedSize(32, 32)          # Hover-Fläche quadratisch und mittig
+            right.addWidget(b, 0, Qt.AlignmentFlag.AlignVCenter)
         head.addLayout(left, 1)
         head.addWidget(self.tabs)
         head.addLayout(right, 1)
@@ -155,14 +160,7 @@ class MainWindow(QtWidgets.QWidget):
         usercmd.set_logger(self.logline.emit)
         self.settings_page = SettingsPage(self)
         self.stack.addWidget(self.settings_page)
-        self.stack_scroll = QtWidgets.QScrollArea()
-        self.stack_scroll.setObjectName("StackScroll")
-        self.stack_scroll.setWidgetResizable(True)
-        self.stack_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
-        self.stack_scroll.setWidget(self.stack)
-        self.stack_scroll.viewport().setObjectName("Viewport")
-        self.stack_scroll.viewport().setStyleSheet("#Viewport { background: transparent; }")
-        cl.addWidget(self.stack_scroll, 1)
+        cl.addWidget(self.stack, 1)
 
         self.footer = QtWidgets.QWidget()
         foot = QtWidgets.QHBoxLayout(self.footer)
@@ -413,13 +411,15 @@ class MainWindow(QtWidgets.QWidget):
         chev = chevron_file(theme.MUTED)
         extra = f"QComboBox#Combo::down-arrow {{ image: url({chev}); width: 14px; height: 14px; }}" if chev else ""
         self.setStyleSheet(theme.qss(self.accent()) + extra)
-        self.gear.setIcon(draw_icon("gear", theme.TEXT, 22))
-        self.btn_min.setIcon(draw_icon("min", theme.MUTED, 18))
-        self.btn_close.setIcon(draw_icon("close", theme.MUTED, 18))
+        self.gear.setIcon(app_icon())
+        self.btn_min.setIcon(draw_icon("min", theme.MUTED, 16))
+        self.btn_max.setIcon(draw_icon("max", theme.MUTED, 16))
+        self.btn_close.setIcon(draw_icon("close", theme.MUTED, 16))
 
     def retranslate(self):
         self.gear.setToolTip(t("settings"))
         self.btn_min.setToolTip(t("minimize"))
+        self.btn_max.setToolTip(t("maximize"))
         self.btn_close.setToolTip(t("close"))
         self.btn_log.setText(t("log"))
         self.tabs.retranslate()
@@ -439,10 +439,15 @@ def main(argv) -> int:
     for var in ("QT_QPA_PLATFORMTHEME", "QT_STYLE_OVERRIDE"):
         os.environ.pop(var, None)
     os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
+    scale = str(load_cfg().get("ui_scale", "100"))          # Settings › Linux AIO: 100 / 90 / 80 %
+    if scale in ("90", "80"):
+        base = float(os.environ.get("QT_SCALE_FACTOR", "1") or 1)
+        os.environ["QT_SCALE_FACTOR"] = f"{base * int(scale) / 100:.2f}"
     app = QtWidgets.QApplication(argv)
     app.setApplicationName(linuxaio.APP_NAME)
     app.setOrganizationName("LabtosoStudios")
     app.setApplicationVersion(linuxaio.__version__)
+    app.setApplicationDisplayName(linuxaio.APP_NAME)
     app.setDesktopFileName(linuxaio.APP_ID)   # Wayland: richtiges Icon in der Plasma-Taskleiste
     app.setWindowIcon(app_icon())
     app.setStyle("Fusion")   # überall gleich (kein Breeze/GTK-Stil vom System)
@@ -453,6 +458,7 @@ def main(argv) -> int:
     app.aboutToQuit.connect(Job.wait_all)
     w = MainWindow()
     w.show()
+    QtCore.QTimer.singleShot(800, _integrate)
     shot = os.environ.get("DEMANAGER_SHOT")
     if shot:
         QtCore.QTimer.singleShot(600, lambda: _shots(w, app, shot, os.environ.get("LINUXAIO_STEPS", "")))
@@ -460,6 +466,36 @@ def main(argv) -> int:
     if any(j.isRunning() for j in Job.running):
         os._exit(code)          # Download hängt noch: hart beenden statt Qt-Absturz beim Aufräumen
     return code
+
+
+def _integrate():
+    """AppImage/.pyz: start menu entry + icon with the window's app ID (right icon in the GNOME dock)."""
+    from . import integrate
+    from .qt import QtSvg
+
+    def render(size, path):
+        img = QtGui.QImage(size, size, QtGui.QImage.Format.Format_ARGB32)
+        img.fill(0)
+        p = QtGui.QPainter(img)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        data = _icon_svg()
+        if data:
+            QtSvg.QSvgRenderer(QtCore.QByteArray(data)).render(p, QtCore.QRectF(0, 0, size, size))
+        p.end()
+        img.save(str(path), "PNG")
+    integrate.ensure(render)
+
+
+def _icon_svg() -> bytes:
+    from pathlib import Path
+    f = Path(__file__).parent / "assets" / "linux-aio.svg"
+    if f.is_file():
+        return f.read_bytes()
+    try:
+        import importlib.resources as res
+        return res.files("linuxaio").joinpath("assets/linux-aio.svg").read_bytes()
+    except Exception:  # noqa: BLE001
+        return b""
 
 
 def _shots(w, app, shot, steps):

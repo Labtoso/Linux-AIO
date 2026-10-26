@@ -11,6 +11,7 @@ SECTIONS = {
     "gnome": ("look", "cursor", "icon", "fonts", "windows", "titlebar", "topbar", "input", "autostart", "login"),
     "plasma": ("plasma", "cursor", "icon"),
     "hyprland": ("hyprstudio", "cursor", "icon"),
+    "app": ("app",),
 }
 DEFAULT_SECTIONS = ("cursor", "icon")
 
@@ -36,8 +37,11 @@ def make_section(host, de: str, key: str):
         from .plasma_page import PlasmaLook
         return PlasmaLook(host)
     if key == "hyprstudio":
-        from .hypr_embed import HyprEmbed
-        return HyprEmbed(host)
+        from .hypr_embed import HyprEmbed, HyprLauncher
+        return HyprLauncher(host) if host.cfg.get("hypr_mode") == "window" else HyprEmbed(host)
+    if key == "app":
+        from .app_page import AppPage
+        return AppPage(host)
     if key == "look":
         return G.LookGnome(host)
     if key == "titlebar":
@@ -88,6 +92,7 @@ class DePanel(QtWidgets.QWidget):
                 self.nav.addItem(it)
             self.nav.currentRowChanged.connect(lambda r: self.show_section(self.keys[r]) if r >= 0 else None)
             lay.addWidget(self.nav)
+            self.nav.setVisible(len(self.keys) > 1)      # ein Bereich: keine Seitenleiste
         self.stack = QtWidgets.QStackedWidget()
         lay.addWidget(self.stack, 1)
         self.current = None
@@ -155,7 +160,7 @@ class SettingsPage(QtWidgets.QWidget):
         super().__init__()
         self.host = host
         self.panels = {}
-        self.entries = desktops.entries()
+        self.entries = [desktops.Entry("app", "Linux AIO", (), ())] + desktops.entries()
         self.running = desktops.current()
         lay = QtWidgets.QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -194,6 +199,8 @@ class SettingsPage(QtWidgets.QWidget):
             self.select(start)
 
     def _installed(self, de_id: str) -> bool:
+        if de_id == "app":
+            return True
         e = desktops.get(de_id)
         return bool(e and desktops.installed(e))
 
@@ -202,7 +209,7 @@ class SettingsPage(QtWidgets.QWidget):
         acc = self.host.accent()
         for i, e in enumerate(self.entries):
             it = self.list.item(i)
-            inst = desktops.installed(e)
+            inst = e.id == "app" or desktops.installed(e)
             flags = Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable if inst else Qt.ItemFlag.NoItemFlags
             it.setFlags(flags)
             it.setIcon(dot_icon(acc if e.id == self.running else ("#00000000" if inst else "#00000000")))
@@ -251,6 +258,7 @@ class SettingsPage(QtWidgets.QWidget):
             p.apply_accent()
 
     def refresh(self):
+        self.mark()          # frisch installierte Desktops sofort wählbar (läuft nach jeder Aktion)
         p = self.panel()
         if p is not None:
             p.refresh_busy()

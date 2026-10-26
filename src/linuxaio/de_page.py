@@ -13,10 +13,7 @@ from .widgets import DRY, ChipRow, Segmented, Tile, TileStrip, set_applied
 
 def read_state() -> dict:
     p = Path(tempfile.gettempdir()) / "linuxaio-dry-state.json" if DRY else system.STATE_FILE
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
+    return system.load_state_file(p)
 
 
 class DEPage(QtWidgets.QWidget):
