@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Pinsel, schräg: Stiel, Zwinge, Borsten mit Farbe -->
+  <g transform="rotate(45 128 128)">
+    <rect x="114" y="10" width="28" height="118" rx="14" fill="#7a4a2a"/>
+    <rect x="120" y="18" width="6" height="100" rx="3" fill="#a06a42"/>
+    <rect x="108" y="122" width="40" height="34" rx="6" fill="#b8c2cf"/>
+    <rect x="108" y="132" width="40" height="5" fill="#8d97a5"/>
+    <rect x="108" y="143" width="40" height="5" fill="#8d97a5"/>
+    <path d="M106 154 h44 c4 28 2 52 -10 78 c-4 9 -20 9 -24 0 c-12 -26 -14 -50 -10 -78 z" fill="#4a515d"/>
+    <path d="M110 186 h36 c-1 16 -4 30 -10 46 c-4 9 -12 9 -16 0 c-6 -16 -9 -30 -10 -46 z" fill="#3d8bfd"/>
+    <path d="M122 190 c0 14 2 26 6 38" stroke="#7fb3ff" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+</svg>
