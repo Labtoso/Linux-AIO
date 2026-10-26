@@ -5,7 +5,7 @@ from pathlib import Path
 
 from hyprstudio.widgets import Switch
 
-from . import gnome, installers, theme, usercmd
+from . import corners, gnome, installers, theme, usercmd
 from .form import Card, MissingButton, Page, Row, combo, gsection, retranslate_buttons, set_chip, start_job, tool_button
 from .i18n import t
 from .qt import QtCore, QtGui, QtWidgets, Qt
@@ -128,6 +128,145 @@ class LookGnome(ExtInstall, Page):
         self.shell.blockSignals(False)
 
 
+# ---------- Fenster (mit Eckenrundung) ----------
+
+class CornerPreview(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.radius = 15
+        self.setFixedHeight(120)
+
+    def set_radius(self, r):
+        self.radius = r
+        self.update()
+
+    def paintEvent(self, _):
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        bg = QtCore.QRectF(self.rect()).adjusted(1, 1, -1, -1)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QtGui.QColor("#3b5470"))
+        p.drawRoundedRect(bg, 12, 12)
+        w = QtCore.QRectF(bg.center().x() - 160, bg.top() + 16, 320, bg.height() - 32)
+        path = QtGui.QPainterPath()
+        path.addRoundedRect(w, self.radius, self.radius)
+        p.fillPath(path, QtGui.QColor("#242a32"))
+        p.save()
+        p.setClipPath(path)
+        p.fillRect(QtCore.QRectF(w.left(), w.top(), w.width(), 30), QtGui.QColor("#2e3540"))
+        p.restore()
+        p.setPen(QtGui.QColor(theme.TEXT))
+        p.drawText(QtCore.QRectF(w.left(), w.top(), w.width(), 30), Qt.AlignmentFlag.AlignCenter, f"{self.radius} px")
+        p.end()
+
+
+class WindowsPage(ExtInstall, Page):
+    def __init__(self, host):
+        super().__init__("gn.windows")
+        self.host = host
+        card = Card()
+        self.body.addWidget(card)
+        gsection(self, card, gnome.SECTIONS["windows"])
+        rc = Card("gn.corners")
+        self.body.addWidget(rc)
+        self.preview = CornerPreview()
+        rc.lay.addWidget(self.preview)
+        sw = QtWidgets.QWidget()
+        hl = QtWidgets.QHBoxLayout(sw)
+        hl.setContentsMargins(0, 0, 0, 0)
+        self.slider = QtWidgets.QSlider(Qt.Orientation.Horizontal)
+        self.slider.setRange(0, 24)
+        self.slider.setMinimumWidth(120)
+        self.value = QtWidgets.QLabel()
+        self.value.setFixedWidth(48)
+        self.b_orig = tool_button("gn.login.restore")
+        self.b_orig.clicked.connect(self.reset_corners)
+        hl.addWidget(self.slider)
+        hl.addWidget(self.value)
+        hl.addWidget(self.b_orig)
+        self.r_radius = Row("gn.corners.radius", sw)
+        rc.lay.addWidget(self.r_radius)
+        ew = QtWidgets.QWidget()
+        el = QtWidgets.QHBoxLayout(ew)
+        el.setContentsMargins(0, 0, 0, 0)
+        el.setSpacing(8)
+        self.ext_chip = QtWidgets.QLabel()
+        self.ext_get = MissingButton()
+        self.ext_get.clicked.connect(lambda: self.install_ext(corners.EXT_UUID))
+        self.sw_ext = Switch()
+        self.sw_ext.toggled.connect(self._ext_toggle)
+        el.addWidget(self.ext_chip)
+        el.addWidget(self.ext_get)
+        el.addWidget(self.sw_ext)
+        self.r_ext = Row("gn.corners.all", ew)
+        rc.lay.addWidget(self.r_ext)
+        self.c_note = QtWidgets.QLabel()
+        self.c_note.setObjectName("Label")
+        self.c_note.setWordWrap(True)
+        rc.lay.addWidget(self.c_note)
+        self.timer = QtCore.QTimer(self)
+        self.timer.setSingleShot(True)
+        self.timer.setInterval(400)
+        self.timer.timeout.connect(self._apply_corners)
+        self.slider.valueChanged.connect(self._slide)
+        self.finish()
+
+    def _slide(self, v):
+        self.preview.set_radius(v)
+        self.value.setText(f"{v} px")
+        self.timer.start()
+
+    def _apply_corners(self):
+        v = self.slider.value()
+        corners.apply(v)
+        if gnome.ext_installed(corners.EXT_UUID) and corners.EXT_UUID in gnome.ext_enabled():
+            corners.set_extension_radius(v)
+        self.b_orig.setEnabled(True)
+        self.host.set_status(t("gn.corners.done", r=v))
+
+    def reset_corners(self):
+        corners.remove()
+        self.slider.blockSignals(True)
+        self.slider.setValue(15)
+        self.slider.blockSignals(False)
+        self.preview.set_radius(15)
+        self.value.setText("15 px")
+        self.b_orig.setEnabled(False)
+        self.host.set_status(t("gn.corners.reset"))
+
+    def _ext_toggle(self, on):
+        gnome.ext_set(corners.EXT_UUID, bool(on))
+        if on:
+            corners.set_extension_radius(self.slider.value())
+        self.host.set_status(t("done"))
+
+    def retranslate(self):
+        super().retranslate()
+        self.r_radius.retranslate()
+        self.r_ext.retranslate()
+        self.c_note.setText(t("gn.corners.note"))
+        retranslate_buttons(self)
+
+    def refresh(self):
+        super().refresh()
+        cur = corners.current()
+        self.slider.blockSignals(True)
+        self.slider.setValue(15 if cur is None else cur)
+        self.slider.blockSignals(False)
+        self.preview.set_radius(self.slider.value())
+        self.value.setText(f"{self.slider.value()} px")
+        self.b_orig.setEnabled(cur is not None)
+        have = gnome.ext_installed(corners.EXT_UUID)
+        on = corners.EXT_UUID in gnome.ext_enabled()
+        set_chip(self.ext_chip, "ChipOk" if on else ("Chip" if have else "ChipWarn"),
+                 t("gn.ext.on") if on else (t("gn.ext.off") if have else t("gn.ext.missing")))
+        self.ext_chip.setToolTip("Rounded Window Corners Reborn")
+        self.ext_get.setVisible(not have)
+        self.ext_get.setToolTip(t("miss.install") + ": Rounded Window Corners Reborn")
+        self.sw_ext.setEnabled(have)
+        self.sw_ext.set_now(on)
+
+
 # ---------- Titelleiste ----------
 
 class TitlebarPreview(QtWidgets.QWidget):
@@ -246,7 +385,7 @@ class ButtonTile(QtWidgets.QFrame):
 
 class TitlebarPage(Page):
     def __init__(self, host):
-        from hyprstudio.widgets import FlowGrid
+        from .form import FlowGrid
         from . import buttons
         super().__init__("gn.titlebar")
         self.host = host
@@ -297,6 +436,7 @@ class TitlebarPage(Page):
         self.body.addLayout(head)
         self.note = QtWidgets.QLabel()
         self.note.setObjectName("Label")
+        self.note.setWordWrap(True)
         self.body.addWidget(self.note)
         self.grid = FlowGrid(262)
         self.tiles = []
@@ -421,14 +561,14 @@ class TopbarPage(ExtInstall, Page):
 
 # ---------- Startprogramme ----------
 
-class AppPicker(QtWidgets.QDialog):
+from hyprstudio.dialogs import Frame as _Frame
+
+
+class AppPicker(_Frame):
     def __init__(self, parent, accent):
-        super().__init__(parent)
-        self.setWindowTitle(t("gn.auto.add"))
-        self.setStyleSheet(theme.qss(accent) + f"QDialog {{ background: {theme.SURFACE}; }}")
+        super().__init__(parent, t("gn.auto.add"), 460)
         self.resize(460, 560)
-        lay = QtWidgets.QVBoxLayout(self)
-        lay.setContentsMargins(16, 16, 16, 16)
+        lay = self.body
         self.search = QtWidgets.QLineEdit()
         self.search.setObjectName("Search")
         self.search.setPlaceholderText(t("search"))
@@ -632,10 +772,8 @@ class LoginPage(Page):
         self.finish()
 
     def pick_file(self) -> str:
-        f, _ = QtWidgets.QFileDialog.getOpenFileName(self, t("gn.login.pick"), str(Path.home()),
-                                                     "Bilder (*.png *.jpg *.jpeg *.webp *.svg)", "",
-                                                     QtWidgets.QFileDialog.Option.DontUseNativeDialog)
-        return f
+        from hyprstudio import dialogs
+        return dialogs.open_file(self, t("gn.login.pick"), str(Path.home()), "Bilder (*.png *.jpg *.jpeg *.webp *.svg)")
 
     def pick_bg(self):
         f = self.pick_file()
@@ -644,9 +782,9 @@ class LoginPage(Page):
             self.host.run(["gdm-bg", str(out)], "gdm-bg", self)
 
     def pick_color(self):
-        c = QtWidgets.QColorDialog.getColor(QtGui.QColor("#1b2430"), self, t("gn.login.color"),
-                                            QtWidgets.QColorDialog.ColorDialogOption.DontUseNativeDialog)
-        if c.isValid():
+        from hyprstudio import dialogs
+        c = dialogs.pick_color(self, QtGui.QColor("#1b2430"), t("gn.login.color"))
+        if c is not None and c.isValid():
             self.host.run(["gdm-bg", c.name()], "gdm-bg", self)
 
     def pick_logo(self):

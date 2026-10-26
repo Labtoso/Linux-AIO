@@ -33,6 +33,7 @@ EXT_PACKAGE = {
     "workspace-indicator@gnome-shell-extensions.gcampax.github.com": "gnome-shell-extensions",
 }
 EXT_NAMES = {
+    "rounded-window-corners@fxgn": "Rounded Window Corners Reborn",
     "user-theme@gnome-shell-extensions.gcampax.github.com": "User Themes",
     "workspace-indicator@gnome-shell-extensions.gcampax.github.com": "Workspace Indicator",
 }

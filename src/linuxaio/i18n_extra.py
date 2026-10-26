@@ -200,13 +200,13 @@ EXTRA["en"].update({
 EXTRA["de"].update({
     "gn.btn.close": "Schließen",
     "gn.btn.noclose": "Ohne Schließen-Knopf: Fenster mit Alt+F4 (oder deinem Kürzel, z. B. Super+Q) schließen.",
-    "gn.btns": "Knopf-Themes", "gn.btns.note": "Wirkt in GTK-Programmen nach dem Neustart des Programms.",
+    "gn.btns": "Knopf-Themes", "gn.btns.note": "Wirkt in GTK-3- und GTK-4-Programmen (Dateien, Text-Editor, Einstellungen …) nach deren Neustart; „Dateien“ läuft im Hintergrund weiter – dafür einmal ab- und anmelden. Firefox/Zen, Chrome/Electron und Qt/KDE-Programme zeichnen eigene Knöpfe und folgen nicht.",
     "gn.btns.restart": "Knopf-Theme gesetzt – Programme neu starten",
 })
 EXTRA["en"].update({
     "gn.btn.close": "Close",
     "gn.btn.noclose": "Without a close button: close windows with Alt+F4 (or your shortcut, e.g. Super+Q).",
-    "gn.btns": "Button themes", "gn.btns.note": "Takes effect in GTK apps after restarting the app.",
+    "gn.btns": "Button themes", "gn.btns.note": "Applies to GTK 3 and GTK 4 apps (Files, Text Editor, Settings …) after restarting them; Files keeps running in the background – log out and in once. Firefox/Zen, Chrome/Electron and Qt/KDE apps draw their own buttons and do not follow.",
     "gn.btns.restart": "Button theme set – restart apps",
 })
 
@@ -222,3 +222,19 @@ EXTRA["en"].update({
                    "Cursors: Bibata / Material Bibata Cursor (GPL-3.0).<br>"
                    "Interface: Qt for Python / PySide6 (LGPL-3.0)."),
 })
+
+EXTRA["de"].update({
+    "gn.corners": "Eckenrundung", "gn.corners.radius": "Radius der App-Fenster",
+    "gn.corners.all": "Auch andere Programme (Erweiterung)",
+    "gn.corners.note": "Gilt für GTK-3- und GTK-4-Programme nach deren Neustart (Standard bei GNOME: 15 px). Firefox/Zen, Chrome/Electron und Qt-Programme folgen nur mit der Erweiterung „Rounded Window Corners Reborn“.",
+    "gn.corners.done": "Eckenrundung {r} px – Programme neu starten", "gn.corners.reset": "Eckenrundung wieder Standard",
+})
+EXTRA["en"].update({
+    "gn.corners": "Corner radius", "gn.corners.radius": "App window radius",
+    "gn.corners.all": "Other apps too (extension)",
+    "gn.corners.note": "Applies to GTK 3 and GTK 4 apps after restarting them (GNOME default: 15 px). Firefox/Zen, Chrome/Electron and Qt apps only follow with the “Rounded Window Corners Reborn” extension.",
+    "gn.corners.done": "Corner radius {r} px – restart apps", "gn.corners.reset": "Corner radius back to default",
+})
+
+EXTRA["de"]["about.version"] = "Version"
+EXTRA["en"]["about.version"] = "Version"

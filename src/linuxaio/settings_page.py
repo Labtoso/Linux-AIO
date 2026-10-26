@@ -42,6 +42,8 @@ def make_section(host, de: str, key: str):
         return G.LookGnome(host)
     if key == "titlebar":
         return G.TitlebarPage(host)
+    if key == "windows":
+        return G.WindowsPage(host)
     if key == "topbar":
         return G.TopbarPage(host)
     if key == "autostart":
@@ -74,7 +76,7 @@ class DePanel(QtWidgets.QWidget):
         else:
             self.nav = QtWidgets.QListWidget()
             self.nav.setObjectName("NavList")
-            self.nav.setFixedWidth(190)
+            self.nav.setFixedWidth(176)
             self.nav.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
             for k in self.keys:
                 it = QtWidgets.QListWidgetItem()
@@ -157,7 +159,7 @@ class SettingsPage(QtWidgets.QWidget):
         lay.setSpacing(16)
         side = QtWidgets.QFrame()
         side.setObjectName("SideBox")
-        side.setFixedWidth(200)
+        side.setFixedWidth(180)
         sl = QtWidgets.QVBoxLayout(side)
         sl.setContentsMargins(10, 12, 10, 10)
         sl.setSpacing(8)
