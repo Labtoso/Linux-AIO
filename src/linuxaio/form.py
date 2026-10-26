@@ -1,0 +1,309 @@
+"""Bausteine für die Einstellungs-Seiten: Seite mit Titel, Karten mit Zeilen, gsettings-Steuerelemente,
+Hintergrund-Aufgaben."""
+
+from hyprstudio.widgets import Switch
+
+from . import theme, usercmd
+from .i18n import t
+from .qt import QtCore, QtGui, QtWidgets, Qt, Signal
+
+
+class Job(QtCore.QThread):
+    """Funktion im Hintergrund; done(ok, ergebnis oder Fehlertext)."""
+    done = Signal(bool, object)
+    running = set()
+
+    def __init__(self, fn, parent=None):
+        super().__init__(parent)
+        self.fn = fn
+        Job.running.add(self)
+        self.finished.connect(lambda: Job.running.discard(self))
+
+    @classmethod
+    def wait_all(cls):
+        """Beim Beenden: laufende Aufgaben abwarten (sonst stürzt Qt beim Aufräumen ab)."""
+        for j in list(cls.running):
+            j.wait(5000)
+
+    def run(self):
+        try:
+            self.done.emit(True, self.fn())
+        except Exception as e:  # noqa: BLE001  (Fehler landen im Protokoll)
+            key = getattr(e, "key", None)       # remote.SourceError: „schlüssel: detail“ für klare Meldungen
+            self.done.emit(False, f"{key}: {getattr(e, 'detail', '')}" if key else f"{type(e).__name__}: {e}")
+
+
+def start_job(owner, fn, on_done) -> Job:
+    job = Job(fn, owner)
+    jobs = owner.__dict__.setdefault("_jobs", set())
+    jobs.add(job)
+
+    def finish(ok, res, j=job):
+        jobs.discard(j)
+        on_done(ok, res)
+        j.deleteLater()
+    job.done.connect(finish)
+    job.start()
+    return job
+
+
+class Page(QtWidgets.QWidget):
+    """Seite mit Titel oben (+ Platz für Knöpfe rechts) und scrollbarem Inhalt."""
+
+    def __init__(self, title_key: str, parent=None, scroll: bool = True):
+        super().__init__(parent)
+        self.title_key = title_key
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(12)
+        head = QtWidgets.QHBoxLayout()
+        self.title = QtWidgets.QLabel()
+        self.title.setObjectName("PageTitle")
+        head.addWidget(self.title)
+        self.chips = QtWidgets.QHBoxLayout()
+        self.chips.setSpacing(6)
+        head.addLayout(self.chips)
+        head.addStretch()
+        self.tools = QtWidgets.QHBoxLayout()
+        self.tools.setSpacing(8)
+        head.addLayout(self.tools)
+        lay.addLayout(head)
+        self.inner = QtWidgets.QWidget()
+        self.inner.setObjectName("PageInner")
+        self.body = QtWidgets.QVBoxLayout(self.inner)
+        self.body.setContentsMargins(0, 0, 6, 0)
+        self.body.setSpacing(12)
+        if scroll:
+            sa = QtWidgets.QScrollArea()
+            sa.setWidgetResizable(True)
+            sa.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            sa.setWidget(self.inner)
+            sa.viewport().setObjectName("Viewport")      # mit Selektor, sonst erben alle Knöpfe „transparent“
+            sa.viewport().setStyleSheet("#Viewport { background: transparent; }")
+            lay.addWidget(sa, 1)
+        else:
+            lay.addWidget(self.inner, 1)
+        self.controls = []
+
+    def finish(self):
+        self.body.addStretch()
+
+    def retranslate(self):
+        self.title.setText(t(self.title_key))
+        for card in self.findChildren(Card):
+            card.retranslate()
+        for c in self.controls:
+            c.retranslate()
+
+    def refresh(self):
+        for c in self.controls:
+            c.load()
+
+
+class Card(QtWidgets.QFrame):
+    def __init__(self, title_key: str = "", parent=None):
+        super().__init__(parent)
+        self.setObjectName("Card")
+        self.title_key = title_key
+        self.lay = QtWidgets.QVBoxLayout(self)
+        self.lay.setContentsMargins(16, 12, 16, 12)
+        self.lay.setSpacing(4)
+        self.head = QtWidgets.QLabel()
+        self.head.setObjectName("CardTitle")
+        self.head.setVisible(bool(title_key))
+        self.lay.addWidget(self.head)
+
+    def retranslate(self):
+        if self.title_key:
+            self.head.setText(t(self.title_key))
+
+
+class Row(QtWidgets.QWidget):
+    """Eine Zeile: Text links, Steuerelement rechts; Tooltip nur auf dem Text."""
+
+    def __init__(self, key: str, control: QtWidgets.QWidget, parent=None):
+        super().__init__(parent)
+        self.key = key
+        lay = QtWidgets.QHBoxLayout(self)
+        lay.setContentsMargins(0, 6, 0, 6)
+        self.label = QtWidgets.QLabel()
+        lay.addWidget(self.label, 1)
+        lay.addWidget(control)
+
+    def retranslate(self):
+        self.label.setText(t(self.key))
+        tip = t(self.key + ".tip")
+        self.label.setToolTip("" if tip == self.key + ".tip" else tip)
+
+
+def combo() -> QtWidgets.QComboBox:
+    c = QtWidgets.QComboBox()
+    c.setObjectName("Combo")
+    c.setCursor(Qt.CursorShape.PointingHandCursor)
+    c.setMinimumWidth(220)
+    c.setMaxVisibleItems(16)
+    return c
+
+
+class GControl(QtCore.QObject):
+    """gsettings-Wert ↔ Steuerelement. Änderungen werden sofort gesetzt (wie GNOME Tweaks)."""
+    changed = Signal()
+
+    def __init__(self, key, schema, gkey, kind, extra, parent=None):
+        super().__init__(parent)
+        self.key, self.schema, self.gkey, self.kind, self.extra = key, schema, gkey, kind, extra
+        self._loading = False
+        if kind == "bool":
+            self.w = Switch()
+            self.w.toggled.connect(lambda v: self._set(bool(v)))
+        elif kind == "choice":
+            self.w = combo()
+            self.w.currentIndexChanged.connect(lambda i: self._set(self.w.itemData(i)))
+        elif kind in ("int", "double"):
+            lo, hi, step = extra
+            self.w = QtWidgets.QSpinBox() if kind == "int" else QtWidgets.QDoubleSpinBox()
+            self.w.setObjectName("Spin")
+            self.w.setRange(lo, hi)
+            self.w.setSingleStep(step)
+            self.w.setMinimumWidth(110)
+            if kind == "double":
+                self.w.setDecimals(2)
+            self.w.setKeyboardTracking(False)
+            self.w.valueChanged.connect(lambda v: self._set(int(v) if kind == "int" else round(float(v), 2)))
+        elif kind == "font":
+            self.w = QtWidgets.QWidget()
+            hl = QtWidgets.QHBoxLayout(self.w)
+            hl.setContentsMargins(0, 0, 0, 0)
+            hl.setSpacing(6)
+            self.fam = QtWidgets.QFontComboBox()
+            self.fam.setObjectName("Combo")
+            self.fam.setMinimumWidth(220)
+            self.size = QtWidgets.QDoubleSpinBox()
+            self.size.setObjectName("Spin")
+            self.size.setRange(5, 72)
+            self.size.setDecimals(0)
+            self.size.setMinimumWidth(80)
+            self.size.setKeyboardTracking(False)
+            hl.addWidget(self.fam)
+            hl.addWidget(self.size)
+            self.fam.currentFontChanged.connect(lambda _f: self._font())
+            self.size.valueChanged.connect(lambda _v: self._font())
+        self.row = Row(key, self.w)
+        self.available = True
+
+    def _font(self):
+        from .gnome import join_font
+        self._set(join_font(self.fam.currentFont().family(), self.size.value()))
+
+    def _set(self, value):
+        if self._loading or value is None:
+            return
+        usercmd.gset(self.schema, self.gkey, value)
+        self.changed.emit()
+
+    def load(self):
+        from .gnome import available, split_font
+        self.available = available(self.schema, self.gkey)
+        self.row.setEnabled(self.available)
+        self.row.setToolTip("" if self.available else t("na"))
+        v = usercmd.gget(self.schema, self.gkey)
+        self._loading = True
+        try:
+            if self.kind == "bool":
+                self.w.set_now(bool(v))
+            elif self.kind == "choice":
+                i = self.w.findData(v)
+                if i < 0 and v is not None:
+                    self.w.addItem(str(v), v)
+                    i = self.w.count() - 1
+                self.w.setCurrentIndex(max(0, i))
+            elif self.kind in ("int", "double") and isinstance(v, (int, float)):
+                self.w.setValue(v)
+            elif self.kind == "font" and isinstance(v, str):
+                fam, size = split_font(v)
+                self.fam.setCurrentFont(QtGui.QFont(fam))
+                self.size.setValue(size)
+        finally:
+            self._loading = False
+
+    def retranslate(self):
+        self.row.retranslate()
+        if self.kind == "choice":
+            self._loading = True
+            cur = self.w.currentData()
+            self.w.clear()
+            for val in self.extra:
+                key = f"{self.key}.{val}"
+                txt = t(key)
+                self.w.addItem(val if txt == key else txt, val)
+            i = self.w.findData(cur)
+            self.w.setCurrentIndex(max(0, i))
+            self._loading = False
+
+
+def gsection(page: Page, card: Card, specs) -> list:
+    out = []
+    for key, schema, gkey, kind, extra in specs:
+        c = GControl(key, schema, gkey, kind, extra, page)
+        card.lay.addWidget(c.row)
+        page.controls.append(c)
+        out.append(c)
+    return out
+
+
+def tool_button(text_key: str, primary: bool = False) -> QtWidgets.QPushButton:
+    b = QtWidgets.QPushButton()
+    b.setProperty("tkey", text_key)
+    if primary:
+        b.setObjectName("Primary")
+    b.setCursor(Qt.CursorShape.PointingHandCursor)
+    b.setMinimumHeight(34)
+    return b
+
+
+def retranslate_buttons(widget: QtWidgets.QWidget) -> None:
+    for b in widget.findChildren(QtWidgets.QAbstractButton):
+        k = b.property("tkey")
+        if k:
+            b.setText(t(k))
+
+
+CHIP_COLORS = {"Chip": None, "ChipOk": theme.OK, "ChipWarn": "#d29922", "ChipAccent": "accent"}
+
+
+def set_chip(lb: QtWidgets.QLabel, kind: str, text: str, accent: str = theme.THEMES["blue"]) -> None:
+    """Schild mit Stil direkt am Widget (objectName-Wechsel + polish liefert eine zu kleine Größe)."""
+    col = CHIP_COLORS.get(kind)
+    col = accent if col == "accent" else col
+    if col:
+        css = f"background: transparent; border: 1px solid {col}; color: {col};"
+    else:
+        css = f"background: {theme.SURFACE2}; border: 1px solid {theme.BORDER}; color: {theme.MUTED};"
+    lb.setStyleSheet(f"QLabel {{ {css} border-radius: 9px; padding: 2px 9px; font-size: 9pt; }}")
+    lb.setText(text)
+    lb.adjustSize()
+
+
+def accent_switches(widget, accent: str) -> None:
+    for sw in widget.findChildren(Switch):
+        sw.accent = accent
+        sw.update()
+
+
+__all__ = ["Job", "start_job", "Page", "Card", "Row", "GControl", "gsection", "combo", "tool_button",
+           "retranslate_buttons", "set_chip", "accent_switches", "theme"]
+
+
+class MissingButton(QtWidgets.QToolButton):
+    """Kleiner Download-Pfeil neben „fehlt“: ein Klick installiert das Fehlende."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from .widgets import draw_icon
+        self.setIcon(draw_icon("download", theme.TEXT, 18))
+        self.setIconSize(QtCore.QSize(18, 18))
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedSize(30, 30)
+        self.setStyleSheet(f"QToolButton {{ background: {theme.SURFACE2}; border: 1px solid {theme.BORDER};"
+                           f" border-radius: 8px; }} QToolButton:hover {{ border-color: #d29922; }}")
+        self.setToolTip(t("miss.install"))
