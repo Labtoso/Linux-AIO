@@ -2,7 +2,7 @@
 mit Live-Vorschau in der echten Schrift; danach direkt als Oberflächen-/Dokument-/Monospace-Schrift anwendbar."""
 
 from . import fonts, gnome, theme, usercmd
-from .form import Card, FlowGrid, Page, gsection, retranslate_buttons, set_chip, start_job, tool_button
+from .form import Card, FlowGrid, Page, Section, gsection, retranslate_buttons, set_chip, start_job, tool_button
 from .i18n import t
 from .qt import QtCore, QtGui, QtWidgets, Qt
 from .widgets import Segmented, draw_icon, set_applied
@@ -88,7 +88,7 @@ class FontsPage(Page):
         self.body.addWidget(card)
         gsection(self, card, gnome.SECTIONS["fonts"])
         # Schriften installieren
-        store = Card("font.store")
+        store = Section("font.store")
         self.body.addWidget(store)
         bar = QtWidgets.QHBoxLayout()
         self.search = QtWidgets.QLineEdit()

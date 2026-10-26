@@ -35,7 +35,8 @@ class ExtInstall:
         def done(ok, res):
             host.task_end(True, "")
             if ok:
-                host.set_status(t("miss.relogin" if res == "relogin" else "miss.done", name=name))
+                key = {"relogin": "miss.relogin", "incompatible": "miss.incompatible"}.get(res, "miss.done")
+                host.set_status(t(key, name=name))
                 self.refresh()
                 return
             host.log(str(res))
@@ -128,6 +129,11 @@ class LookGnome(ExtInstall, Page):
         self.shell.blockSignals(False)
 
 
+def restart_files():
+    """Files (Nautilus) keeps running in the background and only reads gtk.css at start."""
+    usercmd.run(["nautilus", "-q"])
+
+
 # ---------- Fenster (mit Eckenrundung) ----------
 
 class CornerPreview(QtWidgets.QWidget):
@@ -181,9 +187,12 @@ class WindowsPage(ExtInstall, Page):
         self.value.setFixedWidth(48)
         self.b_orig = tool_button("gn.login.restore")
         self.b_orig.clicked.connect(self.reset_corners)
+        self.b_files = tool_button("gn.files.restart")
+        self.b_files.clicked.connect(restart_files)
         hl.addWidget(self.slider)
         hl.addWidget(self.value)
         hl.addWidget(self.b_orig)
+        hl.addWidget(self.b_files)
         self.r_radius = Row("gn.corners.radius", sw)
         rc.lay.addWidget(self.r_radius)
         ew = QtWidgets.QWidget()
@@ -195,15 +204,15 @@ class WindowsPage(ExtInstall, Page):
         self.ext_get.clicked.connect(lambda: self.install_ext(corners.EXT_UUID))
         self.sw_ext = Switch()
         self.sw_ext.toggled.connect(self._ext_toggle)
+        self.b_force = tool_button("gn.ext.force")
+        self.b_force.clicked.connect(self._force)
         el.addWidget(self.ext_chip)
         el.addWidget(self.ext_get)
+        el.addWidget(self.b_force)
         el.addWidget(self.sw_ext)
         self.r_ext = Row("gn.corners.all", ew)
         rc.lay.addWidget(self.r_ext)
-        self.c_note = QtWidgets.QLabel()
-        self.c_note.setObjectName("Label")
-        self.c_note.setWordWrap(True)
-        rc.lay.addWidget(self.c_note)
+
         self.timer = QtCore.QTimer(self)
         self.timer.setSingleShot(True)
         self.timer.setInterval(400)
@@ -234,6 +243,16 @@ class WindowsPage(ExtInstall, Page):
         self.b_orig.setEnabled(False)
         self.host.set_status(t("gn.corners.reset"))
 
+    def _force(self):
+        from hyprstudio import dialogs
+        if not dialogs.confirm(self, t("gn.ext.force"), t("gn.ext.force.ask")):
+            return
+        usercmd.gset("org.gnome.shell", "disable-extension-version-validation", True)
+        gnome.ext_set(corners.EXT_UUID, True)
+        corners.set_extension_radius(self.slider.value())
+        self.host.set_status(t("miss.relogin", name="Rounded Window Corners Reborn"))
+        self.refresh()
+
     def _ext_toggle(self, on):
         gnome.ext_set(corners.EXT_UUID, bool(on))
         if on:
@@ -244,7 +263,7 @@ class WindowsPage(ExtInstall, Page):
         super().retranslate()
         self.r_radius.retranslate()
         self.r_ext.retranslate()
-        self.c_note.setText(t("gn.corners.note"))
+        self.r_radius.label.setToolTip(t("gn.corners.note"))      # Hinweise nur als Tooltip
         retranslate_buttons(self)
 
     def refresh(self):
@@ -258,12 +277,19 @@ class WindowsPage(ExtInstall, Page):
         self.b_orig.setEnabled(cur is not None)
         have = gnome.ext_installed(corners.EXT_UUID)
         on = corners.EXT_UUID in gnome.ext_enabled()
-        set_chip(self.ext_chip, "ChipOk" if on else ("Chip" if have else "ChipWarn"),
-                 t("gn.ext.on") if on else (t("gn.ext.off") if have else t("gn.ext.missing")))
+        compat = gnome.ext_compatible(corners.EXT_UUID)
+        blocked = have and compat is False and not gnome.version_check_off()
+        if blocked:
+            set_chip(self.ext_chip, "ChipWarn", t("gn.ext.incompatible"))
+        else:
+            set_chip(self.ext_chip, "ChipOk" if on else ("Chip" if have else "ChipWarn"),
+                     t("gn.ext.on") if on else (t("gn.ext.off") if have else t("gn.ext.missing")))
+        self.b_force.setVisible(blocked)
+        self.b_force.setToolTip(t("gn.ext.force.ask"))
         self.ext_chip.setToolTip("Rounded Window Corners Reborn")
         self.ext_get.setVisible(not have)
         self.ext_get.setToolTip(t("miss.install") + ": Rounded Window Corners Reborn")
-        self.sw_ext.setEnabled(have)
+        self.sw_ext.setEnabled(have and not blocked)
         self.sw_ext.set_now(on)
 
 
@@ -431,13 +457,23 @@ class TitlebarPage(Page):
         self.b_orig.clicked.connect(self.remove_buttons)
         head.addWidget(self.l_themes)
         head.addStretch()
+        self.b_files = tool_button("gn.files.restart")
+        self.b_files.clicked.connect(restart_files)
+        head.addWidget(self.b_files)
         head.addWidget(self.b_orig)
         self.body.addSpacing(6)
         self.body.addLayout(head)
-        self.note = QtWidgets.QLabel()
-        self.note.setObjectName("Label")
-        self.note.setWordWrap(True)
-        self.body.addWidget(self.note)
+        from . import buttons as _b
+        from .widgets import ChipRow
+        self.support = ChipRow()
+        self.body.addWidget(self.support)
+        self.sw_moz = Switch()
+        self.sw_moz.set_now(bool(host.cfg.get("moz_buttons", True)) and bool(_b.moz_profiles()))
+        self.sw_moz.setEnabled(bool(_b.moz_profiles()))
+        self.sw_moz.toggled.connect(self._moz_toggle)
+        self.r_moz = Row("gn.btns.moz", self.sw_moz)
+        self.body.addWidget(self.r_moz)
+
         self.grid = FlowGrid(262)
         self.tiles = []
         for name in buttons.THEMES:
@@ -465,13 +501,27 @@ class TitlebarPage(Page):
         from . import buttons
         self.host.log("")
         buttons.apply(name)
+        if self.sw_moz.isChecked():
+            buttons.apply_moz(name)
         self.host.set_status(t("gn.btns.restart"))
         self._tiles()
+
+    def _moz_toggle(self, on):
+        from . import buttons
+        self.host.cfg["moz_buttons"] = bool(on)
+        self.host.save()
+        cur = buttons.current()
+        if on and cur:
+            buttons.apply_moz(cur)
+        elif not on:
+            buttons.remove_moz()
+        self.host.set_status(t("gn.btns.restart"))
 
     def remove_buttons(self):
         from . import buttons
         self.host.log("")
         buttons.remove()
+        buttons.remove_moz()
         self.host.set_status(t("gn.btns.restart"))
         self._tiles()
 
@@ -491,7 +541,12 @@ class TitlebarPage(Page):
         self.b_right.setText(t("gn.right"))
         self.warn.setText(t("gn.btn.noclose"))
         self.l_themes.setText(t("gn.btns"))
-        self.note.setText(t("gn.btns.note"))
+        self.l_themes.setToolTip(t("gn.btns.note"))
+        self.r_moz.retranslate()
+        self.support.set([(t("gn.sup.gtk"), "ChipOk", ""), (t("gn.sup.moz"), "ChipOk", t("gn.sup.moz.tip")),
+                          (t("gn.sup.chromium"), "ChipWarn", t("gn.sup.chromium.tip")),
+                          (t("gn.sup.electron"), "Chip", t("gn.sup.electron.tip")),
+                          (t("gn.sup.qt"), "Chip", t("gn.sup.qt.tip"))])
         retranslate_buttons(self)
         self.preview.update()
 
@@ -508,6 +563,9 @@ class TitlebarPage(Page):
 
 
 # ---------- Obere Leiste ----------
+
+from .widgets import Segmented  # noqa: E402
+
 
 class TopbarPage(ExtInstall, Page):
     def __init__(self, host):
@@ -537,6 +595,20 @@ class TopbarPage(ExtInstall, Page):
         ws = Card("gn.top.ws")
         self.body.addWidget(ws)
         gsection(self, ws, specs[7:])
+        ed = Card("bar.editor")
+        self.body.addWidget(ed)
+        self.editor = BarEditor(self)
+        ed.lay.addWidget(self.editor)
+        pw = Card("pw.menu")
+        self.body.addWidget(pw)
+        self.power = []
+        for key, schema, gk, inverted in gnome.POWER_ITEMS:
+            sw = Switch()
+            sw.toggled.connect(lambda on, s=schema, k=gk, inv=inverted: (usercmd.gset(s, k, (not on) if inv else bool(on)),
+                                                                          self.host.set_status(t("done"))))
+            r = Row(key, sw)
+            pw.lay.addWidget(r)
+            self.power.append((sw, r, schema, gk, inverted))
         self.finish()
 
     def _ws(self, on):
@@ -546,6 +618,9 @@ class TopbarPage(ExtInstall, Page):
     def retranslate(self):
         super().retranslate()
         self.r_ws.retranslate()
+        self.editor.retranslate()
+        for sw, r, *_ in self.power:
+            r.retranslate()
 
     def refresh(self):
         super().refresh()
@@ -556,7 +631,159 @@ class TopbarPage(ExtInstall, Page):
         set_chip(self.ws_chip, "Chip" if have else "ChipWarn", t("gn.ext.name") if have else t("gn.ext.missing"))
         self.ws_chip.setToolTip(t("gn.top.wsind.tip"))
         self.ws_get.setVisible(not have)
+        self.editor.refresh()
+        for sw, r, schema, gk, inverted in self.power:
+            v = bool(usercmd.gget(schema, gk, False))
+            sw.set_now((not v) if inverted else v)
         self.ws_get.setToolTip(t("miss.install") + ": Workspace Indicator")
+
+
+class BarPreview(QtWidgets.QWidget):
+    """Top bar as a picture: click an element to show or hide it (Just Perfection)."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.state = {}
+        self.clock_pos = 0
+        self.rects = {}
+        self.setFixedHeight(46)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.on_click = None
+
+    def set_state(self, state: dict, clock_pos: int):
+        self.state, self.clock_pos = state, clock_pos
+        self.update()
+
+    def paintEvent(self, _):
+        p = QtGui.QPainter(self)
+        p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
+        r = QtCore.QRectF(self.rect()).adjusted(1, 1, -1, -1)
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(QtGui.QColor("#000000"))
+        p.drawRoundedRect(r, 10, 10)
+        zones = {"left": [], "center": [], "right": []}
+        for key, _k, zone in gnome.BAR_ITEMS:
+            z = zone
+            if key == "clock":
+                z = {0: "center", 1: "right", 2: "left"}.get(self.clock_pos, "center")
+            zones[z].append(key)
+        f = p.font()
+        avail = r.width() - 40
+        for pt in (9.0, 8.5, 8.0, 7.5, 7.0, 6.5, 6.0):    # kleiner, bis alles in die Leiste passt
+            f.setPointSizeF(pt)
+            p.setFont(f)
+            fm = p.fontMetrics()                            # Maße des Painters (wie gezeichnet wird)
+            need = sum(fm.horizontalAdvance(t("bar." + k)) + 18 + 6 for z in zones.values() for k in z) + 60
+            if need <= avail:
+                break
+        self.rects = {}
+
+        def chip(key, x):
+            text = t("bar." + key)
+            w = fm.horizontalAdvance(text) + 18
+            rr = QtCore.QRectF(x, r.top() + 8, w, r.height() - 16)
+            on = self.state.get(key, True)
+            p.setBrush(QtGui.QColor("#2b3747" if on else "#151c26"))
+            p.setPen(QtGui.QPen(QtGui.QColor("#3a4a5f" if on else "#253142"), 1, Qt.PenStyle.SolidLine if on else Qt.PenStyle.DashLine))
+            p.drawRoundedRect(rr, 7, 7)
+            p.setPen(QtGui.QColor("#e6edf5" if on else "#4d5a6b"))
+            p.drawText(rr, Qt.AlignmentFlag.AlignCenter, text)
+            self.rects[key] = rr
+            return w
+        x = r.left() + 10
+        for key in zones["left"]:
+            x += chip(key, x) + 6
+        rw = [fm.horizontalAdvance(t("bar." + k)) + 18 for k in zones["right"]]
+        rx = r.right() - 10 - sum(rw) - 6 * max(0, len(rw) - 1)
+        cw = [fm.horizontalAdvance(t("bar." + k)) + 18 for k in zones["center"]]
+        ctotal = sum(cw) + 6 * max(0, len(cw) - 1)
+        cx = min(r.center().x() - ctotal / 2, rx - 12 - ctotal)     # Mitte, aber nie unter die rechte Seite
+        cx = max(cx, x + 6)
+        for key in zones["center"]:
+            cx += chip(key, cx) + 6
+        for key in zones["right"]:
+            rx += chip(key, rx) + 6
+        p.end()
+
+    def mouseReleaseEvent(self, e):
+        for key, rr in self.rects.items():
+            if rr.contains(e.position()) and self.on_click:
+                self.on_click(key)
+                return
+
+
+class BarEditor(QtWidgets.QWidget):
+    """Card content: bar preview, clock position, bar position, quick settings, power menu."""
+
+    def __init__(self, page):
+        super().__init__()
+        self.page = page
+        lay = QtWidgets.QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.setSpacing(4)
+        head = QtWidgets.QHBoxLayout()
+        self.chip = QtWidgets.QLabel()
+        self.get = MissingButton()
+        self.get.clicked.connect(lambda: page.install_ext(gnome.JP_UUID))
+        head.addWidget(self.chip)
+        head.addWidget(self.get)
+        head.addStretch()
+        lay.addLayout(head)
+        self.bar = BarPreview()
+        self.bar.on_click = self.toggle
+        lay.addWidget(self.bar)
+        self.clock = Segmented(("2", "0", "1"), prefix="bar.pos.")
+        self.clock.changed.connect(lambda v: self._set("clock-menu-position", int(v)))
+        self.r_clock = Row("bar.clockpos", self.clock)
+        lay.addWidget(self.r_clock)
+        self.place = Segmented(("0", "1"), prefix="bar.place.")
+        self.place.changed.connect(lambda v: self._set("top-panel-position", int(v)))
+        self.r_place = Row("bar.place", self.place)
+        lay.addWidget(self.r_place)
+        self.qs = {}
+        for key, jk in gnome.QUICK_ITEMS:
+            sw = Switch()
+            sw.toggled.connect(lambda on, k=jk: self._set(k, bool(on)))
+            r = Row(key, sw)
+            self.qs[jk] = (sw, r)
+            lay.addWidget(r)
+
+    def toggle(self, key):
+        jk = next(k for name, k, _z in gnome.BAR_ITEMS if name == key)
+        cur = bool(gnome.jp_get(jk, True))
+        self._set(jk, not cur)
+
+    def _set(self, key, value):
+        if not gnome.jp_ready():
+            return
+        gnome.jp_set(key, value)
+        self.page.host.set_status(t("done"))
+        self.refresh()
+
+    def retranslate(self):
+        for r in (self.r_clock, self.r_place):
+            r.retranslate()
+        self.clock.retranslate()
+        self.place.retranslate()
+        for sw, r in self.qs.values():
+            r.retranslate()
+        self.bar.setToolTip(t("bar.tip"))
+
+    def refresh(self):
+        have = gnome.ext_installed(gnome.JP_UUID)
+        ready = gnome.jp_ready()
+        set_chip(self.chip, "ChipOk" if ready else "ChipWarn",
+                 "Just Perfection" if ready else (t("gn.ext.off") if have else t("gn.ext.missing")))
+        self.chip.setToolTip(t("bar.needs"))
+        self.get.setVisible(not have)
+        state = {name: bool(gnome.jp_get(k, True)) for name, k, _z in gnome.BAR_ITEMS} if ready else {}
+        self.bar.set_state(state, int(gnome.jp_get("clock-menu-position", 0) or 0) if ready else 0)
+        self.clock.select(str(int(gnome.jp_get("clock-menu-position", 0) or 0)) if ready else "0")
+        self.place.select(str(int(gnome.jp_get("top-panel-position", 0) or 0)) if ready else "0")
+        for jk, (sw, r) in self.qs.items():
+            sw.set_now(bool(gnome.jp_get(jk, True)) if ready else True)
+        for w in [self.bar, self.clock, self.place] + [sw for sw, _r in self.qs.values()]:
+            w.setEnabled(ready)
 
 
 # ---------- Startprogramme ----------

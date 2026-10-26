@@ -78,7 +78,7 @@ class Page(QtWidgets.QWidget):
         self.inner = QtWidgets.QWidget()
         self.inner.setObjectName("PageInner")
         self.body = QtWidgets.QVBoxLayout(self.inner)
-        self.body.setContentsMargins(0, 0, 6, 0)
+        self.body.setContentsMargins(0, 2, 12, 12)   # Abstand zum Scrollbalken, Kartenecken bleiben sichtbar
         self.body.setSpacing(12)
         if scroll:
             sa = QtWidgets.QScrollArea()
@@ -133,6 +133,15 @@ class Card(QtWidgets.QFrame):
     def retranslate(self):
         if self.title_key:
             self.head.setText(t(self.title_key))
+
+
+class Section(Card):
+    """Like a card, but without a frame – for galleries (no cards inside cards)."""
+
+    def __init__(self, title_key: str = "", parent=None):
+        super().__init__(title_key, parent)
+        self.setObjectName("Section")
+        self.lay.setContentsMargins(0, 8, 0, 0)
 
 
 class Row(QtWidgets.QWidget):

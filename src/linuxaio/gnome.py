@@ -160,11 +160,41 @@ def ext_installed(uuid: str) -> bool:
     return False
 
 
+def ext_dir(uuid: str) -> Path | None:
+    for d in (Path.home() / ".local/share/gnome-shell/extensions", Path("/usr/share/gnome-shell/extensions")):
+        if (d / uuid / "metadata.json").is_file():
+            return d / uuid
+    return None
+
+
+def ext_compatible(uuid: str) -> bool | None:
+    """Supports the extension the running GNOME Shell? None = unknown (not installed / no shell)."""
+    import json
+    d = ext_dir(uuid)
+    out = usercmd.query(["gnome-shell", "--version"]) or ""
+    m = re.search(r"(\d+)", out)
+    if not d or not m:
+        return None
+    try:
+        versions = json.loads((d / "metadata.json").read_text(encoding="utf-8")).get("shell-version", [])
+    except (OSError, ValueError):
+        return None
+    return any(str(v).split(".")[0] == m.group(1) for v in versions)
+
+
+def version_check_off() -> bool:
+    return bool(usercmd.gget("org.gnome.shell", "disable-extension-version-validation", False))
+
+
 def ext_set(uuid: str, on: bool) -> bool:
+    """Always via the enabled-extensions key too: gnome-extensions fails while the running shell
+    does not know a freshly installed extension yet (Wayland: active after the next login)."""
     if usercmd.have("gnome-extensions") or usercmd.DRY:
-        return usercmd.run(["gnome-extensions", "enable" if on else "disable", uuid])[0]
+        usercmd.run(["gnome-extensions", "enable" if on else "disable", uuid])
     cur = ext_enabled()
     new = [x for x in cur if x != uuid] + ([uuid] if on else [])
+    if new == cur:
+        return True
     return usercmd.gset("org.gnome.shell", "enabled-extensions", new)
 
 
@@ -294,3 +324,53 @@ def gdm_state() -> dict:
         return json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {}
+
+
+# ---------- Top bar editor (Just Perfection) ----------
+
+JP_UUID = "just-perfection-desktop@just-perfection"
+JP_SCHEMA = "org.gnome.shell.extensions.just-perfection"
+# element → (Just-Perfection key, zone of the bar)
+BAR_ITEMS = (
+    ("activities", "activities-button", "left"),
+    ("clock", "clock-menu", "center"),
+    ("notify", "panel-notification-icon", "right"),
+    ("keyboard", "keyboard-layout", "right"),
+    ("a11y", "accessibility-menu", "right"),
+    ("screenshare", "screen-sharing-indicator", "right"),
+    ("quick", "quick-settings", "right"),
+    ("power", "power-icon", "right"),
+)
+QUICK_ITEMS = (("qs.dark", "quick-settings-dark-mode"), ("qs.night", "quick-settings-night-light"),
+               ("qs.dnd", "quick-settings-do-not-disturb"), ("qs.airplane", "quick-settings-airplane-mode"),
+               ("qs.backlight", "quick-settings-backlight"))
+POWER_ITEMS = (("pw.logout", "org.gnome.shell", "always-show-log-out", False),
+               ("pw.switch", "org.gnome.desktop.lockdown", "disable-user-switching", True),
+               ("pw.lock", "org.gnome.desktop.lockdown", "disable-lock-screen", True))
+
+
+def _jp_cmd() -> list:
+    d = ext_dir(JP_UUID)
+    return ["gsettings", "--schemadir", str(d / "schemas")] if d else ["gsettings"]
+
+
+def jp_get(key: str, default=None):
+    if usercmd.DRY:
+        v = usercmd._dry_values().get(f"{JP_SCHEMA} {key}")
+        if v is not None:
+            return v
+    out = usercmd.query(_jp_cmd() + ["get", JP_SCHEMA, key])
+    return default if out is None else usercmd.parse_value(out)
+
+
+def jp_set(key: str, value) -> bool:
+    if usercmd.DRY:
+        vals = usercmd._dry_values()
+        vals[f"{JP_SCHEMA} {key}"] = value
+        usercmd.DRY_GSET.parent.mkdir(parents=True, exist_ok=True)
+        usercmd.DRY_GSET.write_text(__import__("json").dumps(vals, ensure_ascii=False), encoding="utf-8")
+    return usercmd.run(_jp_cmd() + ["set", JP_SCHEMA, key, usercmd.gvariant(value)])[0]
+
+
+def jp_ready() -> bool:
+    return usercmd.DRY or (ext_installed(JP_UUID) and JP_UUID in ext_enabled())
