@@ -88,6 +88,9 @@ class LookGnome(ExtInstall, Page):
         themes.lay.addWidget(self.r_shell)
         self.finish()
 
+    def reset_keys(self):
+        return super().reset_keys() + [(gnome.IFACE, "gtk-theme"), ("org.gnome.shell.extensions.user-theme", "name")]
+
     def _set_gtk(self, name):
         usercmd.gset(gnome.IFACE, "gtk-theme", name)
         self.host.set_status(t("done"))
@@ -219,6 +222,15 @@ class WindowsPage(ExtInstall, Page):
         self.timer.timeout.connect(self._apply_corners)
         self.slider.valueChanged.connect(self._slide)
         self.finish()
+
+    def reset_extra(self, bak):
+        from .form import backup_files
+        backup_files(corners.files(), bak)
+        corners.remove()
+
+    def undo_extra(self, bak):
+        from .form import restore_files
+        restore_files(corners.files(), bak)
 
     def _slide(self, v):
         self.preview.set_radius(v)
@@ -506,6 +518,27 @@ class TitlebarPage(Page):
         self.host.set_status(t("gn.btns.restart"))
         self._tiles()
 
+    def _css_files(self):
+        from . import buttons
+        files = list(buttons.files())
+        for prof in buttons.moz_profiles():
+            files += list(buttons._moz_targets(prof))
+        return files
+
+    def reset_keys(self):
+        return [(gnome.WM, "button-layout")]
+
+    def reset_extra(self, bak):
+        from . import buttons
+        from .form import backup_files
+        backup_files(self._css_files(), bak)
+        buttons.remove()
+        buttons.remove_moz()
+
+    def undo_extra(self, bak):
+        from .form import restore_files
+        restore_files(self._css_files(), bak)
+
     def _moz_toggle(self, on):
         from . import buttons
         self.host.cfg["moz_buttons"] = bool(on)
@@ -610,6 +643,32 @@ class TopbarPage(ExtInstall, Page):
             pw.lay.addWidget(r)
             self.power.append((sw, r, schema, gk, inverted))
         self.finish()
+
+    def reset_keys(self):
+        return super().reset_keys() + [(s, k) for _n, s, k, _i in gnome.POWER_ITEMS]
+
+    def _jp_keys(self):
+        return [k for _n, k, _z in gnome.BAR_ITEMS] + [k for _n, k in gnome.QUICK_ITEMS] + \
+            ["clock-menu-position", "top-panel-position"]
+
+    def reset_extra(self, bak):
+        import json
+        if not gnome.jp_ready():
+            return
+        vals = {k: gnome.jp_get(k) for k in self._jp_keys()}
+        (bak / "just-perfection.json").write_text(json.dumps(vals), encoding="utf-8")
+        for k in self._jp_keys():
+            usercmd.run(gnome._jp_cmd() + ["reset", gnome.JP_SCHEMA, k])
+
+    def undo_extra(self, bak):
+        import json
+        try:
+            vals = json.loads((bak / "just-perfection.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        for k, v in vals.items():
+            if v is not None:
+                gnome.jp_set(k, v)
 
     def _ws(self, on):
         gnome.ext_set(gnome.WS_INDICATOR, bool(on))
@@ -933,6 +992,8 @@ def stage_image(src: str, name: str) -> Path | None:
 
 
 class LoginPage(Page):
+    has_reset = True
+
     def __init__(self, host):
         super().__init__("gn.login")
         self.host = host
@@ -997,6 +1058,9 @@ class LoginPage(Page):
         self.r_users = Row("gn.login.users", self.sw_users)
         more.lay.addWidget(self.r_users)
         self.finish()
+
+    def reset_extra(self, bak):
+        self.host.run(["gdm-restore"], "gdm-restore", self)     # Systemstandard; Sicherung bleibt im Helfer
 
     def pick_file(self) -> str:
         from hyprstudio import dialogs

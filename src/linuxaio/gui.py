@@ -182,6 +182,12 @@ class MainWindow(QtWidgets.QWidget):
         self.btn_log.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_log.toggled.connect(self._toggle_log)
         foot.addWidget(self.status, 1)
+        self.btn_undo = QtWidgets.QPushButton()               # „Rückgängig“ nach Zurücksetzen
+        self.btn_undo.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_undo.hide()
+        self.btn_undo.clicked.connect(self._undo)
+        self._undo_fn = None
+        foot.addWidget(self.btn_undo)
         foot.addWidget(self.bar)
         foot.addSpacing(12)
         foot.addWidget(self.btn_log)
@@ -237,6 +243,18 @@ class MainWindow(QtWidgets.QWidget):
 
     def save(self):
         save_cfg(self.cfg)
+
+    def offer_undo(self, text: str, fn):
+        self._undo_fn = fn
+        self.set_status(text)
+        self.btn_undo.setText(t("reset.undo"))
+        self.btn_undo.show()
+
+    def _undo(self):
+        fn, self._undo_fn = self._undo_fn, None
+        self.btn_undo.hide()
+        if fn:
+            fn()
 
     def busy(self) -> bool:
         return self.runner.busy() or self._task

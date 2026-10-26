@@ -15,6 +15,7 @@ class SDDMPage(ThemePage):
     prompt_button = "dm.install"
     prompt_args = ("dm-install",)
     has_test = True
+    default_theme = "breeze"
 
     def build_bar(self, layout):
         # Login-Manager-Leiste: SDDM installieren / als Login-Manager setzen
@@ -32,6 +33,7 @@ class SDDMPage(ThemePage):
         self.btn_dm_enable.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_dm_enable.setMinimumHeight(34)
         self.btn_dm_enable.clicked.connect(lambda: self.host.run(["dm-enable", "sddm"], "dm-enable", self))
+        dl.addWidget(self.reset_button())
         dl.addWidget(self.dm_label)
         dl.addWidget(self.dm_chips, 1)
         dl.addWidget(self.btn_dm_enable)
@@ -41,6 +43,7 @@ class SDDMPage(ThemePage):
         active = system.active_display_manager()
         have = system.sddm_installed()
         self.dm_label.setText(t("dm.label"))
+        self._b_reset.setToolTip(t("reset.tip"))
         kind = "ChipOk" if active == "sddm" else "ChipAccent"
         self.dm_chips.set([(system.dm_pretty(active), kind, f"{active}.service" if active else "")])
         self.btn_dm_enable.setText(t("dm.enable"))

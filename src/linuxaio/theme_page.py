@@ -219,6 +219,39 @@ class ThemePage(QtWidgets.QWidget):
         self.src.select("local")
         self.sort_seg.select("down")
 
+    default_theme = ""       # Systemstandard für „Reset to default“
+
+    def reset_button(self) -> QtWidgets.QToolButton:
+        """Round reset button: back to the system default theme (nothing is deleted)."""
+        b = QtWidgets.QToolButton()
+        b.setObjectName("ResetBtn")
+        b.setFixedSize(30, 30)
+        b.setIconSize(QtCore.QSize(16, 16))
+        b.setIcon(draw_icon("reset", theme.MUTED, 16))
+        b.setCursor(Qt.CursorShape.PointingHandCursor)
+        b.clicked.connect(self._reset_default)
+        self._b_reset = b
+        return b
+
+    def _reset_default(self):
+        from hyprstudio import dialogs
+        self.reload_local()
+        ids = [x["id"] for x in self.local]
+        target = self.default_theme if self.default_theme in ids else ""
+        if not target:
+            self.host.set_status(t("reset.nodefault"))
+            return
+        prev = self.current
+        if prev == target:
+            self.host.set_status(t("reset.already"))
+            return
+        if not dialogs.confirm(self, t("reset.title"), t("reset.sys", name=target)):
+            return
+        self.host.run([f"{self.act}-set", target], f"{self.act}-set", self)
+        if prev:
+            self.host.offer_undo(t("reset.sysdone", name=target, prev=prev),
+                                 lambda: self.host.run([f"{self.act}-set", prev], f"{self.act}-set", self))
+
     # ----- Haken für Unterklassen -----
     def build_bar(self, layout):
         pass

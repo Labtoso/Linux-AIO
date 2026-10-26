@@ -524,6 +524,15 @@ class LookPage(Page):
         self.host.set_status(t("done") if ok else t("failed"))
         self.refresh_tiles()
 
+    def reset_keys(self):
+        if self.de not in ("gnome", "budgie", "pantheon", "cosmic", "hyprland", "sway", "i3", "niri"):
+            return []
+        from .gnome import IFACE
+        return [(IFACE, "cursor-theme"), (IFACE, "cursor-size")] if self.kind == "cursor" else [(IFACE, "icon-theme")]
+
+    def reset_extra(self, bak):
+        self.dry_applied = ""
+
     def _size_changed(self, _i):
         self.host.cfg["cursor_size"] = int(self.size.currentData())
         self.host.save()

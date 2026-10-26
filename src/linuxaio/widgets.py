@@ -65,6 +65,13 @@ def draw_icon(kind: str, color: str, size: int = 20) -> QtGui.QIcon:
     elif kind == "min":
         m = size * 0.3
         p.drawLine(QtCore.QPointF(m, c), QtCore.QPointF(size - m, c))
+    elif kind == "reset":
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        r = QtCore.QRectF(size * 0.2, size * 0.2, size * 0.6, size * 0.6)
+        p.drawArc(r, 60 * 16, 290 * 16)
+        tip = QtCore.QPointF(size * 0.65, size * 0.24)
+        p.drawLine(tip, QtCore.QPointF(size * 0.80, size * 0.20))
+        p.drawLine(tip, QtCore.QPointF(size * 0.70, size * 0.38))
     elif kind == "max":
         m = size * 0.3
         p.drawRoundedRect(QtCore.QRectF(m, m, size - 2 * m, size - 2 * m), 1.5, 1.5)

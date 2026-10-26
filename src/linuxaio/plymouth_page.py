@@ -21,6 +21,7 @@ class PlymouthPage(ThemePage):
     prompt_button = "ply.install"
     prompt_args = ("ply-setup",)
     has_test = False
+    default_theme = "bgrt"
 
     def local_animation(self, th, tile: bool = False):
         """Vorschau aus den Bildern des Themes. Kachel: ein fertiges Standbild. Große Vorschau: alle Einzelbilder
@@ -87,6 +88,7 @@ class PlymouthPage(ThemePage):
         self.btn_setup.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_setup.setMinimumHeight(34)
         self.btn_setup.clicked.connect(lambda: self.host.run(["ply-setup"], "ply-setup", self))
+        bl.addWidget(self.reset_button())
         bl.addWidget(self.ply_label)
         bl.addWidget(self.ply_chips, 1)
         bl.addWidget(self.btn_setup)
@@ -97,6 +99,7 @@ class PlymouthPage(ThemePage):
         hook = plymouth.has_hook()
         splash = plymouth.splash_active()
         self.ply_label.setText(t("ply.label"))
+        self._b_reset.setToolTip(t("reset.tip"))
         chips = [(t("installed") if have else t("ply.missing"), "ChipOk" if have else "ChipWarn", "")]
         if have:
             if hook is not None:

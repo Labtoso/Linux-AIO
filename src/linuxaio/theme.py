@@ -62,6 +62,8 @@ def qss(accent: str) -> str:
     QToolButton:hover {{ background: {SURFACE2}; }}
     QToolButton:pressed {{ background: {RAISED}; }}
     QToolButton#CloseBtn:hover {{ background: {DANGER}; }}
+    QToolButton#ResetBtn {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 15px; }}
+    QToolButton#ResetBtn:hover {{ border-color: {LINE}; background: {HOVER}; }}
     QScrollArea, #TileStrip {{ background: transparent; border: none; }}
     QScrollBar:horizontal {{ height: 8px; background: transparent; margin: 0 16px; }}
     QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 4px; min-width: 40px; }}

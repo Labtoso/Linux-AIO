@@ -187,6 +187,26 @@ def gset(schema: str, key: str, value) -> bool:
     return run(["gsettings", "set", schema, key, gvariant(value)])[0]
 
 
+def greset(schema: str, key: str) -> bool:
+    """Back to the default value (gsettings reset)."""
+    if DRY:
+        vals = _dry_values()
+        vals.pop(f"{schema} {key}", None)
+        try:
+            DRY_GSET.write_text(json.dumps(vals, ensure_ascii=False, indent=1), encoding="utf-8")
+        except OSError:
+            pass
+    return run(["gsettings", "reset", schema, key])[0]
+
+
+def backup_dir() -> Path:
+    """~/.config/LabtosoStudios/linuxaio/backups/<date-time>/ (test mode: under the test folder)."""
+    import time
+    d = config_dir() / "LabtosoStudios" / "linuxaio" / "backups" / time.strftime("%Y-%m-%d_%H-%M-%S")
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 # ---------- ini-Dateien (ohne configparser, Reihenfolge und Kommentare bleiben) ----------
 
 def ini_set(path: Path, section: str, key: str, value: str) -> None:

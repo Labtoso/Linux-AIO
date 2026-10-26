@@ -1,6 +1,8 @@
 """Bausteine für die Einstellungs-Seiten: Seite mit Titel, Karten mit Zeilen, gsettings-Steuerelemente,
 Hintergrund-Aufgaben."""
 
+from pathlib import Path
+
 from hyprstudio.widgets import Switch
 
 from . import theme, usercmd
@@ -63,6 +65,14 @@ class Page(QtWidgets.QWidget):
         self.title = QtWidgets.QLabel()
         self.title.setObjectName("PageTitle")
         left.addWidget(self.title)
+        self.b_reset = QtWidgets.QToolButton()          # „Reset to default“ für genau diese Seite
+        self.b_reset.setObjectName("ResetBtn")
+        self.b_reset.setFixedSize(30, 30)
+        self.b_reset.setIconSize(QtCore.QSize(16, 16))
+        self.b_reset.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.b_reset.clicked.connect(self._reset_clicked)
+        self.b_reset.hide()
+        left.addWidget(self.b_reset, 0, Qt.AlignmentFlag.AlignVCenter)
         self.chips = QtWidgets.QHBoxLayout()
         self.chips.setSpacing(6)
         left.addLayout(self.chips)
@@ -94,6 +104,47 @@ class Page(QtWidgets.QWidget):
 
     def finish(self):
         self.body.addStretch()
+        if self.reset_keys() or getattr(self, "has_reset", False):
+            from .widgets import draw_icon
+            self.b_reset.setIcon(draw_icon("reset", theme.MUTED, 16))
+            self.b_reset.show()
+
+    # ----- Zurücksetzen -----
+    def reset_keys(self) -> list:
+        """gsettings keys of this page (schema, key); pages add their own via reset_extra."""
+        return [(c.schema, c.gkey) for c in self.controls if getattr(c, "schema", None)]
+
+    def reset_extra(self, backup: Path) -> None:
+        """Extra things to reset (files etc.); copy what is changed into backup first."""
+
+    def _reset_clicked(self):
+        from hyprstudio import dialogs
+        host = getattr(self, "host", None)
+        if host is None or not dialogs.confirm(self, t("reset.title"), t("reset.ask", page=self.title.text())):
+            return
+        import json
+        bak = usercmd.backup_dir()
+        keys = self.reset_keys()
+        values = {f"{s} {k}": usercmd.gget(s, k) for s, k in keys}
+        (bak / f"{self.title_key}.json").write_text(json.dumps(values, ensure_ascii=False, indent=1), encoding="utf-8")
+        host.log("")
+        for s, k in keys:
+            usercmd.greset(s, k)
+        self.reset_extra(bak)
+        self.refresh()
+
+        def undo(values=values, bak=bak):
+            for sk, v in values.items():
+                s, k = sk.split(" ", 1)
+                if v is not None:
+                    usercmd.gset(s, k, v)
+            self.undo_extra(bak)
+            self.refresh()
+            host.set_status(t("reset.undone"))
+        host.offer_undo(t("reset.done", page=self.title.text(), path=str(bak)), undo)
+
+    def undo_extra(self, backup: Path) -> None:
+        """Restore what reset_extra changed."""
 
     def resizeEvent(self, e):
         super().resizeEvent(e)
@@ -107,6 +158,7 @@ class Page(QtWidgets.QWidget):
 
     def retranslate(self):
         self.title.setText(t(self.title_key))
+        self.b_reset.setToolTip(t("reset.tip"))
         for card in self.findChildren(Card):
             card.retranslate()
         for c in self.controls:
@@ -163,6 +215,24 @@ class Row(QtWidgets.QWidget):
         self.label.setText(t(self.key))
         tip = t(self.key + ".tip")
         self.label.setToolTip("" if tip == self.key + ".tip" else tip)
+
+
+def backup_files(files, bak: Path) -> None:
+    """Copy existing files into the backup folder (path kept as name)."""
+    import shutil
+    for f in files:
+        src = usercmd.readable(Path(f))
+        if src.is_file():
+            shutil.copy2(src, bak / str(f).strip("/").replace("/", "__"))
+
+
+def restore_files(files, bak: Path) -> None:
+    import shutil
+    for f in files:
+        b = bak / str(f).strip("/").replace("/", "__")
+        if b.is_file():
+            Path(f).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(b, f)
 
 
 def combo() -> QtWidgets.QComboBox:

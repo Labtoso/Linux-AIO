@@ -351,3 +351,17 @@ EXTRA["en"]["sec.launcher"] = "Launcher"
 
 EXTRA["de"]["app.settings"] = "Linux-AIO-Einstellungen"
 EXTRA["en"]["app.settings"] = "Linux AIO settings"
+
+EXTRA["de"].update({"reset.tip": "Auf Standard zurücksetzen", "reset.title": "Auf Standard zurücksetzen",
+    "reset.ask": "„{page}“ auf den Standard zurücksetzen? Die aktuellen Werte werden vorher gesichert.",
+    "reset.done": "„{page}“ zurückgesetzt – Sicherung: {path}", "reset.undo": "Rückgängig", "reset.undone": "Wiederhergestellt"})
+EXTRA["en"].update({"reset.tip": "Reset to default", "reset.title": "Reset to default",
+    "reset.ask": "Reset “{page}” to its default? The current values are backed up first.",
+    "reset.done": "“{page}” reset – backup: {path}", "reset.undo": "Undo", "reset.undone": "Restored"})
+
+EXTRA["de"].update({"reset.sys": "Zurück zum Systemstandard „{name}“? Installierte Themes bleiben erhalten.",
+    "reset.sysdone": "Systemstandard „{name}“ gesetzt (vorher: {prev})", "reset.nodefault": "Kein Standard-Theme installiert",
+    "reset.already": "Der Standard ist schon aktiv"})
+EXTRA["en"].update({"reset.sys": "Back to the system default “{name}”? Installed themes are kept.",
+    "reset.sysdone": "System default “{name}” set (before: {prev})", "reset.nodefault": "No default theme installed",
+    "reset.already": "The default is already active"})

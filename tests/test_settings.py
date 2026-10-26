@@ -511,6 +511,33 @@ class Ui(unittest.TestCase):
         pg.b_orig.click()
         self.assertIsNone(corners.current())
 
+    def test_reset_and_undo(self):
+        from hyprstudio import dialogs
+        from linuxaio import buttons
+        old = dialogs.confirm
+        dialogs.confirm = lambda *a, **k: True
+        try:
+            pg = self.panel("gnome", "titlebar")
+            self.assertTrue(pg.b_reset.isVisibleTo(pg))
+            next(tl for tl in pg.tiles if tl.name == "nord").btn.click()
+            usercmd.gset("org.gnome.desktop.wm.preferences", "button-layout", "close:")
+            pg.b_reset.click()
+            self.assertNotIn("org.gnome.desktop.wm.preferences button-layout", gvals())   # zurück auf Standard
+            self.assertEqual(buttons.current(), "")
+            self.assertTrue(self.w.btn_undo.isVisibleTo(self.w))
+            bak = list((usercmd.config_dir() / "LabtosoStudios/linuxaio/backups").iterdir())
+            self.assertTrue(bak)
+            self.w.btn_undo.click()
+            self.assertEqual(gvals()["org.gnome.desktop.wm.preferences button-layout"], "close:")
+            self.assertEqual(buttons.current(), "nord")
+            buttons.remove(lambda s: None)
+            fonts = self.panel("gnome", "fonts")
+            self.assertTrue(fonts.b_reset.isVisibleTo(fonts))
+            auto = self.panel("gnome", "autostart")
+            self.assertFalse(auto.b_reset.isVisibleTo(auto))           # nichts zum Zurücksetzen
+        finally:
+            dialogs.confirm = old
+
     def test_titlebar_clicks(self):
         pg = self.panel("gnome", "titlebar")
         pg.sw_min.set_now(False)
