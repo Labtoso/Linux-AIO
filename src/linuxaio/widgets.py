@@ -1,7 +1,6 @@
 """Gemeinsame Bausteine: Einstellungen, Symbole, Root-Prozess, Chips, Segment-Umschalter, Kacheln, Bildfläche."""
 
 import json
-import locale
 import math
 import os
 import sys
@@ -24,8 +23,7 @@ def load_cfg() -> dict:
     try:
         return json.loads(CONFIG.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        loc = (locale.getlocale()[0] or os.environ.get("LANG", "de")).lower()
-        return {"lang": "de" if loc.startswith("de") else "en", "theme": "blue"}
+        return {"lang": "en", "theme": "blue"}      # English by default, German in the settings
 
 
 def save_cfg(cfg: dict) -> None:
@@ -67,6 +65,9 @@ def draw_icon(kind: str, color: str, size: int = 20) -> QtGui.QIcon:
     elif kind == "min":
         m = size * 0.3
         p.drawLine(QtCore.QPointF(m, c), QtCore.QPointF(size - m, c))
+    elif kind == "max":
+        m = size * 0.3
+        p.drawRoundedRect(QtCore.QRectF(m, m, size - 2 * m, size - 2 * m), 1.5, 1.5)
     elif kind == "chev":
         m = size * 0.3
         p.drawLine(QtCore.QPointF(m, c - size * 0.1), QtCore.QPointF(c, c + size * 0.12))
@@ -462,7 +463,7 @@ class Picture(QtWidgets.QWidget):
         self.pix, self.loading = None, False
         self.anim = dict(a, idx=0)
         if animate and len(a["frames"]) > 1:
-            self.timer.start(40)
+            self.timer.start(30)          # ~33 Bilder/s wie beim Booten, Schleife über alle Bilder
         self.update()
 
     def _tick(self):

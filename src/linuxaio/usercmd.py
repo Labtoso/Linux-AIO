@@ -73,7 +73,7 @@ def run(cmd: list, timeout: int = 20) -> tuple[bool, str]:
     if DRY:
         return True, ""
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=_env())
     except (OSError, subprocess.TimeoutExpired) as e:
         log(str(e))
         return False, str(e)
@@ -86,10 +86,18 @@ def run(cmd: list, timeout: int = 20) -> tuple[bool, str]:
 def query(cmd: list, timeout: int = 8) -> str | None:
     """Nur lesen (läuft auch im Testmodus)."""
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, env=_env())
     except (OSError, subprocess.TimeoutExpired):
         return None
     return r.stdout.strip() if r.returncode == 0 else None
+
+
+def _env() -> dict:
+    """Child processes without launch tokens (otherwise GNOME may show a busy cursor)."""
+    env = dict(os.environ)
+    for k in ("DESKTOP_STARTUP_ID", "XDG_ACTIVATION_TOKEN"):
+        env.pop(k, None)
+    return env
 
 
 def _q(s: str) -> str:
