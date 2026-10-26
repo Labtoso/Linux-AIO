@@ -269,21 +269,30 @@ Categories=System;Settings;
 """
 
 ZIP_INSTALL = """#!/bin/sh
-# Linux AIO @VER@ installieren – nur für dich (~/.local), ohne root für die App selbst
+# Linux AIO @VER@ – install for the current user (~/.local). Installs everything it needs:
+# Python 3, PySide6 (Qt), polkit, gsettings, fontconfig, xz – via pacman, apt, dnf or zypper.
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
-cd /tmp   # pkexec nie aus Cloud-Ordnern starten
+cd /tmp   # never run pkexec/sudo from cloud folders
 BIN="$HOME/.local/bin"
 APPS="$HOME/.local/share/applications"
 ICON="$HOME/.local/share/icons/hicolor/256x256/apps/de.labtosostudios.linuxaio.png"
 
-if ! python3 -c "import PySide6" 2>/dev/null && ! python3 -c "import PyQt6" 2>/dev/null; then
-  echo "==> PySide6 fehlt – wird installiert (Passwort nötig)"
-  if command -v pacman >/dev/null; then pkexec pacman -S --needed --noconfirm pyside6
-  elif command -v apt-get >/dev/null; then pkexec apt-get install -y python3-pyside6.qtwidgets || pkexec apt-get install -y python3-pyqt6
-  elif command -v dnf >/dev/null; then pkexec dnf install -y python3-pyside6
-  elif command -v zypper >/dev/null; then pkexec zypper -n in python3-pyside6
+root() { if command -v pkexec >/dev/null 2>&1; then pkexec "$@"; else sudo "$@"; fi; }
+have_qt() { python3 -c "import PySide6.QtWidgets" 2>/dev/null || python3 -c "import PyQt6.QtWidgets" 2>/dev/null; }
+
+if ! command -v python3 >/dev/null 2>&1 || ! have_qt; then
+  echo "==> Installing Python 3 and Qt for Python (password needed)"
+  if command -v pacman >/dev/null; then root pacman -S --needed --noconfirm python pyside6 polkit glib2 fontconfig xz
+  elif command -v apt-get >/dev/null; then root apt-get update; root apt-get install -y python3 python3-pyside6.qtwidgets python3-pyside6.qtsvg python3-pyside6.qtnetwork policykit-1 libglib2.0-bin fontconfig xz-utils || root apt-get install -y python3 python3-pyqt6 python3-pyqt6.qtsvg pkexec libglib2.0-bin fontconfig xz-utils
+  elif command -v dnf >/dev/null; then root dnf install -y python3 python3-pyside6 polkit glib2 fontconfig xz
+  elif command -v zypper >/dev/null; then root zypper -n in python3 python3-pyside6 polkit glib2-tools fontconfig xz
+  elif command -v python3 >/dev/null 2>&1; then python3 -m pip install --user PySide6 || true
   fi
+fi
+if ! have_qt; then
+  echo "!! Qt for Python could not be installed automatically. Install PySide6 for your system and run this again."
+  exit 1
 fi
 
 mkdir -p "$BIN" "$APPS"
@@ -292,7 +301,7 @@ if [ -n "$APP" ]; then
   install -m755 "$APP" "$BIN/Linux-AIO.AppImage"
   cat > "$BIN/linux-aio" <<'EOS'
 #!/bin/sh
-# ohne FUSE läuft die AppImage entpackt
+# without FUSE the AppImage runs extracted
 command -v fusermount3 >/dev/null 2>&1 || command -v fusermount >/dev/null 2>&1 || export APPIMAGE_EXTRACT_AND_RUN=1
 exec "$HOME/.local/bin/Linux-AIO.AppImage" "$@"
 EOS
@@ -312,34 +321,36 @@ Exec=$BIN/linux-aio
 Icon=de.labtosostudios.linuxaio
 Terminal=false
 Categories=System;Settings;
+StartupWMClass=de.labtosostudios.linuxaio
+StartupNotify=false
 EOD
 update-desktop-database "$APPS" >/dev/null 2>&1 || true
 gtk-update-icon-cache -q "$HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
-echo "==> Fertig: Linux AIO @VER@ steht im Startmenü (Befehl: linux-aio)"
+echo "==> Done: Linux AIO @VER@ is in the app menu (command: linux-aio)"
 """
 
 ZIP_UNINSTALL = """#!/bin/sh
-# Linux AIO entfernen (App, Startmenü-Eintrag, Icon). Einstellungen und Mauszeiger nur nach Nachfrage.
+# Remove Linux AIO (app, start menu entry, icon). Settings and cursors only after asking.
 cd /tmp
 BIN="$HOME/.local/bin"
 rm -f "$BIN/linux-aio" "$BIN/Linux-AIO.AppImage" "$BIN/Linux-AIO.pyz"
 rm -f "$HOME/.local/share/applications/de.labtosostudios.linuxaio.desktop"
-rm -f "$HOME/.local/share/icons/hicolor/256x256/apps/de.labtosostudios.linuxaio.png"
+rm -f "$HOME/.local/share/icons/hicolor/"*/apps/de.labtosostudios.linuxaio.png
 update-desktop-database "$HOME/.local/share/applications" >/dev/null 2>&1 || true
-echo "==> Linux AIO entfernt"
+echo "==> Linux AIO removed"
 
-printf "Auch die Einstellungen von Linux AIO löschen? [j/N] "
+printf "Also delete the Linux AIO settings? [y/N] "
 read -r a
 case "$a" in
-  j|J|y|Y) rm -f "$HOME/.config/LabtosoStudios/linuxaio.json"; rm -rf "$HOME/.cache/LabtosoStudios/linuxaio"
-           echo "    Einstellungen gelöscht" ;;
-  *) echo "    Einstellungen bleiben" ;;
+  y|Y|j|J) rm -f "$HOME/.config/LabtosoStudios/linuxaio.json"; rm -rf "$HOME/.cache/LabtosoStudios/linuxaio"
+           echo "    settings deleted" ;;
+  *) echo "    settings kept" ;;
 esac
-printf "Auch die installierten Bibata-Mauszeiger (~/.local/share/icons/Bibata-Material-*) löschen? [j/N] "
+printf "Also delete the installed Bibata cursors (~/.local/share/icons/Bibata-Material-*)? [y/N] "
 read -r b
 case "$b" in
-  j|J|y|Y) rm -rf "$HOME"/.local/share/icons/Bibata-Material-*; echo "    Mauszeiger gelöscht" ;;
-  *) echo "    Mauszeiger bleiben" ;;
+  y|Y|j|J) rm -rf "$HOME"/.local/share/icons/Bibata-Material-*; echo "    cursors deleted" ;;
+  *) echo "    cursors kept" ;;
 esac
 """
 

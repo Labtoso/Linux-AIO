@@ -1,43 +1,44 @@
 # Linux AIO
 
-Linux-Einstellungen an einem Ort, per Klick: Desktop-Umgebungen installieren und wechseln, SDDM-Login-Themes, Plymouth-Bootsplash und Einstellungen für GNOME, KDE Plasma, Hyprland und weitere Desktops. Dunkles Design, Deutsch/Englisch. Von LabtosoStudios, Python + PySide6.
+Linux settings in one place: install and switch desktop environments, SDDM login themes, Plymouth boot splash and settings for GNOME, KDE Plasma, Hyprland and more. Dark design, English by default – **German available** (gear menu › language). By LabtosoStudios, Python + PySide6.
 
-## Was es kann
+## Features
 
-- **Desktops:** GNOME, Plasma, Hyprland, Xfce, Cinnamon und mehr installieren, als Standard setzen, entfernen
-- **SDDM / Plymouth:** Themes setzen, testen und aus dem KDE Store installieren
-- **Einstellungen:** links alle Desktops (der laufende ist vorgewählt), rechts die passenden Optionen
-  - **Mauszeiger und Symbole** für jeden Desktop: Kacheln mit Vorschau, aus diesem Repo herunterladen (Prüfsumme wird kontrolliert) oder aus einem eigenen Ordner, „Installieren“ und „Anwenden“
-  - **GNOME:** die Optionen von GNOME Tweaks, Titelleisten-Knöpfe und Knopf-Themes, obere Leiste, Startprogramme, Anmeldebildschirm (GDM), fehlende Erweiterungen per Klick
-  - **Plasma:** Farbschema und Plasma-Design
-  - **Hyprland:** das komplette [Hypr Studio](https://github.com/Labtoso/HyprStudio) ist eingebaut
+- **Desktops:** install GNOME, Plasma, Hyprland, Xfce, Cinnamon and more, set the default, remove
+- **SDDM / Plymouth:** apply, test and install themes from the KDE Store; full animated Plymouth previews
+- **Settings:** all desktops on the left (the running one is preselected), matching options on the right
+  - **Cursors and icons** for every desktop: tiles with previews, downloaded from this repository (checksums verified) or from your own folder – 29 Material Bibata cursors and 20 icon themes (Papirus, Numix, Kora, Flat-Remix, Candy, MoreWaita, Gruvbox Plus, Zafiro, Obsidian)
+  - **GNOME:** GNOME Tweaks options, title bar buttons and button themes (GTK and Firefox/Zen), window corner radius, top bar editor and power menu, fonts from Google Fonts and Nerd Fonts, startup apps, login screen (GDM), missing extensions with one click
+  - **Plasma:** colour scheme and Plasma style
+  - **Hyprland:** the complete [Hypr Studio](https://github.com/Labtoso/HyprStudio), embedded or as its own window
+- **App:** interface size 100 / 90 / 80 %
 
-## Installation
+## Install
 
-Aus den [Releases](https://github.com/Labtoso/Linux-AIO/releases) `Linux-AIO-<Version>.zip` laden, entpacken und im Terminal ausführen:
+Download `Linux-AIO-<version>.zip` from the [releases](https://github.com/Labtoso/Linux-AIO/releases), unzip it and run:
 
 ```bash
 sh Install.sh
 ```
 
-Das installiert die AppImage nach `~/.local/bin/linux-aio`, einen Startmenü-Eintrag und das Icon (fehlt PySide6, wird es mit installiert). Entfernen mit `sh Uninstall.sh`; Einstellungen und installierte Mauszeiger bleiben, wenn du willst.
+It installs everything that is needed (Python 3, PySide6, polkit – via pacman, apt, dnf or zypper), puts the app into `~/.local/bin/linux-aio` and adds a start menu entry. Remove it with `sh Uninstall.sh`; your settings and installed cursors stay if you want.
 
-Alternativ als Arch-Paket: `installer/Installieren.sh` (baut mit `makepkg` und installiert mit `pacman`).
+The AppImage also runs on its own (it registers its start menu entry on first start).
 
-Braucht: Python 3, PySide6, polkit (für Systemänderungen wie Desktops oder Login-Themes).
-
-## Selbst bauen
+## Build
 
 ```bash
 python3 build.py
 python3 -m unittest discover -s tests
 ```
 
-Testmodus ohne Änderungen am System: `DEMANAGER_DRYRUN=1 python3 -m linuxaio` (im Ordner `src`).
+Test mode without changing the system: `DEMANAGER_DRYRUN=1 python3 -m linuxaio` (inside `src`).
 
-## Lizenz
+## Licence
 
-Linux AIO ist freie Software unter der **GNU General Public License 3.0** (siehe `LICENSE`).
+Linux AIO is free software under the **GNU General Public License 3.0** (see `LICENSE`).
 
-- Die Mauszeiger in den Releases sind **Bibata / Material Bibata Cursor** und stehen ebenfalls unter **GPL-3.0** (Quelle: https://github.com/SakibShahariar/material-bibata-cursor, ursprünglich https://github.com/ful1e5/Bibata_Cursor).
-- Die Oberfläche nutzt Qt for Python (PySide6) unter der LGPL-3.0.
+- Cursors in the releases: **Bibata / Material Bibata Cursor**, GPL-3.0 (https://github.com/SakibShahariar/material-bibata-cursor).
+- Icon themes in the releases: each under GPL-3.0 from its authors (Papirus, Numix, Kora, Flat-Remix, Candy, MoreWaita, Gruvbox Plus, Zafiro, Obsidian); the licence file is included in every archive.
+- Fonts are downloaded directly from Google Fonts and Nerd Fonts under their own licences.
+- The interface uses Qt for Python (PySide6) under the LGPL-3.0.
