@@ -1,6 +1,6 @@
 # Maintainer: LabtosoStudios
 pkgname=labtoso-linuxaio
-pkgver=2.3.0
+pkgver=2.3.1
 pkgrel=1
 pkgdesc="Linux AIO – desktops, SDDM, Plymouth and desktop settings (GNOME, Plasma, Hyprland …) in one place"
 arch=('any')
