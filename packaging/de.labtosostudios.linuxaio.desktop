@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Linux AIO
+GenericName=Linux All-in-One Settings
+GenericName[de]=Linux-Einstellungen an einem Ort
+Comment=Desktops, SDDM, Plymouth and desktop settings (GNOME, Plasma, Hyprland, cursors) in one place
+Comment[de]=Desktops, SDDM, Plymouth und Desktop-Einstellungen (GNOME, Plasma, Hyprland, Mauszeiger) an einem Ort
+Exec=linux-aio
+Icon=de.labtosostudios.linuxaio
+Terminal=false
+Categories=Qt;KDE;System;Settings;
+Keywords=desktop;gnome;plasma;kde;xfce;hyprland;session;sddm;login;theme;plymouth;bootsplash;cursor;tweaks;settings;
+X-KDE-StartupNotify=true

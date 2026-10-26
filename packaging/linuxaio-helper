@@ -1,0 +1,4 @@
+#!/bin/sh
+# Root-Helfer des Linux AIO (wird über pkexec mit eigener polkit-Aktion gestartet)
+export PYTHONPATH=/usr/lib/labtoso-linuxaio
+exec /usr/bin/python3 -u -m linuxaio --helper "$@"

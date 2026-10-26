@@ -1,0 +1,36 @@
+# Maintainer: LabtosoStudios
+pkgname=labtoso-linuxaio
+pkgver=2.1.0
+pkgrel=1
+pkgdesc="Linux AIO – Desktops, SDDM, Plymouth und Desktop-Einstellungen (GNOME, Plasma, Hyprland …) an einem Ort"
+arch=('any')
+url="https://github.com/Labtoso/Linux-AIO"
+license=('GPL-3.0-only')
+depends=('python' 'pyside6' 'polkit')
+optdepends=('sddm: Login-Themes und Standard-Session'
+            'accountsservice: Standard-Session pro Benutzer'
+            'plymouth: Bootsplash-Themes'
+            'glib2: gsettings für GNOME-Einstellungen'
+            'gnome-tweaks: GNOME-Optionen auch per GNOME Tweaks')
+source=("$pkgname-$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+  install -d "$pkgdir/usr/lib/labtoso-linuxaio"
+  cp -r src/linuxaio src/hyprstudio "$pkgdir/usr/lib/labtoso-linuxaio/"
+  find "$pkgdir/usr/lib/labtoso-linuxaio" -name '__pycache__' -prune -exec rm -rf {} +
+  install -Dm755 packaging/linux-aio "$pkgdir/usr/bin/linux-aio"
+  install -Dm755 packaging/linuxaio-helper "$pkgdir/usr/lib/labtoso-linuxaio/linuxaio-helper"
+  install -Dm644 packaging/de.labtosostudios.linuxaio.desktop \
+    "$pkgdir/usr/share/applications/de.labtosostudios.linuxaio.desktop"
+  install -Dm644 packaging/de.labtosostudios.linuxaio.policy \
+    "$pkgdir/usr/share/polkit-1/actions/de.labtosostudios.linuxaio.policy"
+  install -Dm644 src/linuxaio/assets/linux-aio.svg \
+    "$pkgdir/usr/share/icons/hicolor/scalable/apps/de.labtosostudios.linuxaio.svg"
+  for s in 16 32 48 64 128 256; do
+    install -Dm644 "packaging/icons/$s.png" "$pkgdir/usr/share/icons/hicolor/${s}x${s}/apps/de.labtosostudios.linuxaio.png"
+  done
+  install -dm755 "$pkgdir/var/lib/labtoso-linuxaio"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

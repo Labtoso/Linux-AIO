@@ -1,0 +1,3 @@
+#!/bin/sh
+export PYTHONPATH=/usr/lib/labtoso-linuxaio
+exec /usr/bin/python3 -m linuxaio "$@"

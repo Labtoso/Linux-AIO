@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Linux AIO: klassischer Tux, selbst gezeichnet, ohne Hintergrund -->
+  <defs>
+    <linearGradient id="belly" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d9dde3"/>
+    </linearGradient>
+    <linearGradient id="beak" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd23f"/>
+      <stop offset="1" stop-color="#f2a20c"/>
+    </linearGradient>
+    <linearGradient id="foot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc21a"/>
+      <stop offset="1" stop-color="#e8890b"/>
+    </linearGradient>
+  </defs>
+  <!-- Körper -->
+  <path d="M128 10c-30 0-48 24-48 56 0 14 3 24-2 36-8 18-30 40-36 72-5 26 4 46 18 56h136c14-10 23-30 18-56-6-32-28-54-36-72-5-12-2-22-2-36 0-32-18-56-48-56z" fill="#1b1e23"/>
+  <!-- Flügel -->
+  <path d="M60 140c-14 16-24 40-20 62 2 10 10 14 16 8 4-22 8-46 18-66z" fill="#111317"/>
+  <path d="M196 140c14 16 24 40 20 62-2 10-10 14-16 8-4-22-8-46-18-66z" fill="#111317"/>
+  <!-- Bauch -->
+  <path d="M128 92c-22 0-34 14-40 34-8 26-12 56-4 80 6 18 22 26 44 26s38-8 44-26c8-24 4-54-4-80-6-20-18-34-40-34z" fill="url(#belly)"/>
+  <!-- Augen -->
+  <ellipse cx="110" cy="62" rx="13" ry="17" fill="#ffffff"/>
+  <ellipse cx="146" cy="62" rx="13" ry="17" fill="#ffffff"/>
+  <ellipse cx="113" cy="66" rx="6" ry="8" fill="#111317"/>
+  <ellipse cx="143" cy="66" rx="6" ry="8" fill="#111317"/>
+  <circle cx="115" cy="63" r="2" fill="#ffffff"/>
+  <circle cx="145" cy="63" r="2" fill="#ffffff"/>
+  <!-- Schnabel -->
+  <path d="M128 76c-14 0-28 6-28 14 0 8 14 16 28 16s28-8 28-16c0-8-14-14-28-14z" fill="url(#beak)"/>
+  <path d="M102 91c8 4 17 6 26 6s18-2 26-6" fill="none" stroke="#c97a06" stroke-width="3" stroke-linecap="round"/>
+  <!-- Füße -->
+  <path d="M58 214c-6 10-4 24 8 28 16 6 40 6 54-2 8-4 8-14 0-20-14-10-28-18-40-22-10-2-18 6-22 16z" fill="url(#foot)"/>
+  <path d="M198 214c6 10 4 24-8 28-16 6-40 6-54-2-8-4-8-14 0-20 14-10 28-18 40-22 10-2 18 6 22 16z" fill="url(#foot)"/>
+</svg>

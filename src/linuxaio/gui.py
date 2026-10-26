@@ -1,0 +1,424 @@
+"""Hauptfenster: Tabs Desktops / SDDM / Plymouth / Einstellungen im Kachel-Galerie-Design."""
+
+import os
+import sys
+
+import linuxaio
+from . import system, theme, usercmd
+from .de_page import DEPage
+from .i18n import TEXT, t, set_lang
+from .qt import QtCore, QtGui, QtWidgets, Qt, Signal
+from .plymouth_page import PlymouthPage
+from .sddm_page import SDDMPage
+from .settings_page import SettingsPage
+from .widgets import DRY, Runner, Segmented, SettingsPanel, app_icon, chevron_file, draw_icon, load_cfg, save_cfg
+
+
+TABS = ("de", "sddm", "ply", "settings")
+
+
+class MainWindow(QtWidgets.QWidget):
+    logline = Signal(str)       # Protokoll aus Hintergrund-Aufgaben (thread-sicher)
+
+    def __init__(self):
+        super().__init__()
+        self.cfg = load_cfg()
+        set_lang(self.cfg.get("lang", "de"))
+        if self.cfg.get("theme") not in theme.THEMES:
+            self.cfg["theme"] = "blue"
+        if self.cfg.get("tab") not in TABS:
+            self.cfg["tab"] = "de"
+        self.backend = system.detect_backend() or ("pacman" if DRY else None)
+        self.running = system.running_desktop()
+        self.runner = Runner(self)
+        self.runner.line.connect(self.log)
+        self.runner.step.connect(lambda s: self.set_status(t("step." + s)))
+        self.runner.progress.connect(self.task_progress)
+        self.runner.finished.connect(self._finished)
+        self._job = None
+        self._task = False
+
+        self.setWindowTitle(linuxaio.APP_NAME)
+        self.setWindowIcon(app_icon())
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.resize(1360, 880)
+        self.setMinimumWidth(1100)   # Mindesthöhe ergibt sich aus dem Layout, damit nichts überlappt
+
+        outer = QtWidgets.QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        self.root = QtWidgets.QFrame(self)
+        self.root.setObjectName("Root")
+        outer.addWidget(self.root)
+        rl = QtWidgets.QVBoxLayout(self.root)
+        rl.setContentsMargins(0, 0, 0, 0)
+        self.content = QtWidgets.QWidget(self.root)
+        rl.addWidget(self.content)
+        cl = QtWidgets.QVBoxLayout(self.content)
+        cl.setContentsMargins(20, 12, 20, 16)
+        cl.setSpacing(14)
+
+        # Kopfzeile: Zahnrad + Titel | Tabs mittig | Fensterknöpfe
+        head = QtWidgets.QHBoxLayout()
+        left = QtWidgets.QHBoxLayout()
+        left.setSpacing(10)
+        self.gear = QtWidgets.QToolButton()
+        self.gear.setIconSize(QtCore.QSize(22, 22))
+        self.gear.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.gear.clicked.connect(self.toggle_settings)
+        self.title = QtWidgets.QLabel(linuxaio.APP_NAME)
+        self.title.setObjectName("Title")
+        left.addWidget(self.gear)
+        left.addWidget(self.title)
+        left.addStretch()
+        self.tabs = Segmented(TABS, prefix="tab.")
+        self.tabs.setObjectName("TabBox")
+        self.tabs.changed.connect(self.set_tab)
+        right = QtWidgets.QHBoxLayout()
+        right.addStretch()
+        self.btn_min = QtWidgets.QToolButton()
+        self.btn_min.clicked.connect(self.showMinimized)
+        self.btn_close = QtWidgets.QToolButton()
+        self.btn_close.setObjectName("CloseBtn")
+        self.btn_close.clicked.connect(self.close)
+        for b in (self.btn_min, self.btn_close):
+            b.setIconSize(QtCore.QSize(18, 18))
+            right.addWidget(b)
+        head.addLayout(left, 1)
+        head.addWidget(self.tabs)
+        head.addLayout(right, 1)
+        cl.addLayout(head)
+
+        self.de_page = DEPage(self)
+        self.sddm_page = SDDMPage(self)
+        self.ply_page = PlymouthPage(self)
+        self.stack = QtWidgets.QStackedWidget()
+        self.stack.addWidget(self.de_page)
+        self.stack.addWidget(self.sddm_page)
+        self.stack.addWidget(self.ply_page)
+        self.logline.connect(self.log)
+        usercmd.set_logger(self.logline.emit)
+        self.settings_page = SettingsPage(self)
+        self.stack.addWidget(self.settings_page)
+        cl.addWidget(self.stack, 1)
+
+        self.footer = QtWidgets.QWidget()
+        foot = QtWidgets.QHBoxLayout(self.footer)
+        foot.setContentsMargins(0, 0, 0, 0)
+        self.status = QtWidgets.QLabel()
+        self.status.setObjectName("Status")
+        self.bar = QtWidgets.QProgressBar()
+        self.bar.setTextVisible(False)
+        self.bar.setFixedWidth(220)
+        self.bar.setRange(0, 100)
+        self.bar.hide()
+        self.btn_log = QtWidgets.QPushButton()
+        self.btn_log.setCheckable(True)
+        self.btn_log.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_log.toggled.connect(self._toggle_log)
+        foot.addWidget(self.status, 1)
+        foot.addWidget(self.bar)
+        foot.addSpacing(12)
+        foot.addWidget(self.btn_log)
+        cl.addWidget(self.footer)
+        # Protokoll als Schublade über den Kacheln (nicht im Layout, verschiebt nichts)
+        self.logview = QtWidgets.QPlainTextEdit(self.root)
+        self.logview.setObjectName("LogDrawer")
+        self.logview.setReadOnly(True)
+        self.logview.setMaximumBlockCount(5000)
+        self.logview.hide()
+        self.log_anim = QtCore.QPropertyAnimation(self.logview, b"geometry", self)
+        self.log_anim.setDuration(200)
+        self.log_anim.setEasingCurve(QtCore.QEasingCurve.Type.OutCubic)
+        self.log_anim.finished.connect(lambda: self.logview.setVisible(self.btn_log.isChecked()))
+
+        grip_row = QtWidgets.QHBoxLayout()
+        grip_row.setContentsMargins(0, 0, 4, 4)
+        grip_row.addStretch()
+        grip = QtWidgets.QSizeGrip(self.root)
+        grip.setStyleSheet("background: transparent;")
+        grip_row.addWidget(grip)
+        rl.addLayout(grip_row)
+
+        self.dim = QtWidgets.QWidget(self.root)
+        self.dim.setStyleSheet("background: rgba(5,8,12,110); border-radius: 16px;")
+        self.dim.hide()
+        self.dim.mousePressEvent = lambda e: self.toggle_settings()
+        self.panel = SettingsPanel(self.root)
+        self.panel.hide()
+        self.panel.lang_changed.connect(self.set_language)
+        self.panel.theme_changed.connect(self.set_theme)
+        self.panel.about_requested.connect(self.show_about)
+        self.anim = QtCore.QPropertyAnimation(self.panel, b"pos", self)
+        self.anim.setDuration(220)
+        self.anim.setEasingCurve(QtCore.QEasingCurve.Type.OutCubic)
+        self.anim.finished.connect(self._anim_done)
+        self._closing = False
+
+        self.apply_theme()
+        self.retranslate()
+        self.sddm_page.rebuild()
+        self.ply_page.rebuild()
+        self.set_tab(self.cfg["tab"])
+        if not self.backend:
+            self.set_status(t("nobackend"))
+        elif not DRY and not system.has_pkexec():
+            self.set_status(t("nopkexec"))
+
+    # ----- Schnittstelle für die Seiten -----
+    def accent(self) -> str:
+        return theme.THEMES[self.cfg["theme"]]
+
+    def save(self):
+        save_cfg(self.cfg)
+
+    def busy(self) -> bool:
+        return self.runner.busy() or self._task
+
+    def set_status(self, text: str):
+        self.status.setText(text)
+
+    def log(self, text: str):
+        self.logview.appendPlainText(text)
+
+    def confirm(self, title: str, text: str) -> bool:
+        box = QtWidgets.QMessageBox(self)
+        box.setWindowTitle(title)
+        box.setText(text)
+        box.setIcon(QtWidgets.QMessageBox.Icon.Question)
+        box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
+        box.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
+        box.exec()
+        return box.clickedButton() is box.button(QtWidgets.QMessageBox.StandardButton.Yes)
+
+    def task_begin(self, text: str):
+        self._task = True
+        self.bar.setValue(0)
+        self.bar.show()
+        self.set_status(text)
+        self.log("")
+        self._refresh_pages()
+
+    def task_progress(self, v: int):
+        self.bar.setValue(v)
+
+    def task_end(self, ok: bool, msg: str):
+        self._task = False
+        self.bar.hide()
+        if not ok:
+            self.set_status(f"{t('failed')}: {msg}")
+            if not self.logview.isVisible():
+                self.btn_log.setChecked(True)
+        self._refresh_pages()
+
+    def run(self, args: list, action: str, page):
+        if self.runner.busy():
+            return
+        self._job = (action, page)
+        self.bar.setValue(0)
+        self.bar.show()
+        self.set_status(t("busy"))
+        self.log("")
+        self.runner.start(args)
+        self._refresh_pages()
+
+    def _finished(self, ok: bool, err: str):
+        self.bar.hide()
+        action, page = self._job or ("", None)
+        self._job = None
+        if ok:
+            msg = t("done")
+            if action in ("default", "sddm-set"):
+                msg += " · " + t("logout")
+            elif action in ("dm-enable", "ply-setup", "ply-set"):
+                msg += " · " + t("reboot")
+            self.set_status(msg)
+        else:
+            key = err.split(" ", 1)[0] if err else ""
+            detail = err.split(" ", 1)[1] if " " in err else ""
+            text = t("err." + key) if ("err." + key) in TEXT["de"] else t("failed")
+            self.set_status(f"{t('failed')}: {text}" + (f" ({detail})" if detail else ""))
+            if not self.logview.isVisible():
+                self.btn_log.setChecked(True)
+        if page:
+            page.finished(ok, action, self.runner.result)
+        self._refresh_pages()
+
+    def _refresh_pages(self):
+        self.de_page.refresh()
+        self.sddm_page.refresh()
+        self.ply_page.refresh()
+        self.settings_page.refresh()
+
+    # ----- Fenster verschieben (Wayland + X11) -----
+    def mousePressEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton and e.position().y() < 56:
+            h = self.windowHandle()
+            if h is not None:
+                h.startSystemMove()
+
+    def mouseDoubleClickEvent(self, e):
+        if e.position().y() < 56:
+            self.showNormal() if self.isMaximized() else self.showMaximized()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        self.dim.setGeometry(self.root.rect())
+        self.panel.setFixedHeight(self.root.height())
+        if self.panel.isVisible() and self.anim.state() != QtCore.QAbstractAnimation.State.Running:
+            self.panel.move(0, 0)
+        if self.btn_log.isChecked() and self.log_anim.state() != QtCore.QAbstractAnimation.State.Running:
+            QtCore.QTimer.singleShot(0, lambda: self.logview.setGeometry(self._log_rect(True)))
+
+    def _log_rect(self, open_: bool) -> QtCore.QRect:
+        foot = self.footer.geometry().translated(self.content.pos())
+        bottom = foot.top() - 8
+        page = self.stack.currentWidget()
+        anchor = page.drawer_anchor()            # erstes Element unter der großen Karte
+        top = anchor.mapTo(self.root, QtCore.QPoint(0, 0)).y()
+        x, w = foot.left(), foot.width()
+        return QtCore.QRect(x, top, w, bottom - top) if open_ else QtCore.QRect(x, bottom, w, 0)
+
+    def _toggle_log(self, on: bool):
+        self.log_anim.stop()
+        self.log_anim.setStartValue(self.logview.geometry() if self.logview.isVisible() else self._log_rect(False))
+        self.log_anim.setEndValue(self._log_rect(on))
+        if on:
+            self.logview.show()
+            self.logview.raise_()
+            if self.panel.isVisible():
+                self.dim.raise_()
+                self.panel.raise_()
+        self.log_anim.start()
+
+    # ----- Tabs -----
+    def set_tab(self, tab: str):
+        self.cfg["tab"] = tab
+        save_cfg(self.cfg)
+        self.tabs.select(tab)
+        self.stack.setCurrentWidget({"de": self.de_page, "sddm": self.sddm_page, "ply": self.ply_page,
+                                     "settings": self.settings_page}[tab])
+        if self.btn_log.isChecked():
+            QtCore.QTimer.singleShot(0, lambda: self.logview.setGeometry(self._log_rect(True)))
+
+    # ----- Einstellungen -----
+    def toggle_settings(self):
+        opening = not self.panel.isVisible() or self.panel.x() < 0
+        w = self.panel.width()
+        self.anim.stop()
+        self._closing = not opening
+        if opening:
+            blur = QtWidgets.QGraphicsBlurEffect(self.content)
+            blur.setBlurRadius(14)
+            self.content.setGraphicsEffect(blur)
+            self.dim.setGeometry(self.root.rect())
+            self.dim.show()
+            self.dim.raise_()
+            self.panel.sync(self.cfg, self.backend)
+            self.panel.setFixedHeight(self.root.height())
+            self.panel.move(-w, 0)
+            self.panel.show()
+            self.panel.raise_()
+            self.anim.setStartValue(QtCore.QPoint(-w, 0))
+            self.anim.setEndValue(QtCore.QPoint(0, 0))
+        else:
+            self.anim.setStartValue(self.panel.pos())
+            self.anim.setEndValue(QtCore.QPoint(-w, 0))
+        self.anim.start()
+
+    def _anim_done(self):
+        if not self._closing:
+            return
+        self.panel.hide()
+        self.dim.hide()
+        self.content.setGraphicsEffect(None)
+
+    def show_about(self):
+        box = QtWidgets.QMessageBox(self)
+        box.setWindowTitle(t("about"))
+        box.setIconPixmap(app_icon().pixmap(64, 64))
+        box.setTextFormat(Qt.TextFormat.RichText)
+        box.setText(f"<b>{linuxaio.APP_NAME} {linuxaio.__version__}</b><br>LabtosoStudios")
+        box.setInformativeText(t("about.text", url=linuxaio.REPO_URL))
+        box.setStyleSheet(theme.qss(self.accent()))
+        box.exec()
+
+    def set_language(self, code: str):
+        self.cfg["lang"] = code
+        set_lang(code)
+        save_cfg(self.cfg)
+        self.retranslate()
+        self.panel.sync(self.cfg, self.backend)
+
+    def set_theme(self, name: str):
+        self.cfg["theme"] = name
+        save_cfg(self.cfg)
+        self.apply_theme()
+        self._refresh_pages()
+        self.settings_page.apply_accent()
+        self.panel.sync(self.cfg, self.backend)
+
+    def apply_theme(self):
+        chev = chevron_file(theme.MUTED)
+        extra = f"QComboBox#Combo::down-arrow {{ image: url({chev}); width: 14px; height: 14px; }}" if chev else ""
+        self.setStyleSheet(theme.qss(self.accent()) + extra)
+        self.gear.setIcon(draw_icon("gear", theme.TEXT, 22))
+        self.btn_min.setIcon(draw_icon("min", theme.MUTED, 18))
+        self.btn_close.setIcon(draw_icon("close", theme.MUTED, 18))
+
+    def retranslate(self):
+        self.gear.setToolTip(t("settings"))
+        self.btn_min.setToolTip(t("minimize"))
+        self.btn_close.setToolTip(t("close"))
+        self.btn_log.setText(t("log"))
+        self.tabs.retranslate()
+        self.de_page.retranslate()
+        self.sddm_page.retranslate()
+        self.ply_page.retranslate()
+        self.settings_page.retranslate()
+        if not self.busy():
+            self.set_status(t("ready"))
+
+
+def main(argv) -> int:
+    if hasattr(QtGui.QGuiApplication, "setHighDpiScaleFactorRoundingPolicy"):
+        QtGui.QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    app = QtWidgets.QApplication(argv)
+    app.setApplicationName(linuxaio.APP_NAME)
+    app.setOrganizationName("LabtosoStudios")
+    app.setApplicationVersion(linuxaio.__version__)
+    app.setDesktopFileName(linuxaio.APP_ID)   # Wayland: richtiges Icon in der Plasma-Taskleiste
+    app.setWindowIcon(app_icon())
+    if sys.platform != "win32" and "KDE" not in os.environ.get("XDG_CURRENT_DESKTOP", "").upper():
+        app.setStyle("Fusion")
+    from hyprstudio.widgets import RoundPopups
+    app._round = RoundPopups(app)       # Auswahlmenüs rund, ohne helle Box (wie Hypr Studio)
+    app.installEventFilter(app._round)
+    from .form import Job
+    app.aboutToQuit.connect(Job.wait_all)
+    w = MainWindow()
+    w.show()
+    shot = os.environ.get("DEMANAGER_SHOT")
+    if shot:
+        QtCore.QTimer.singleShot(600, lambda: _shots(w, app, shot, os.environ.get("LINUXAIO_STEPS", "")))
+    return app.exec()
+
+
+def _shots(w, app, shot, steps):
+    """Testhilfe: LINUXAIO_STEPS='settings:gnome:cursor,sddm' → je ein Bild (Tab[:Desktop[:Bereich]])."""
+    items = [s for s in steps.split(",") if s] or [""]
+    for i, st in enumerate(items):
+        if st:
+            parts = st.split(":")
+            w.set_tab(parts[0])
+            if parts[0] == "settings" and len(parts) > 1:
+                w.settings_page.select(parts[1])
+                if len(parts) > 2 and w.settings_page.panel():
+                    w.settings_page.panel().show_section(parts[2])
+        for _ in range(int(os.environ.get("LINUXAIO_WAIT", "12"))):   # Hintergrund-Aufgaben (Vorschauen) abwarten
+            app.processEvents()
+            QtCore.QThread.msleep(100)
+        app.processEvents()
+        w.grab().save(shot if len(items) == 1 else shot.replace(".png", f"_{i}.png"))
+    app.quit()
