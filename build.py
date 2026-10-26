@@ -204,18 +204,20 @@ def build_zip(appimage: Path | None, pyz: Path) -> Path:
     return target
 
 
-def build_installer(pyz: Path, tarball: Path) -> None:
-    (INST / "portable").mkdir(parents=True, exist_ok=True)
+def build_installer(pyz: Path, tarball: Path, appimage: Path | None, zipfile_: Path) -> None:
+    """installer/: AppImage + ZIP + Install.sh/Uninstall.sh der aktuellen Version, arch/ fürs Paket."""
+    INST.mkdir(parents=True, exist_ok=True)
     (INST / "arch").mkdir(parents=True, exist_ok=True)
-    shutil.copy2(pyz, INST / "portable" / pyz.name)
-    shutil.copy2(ROOT / "packaging/icons/256.png", INST / "portable" / "linux-aio.png")
+    if appimage:
+        shutil.copy2(appimage, INST / appimage.name)
+    shutil.copy2(zipfile_, INST / zipfile_.name)
+    bundled = "1" if appimage and (BUILD / "AppDir" / "usr" / "python").is_dir() else "0"
+    write_lf(INST / "Install.sh", ZIP_INSTALL.replace("@VER@", VER).replace("@BUNDLED@", bundled), 0o755)
+    write_lf(INST / "Uninstall.sh", ZIP_UNINSTALL, 0o755)
+    shutil.copy2(ROOT / "packaging/icons/256.png", INST / "linux-aio.png")
     shutil.copy2(tarball, INST / "arch" / tarball.name)
     write_lf(INST / "arch/PKGBUILD", (ROOT / "packaging/PKGBUILD").read_text(encoding="utf-8"))
-    write_lf(INST / "arch/install.sh", (ROOT / "packaging/install.sh").read_text(encoding="utf-8"))
-    write_lf(INST / "Installieren.sh", INSTALL_SH)
-    write_lf(INST / "Portable.sh", PORTABLE_SH)
-    write_lf(INST / "uninstall.sh", (ROOT / "packaging/uninstall.sh").read_text(encoding="utf-8"))
-    write_lf(INST / "Linux AIO.desktop", PORTABLE_DESKTOP)
+    write_lf(INST / "arch/install.sh", (ROOT / "packaging/install.sh").read_text(encoding="utf-8"), 0o755)
     print("installer/ aktualisiert")
 
 
@@ -380,6 +382,6 @@ if __name__ == "__main__":
     pyz = build_pyz()
     tb = build_tarball()
     app = build_appimage(pyz)
-    build_zip(app, pyz)
-    build_installer(pyz, tb)
+    z = build_zip(app, pyz)
+    build_installer(pyz, tb, app, z)
     (DIST / "VERSION").write_text(VER + "\n", encoding="utf-8")
