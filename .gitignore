@@ -1,0 +1,15 @@
+dist/
+build/
+old/
+release-assets/
+__pycache__/
+*.pyc
+*.pyz
+*.AppImage
+*.pkg.tar.zst
+*.tar.gz
+*.zip
+installer/arch/*.tar.gz
+installer/portable/
+pkg/
+installer/
