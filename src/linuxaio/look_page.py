@@ -40,9 +40,32 @@ def cursor_preview(theme_dir: Path) -> QtGui.QImage | None:
     return out
 
 
+def _inherits(theme_dir: Path) -> Path | None:
+    try:
+        for ln in (theme_dir / "index.theme").read_text(encoding="utf-8", errors="replace").splitlines():
+            if ln.startswith("Inherits="):
+                for name in ln.split("=", 1)[1].split(","):
+                    for base in [theme_dir.parent] + looks.icon_dirs():
+                        p = base / name.strip()
+                        if name.strip() and p.is_dir() and p != theme_dir:
+                            return p
+    except OSError:
+        pass
+    return None
+
+
 def icon_preview(theme_dir: Path) -> QtGui.QImage | None:
     from .qt import QtSvg
     files = [f for f in (looks.icon_file(theme_dir, n) for n in looks.ICON_PREVIEW) if f][:4]
+    if len(files) < 2:          # Ergänzungs-Themes (z. B. MoreWaita, Numix-Light): Eltern-Theme oder Programm-Symbole
+        parent = _inherits(theme_dir)
+        if parent:
+            files += [f for f in (looks.icon_file(parent, n) for n in looks.ICON_PREVIEW) if f][:4 - len(files)]
+    if len(files) < 2:
+        for sub in ("scalable/apps", "48x48/apps", "apps/48", "48/apps", "scalable/places"):
+            files += sorted((theme_dir / sub).glob("*.svg"))[:4 - len(files)]
+            if len(files) >= 4:
+                break
     if not files:
         return None
     cell = 44
@@ -346,7 +369,14 @@ class LookPage(Page):
             self.empty.setText(t("look.nofolder") if not Path(self.folder).is_dir() else t("look.nothemes"))
         self._filter()
         self.refresh_tiles()
-        todo = [(it["name"], it["src"] or it["installed"], (it.get("remote") or {}).get("preview_url"))
+        def local_png(it):
+            src = it["src"]
+            if src is not None and src.is_file():          # Archiv im Ordner: Vorschaubild daneben
+                pngs = sorted(src.parent.glob("*.png"))
+                return str(pngs[0]) if pngs else None
+            return None
+        todo = [(it["name"], it["installed"] or (it["src"] if it["src"] is not None and it["src"].is_dir() else None),
+                 (it.get("remote") or {}).get("preview_url") or local_png(it))
                 for it in self.items if it["name"] not in self.previews]
         fn = cursor_preview if self.kind == "cursor" else icon_preview
 
@@ -354,7 +384,9 @@ class LookPage(Page):
             out = []
             for n, path, url in part:
                 img = None
-                if url:
+                if url and not url.startswith("http"):
+                    img = QtGui.QImage(url)
+                elif url:
                     data = remote.preview(url)
                     img = QtGui.QImage.fromData(data) if data else None
                 if (img is None or img.isNull()) and path:

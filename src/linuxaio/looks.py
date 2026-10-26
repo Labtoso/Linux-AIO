@@ -95,6 +95,10 @@ def list_folder(folder: Path, kind: str = "cursor") -> dict:
     for p in subs:
         if p.is_dir() and _check(kind)(p):
             out[p.name] = p
+        elif p.is_dir():                 # Cloud-Ordner ohne Symlinks: Theme als Archiv <Name>/<Name>.tar.xz
+            arc = next(iter(sorted(p.glob("*.tar.xz"))), None)
+            if arc is not None:
+                out[p.name] = arc
     return out
 
 
@@ -105,7 +109,9 @@ def items(folder: Path, kind: str = "cursor") -> list:
     result = []
     for name in list(src) + [n for n in inst if n not in src]:
         path = inst.get(name)
-        result.append({"name": name, "label": _index_name(src.get(name) or path), "src": src.get(name),
+        s_ = src.get(name)
+        label_from = path or (s_ if s_ is not None and s_.is_dir() else None)
+        result.append({"name": name, "label": _index_name(label_from) if label_from else name, "src": s_,
                        "installed": path, "color": color_of(name)})
     return result
 
@@ -117,7 +123,13 @@ def color_of(name: str) -> str | None:
 
 
 def install(src: Path, log=usercmd.log) -> Path:
-    """Theme-Ordner nach ~/.local/share/icons kopieren. Vorhandenes wird nie überschrieben."""
+    """Theme-Ordner (oder .tar.xz-Archiv) nach ~/.local/share/icons. Vorhandenes wird nie überschrieben."""
+    if src.is_file():
+        from . import remote
+        new = remote.safe_extract(src.read_bytes(), user_icons(), None, allow_links=True)
+        name = src.parent.name
+        log(f"→ {user_icons() / name}")
+        return user_icons() / name if (user_icons() / name).exists() else (new[0] if new else user_icons() / name)
     dest = user_icons() / src.name
     if dest.exists():
         log(f"schon da: {dest}")

@@ -208,6 +208,18 @@ class Remote(unittest.TestCase):
             self.assertEqual(cm.exception.key, "remote.badarchive")
         self.assertFalse(dest.exists() and any(dest.iterdir()))
 
+    def test_icon_links(self):
+        dest = TMP / "icons-links"
+        good = make_txz({"Ico/index.theme": b"[Icon Theme]", "Ico/48/a.svg": b"<svg/>"},
+                        {"Ico/48/b.svg": "a.svg", "Ico/32": "48"})
+        new = self.remote.safe_extract(good, dest, {"Ico"}, allow_links=True)
+        self.assertTrue((new[0] / "48/b.svg").is_symlink())
+        self.assertEqual((new[0] / "32/a.svg").read_bytes(), b"<svg/>")
+        for links in ({"Evil/x": "../../etc/passwd"}, {"Evil/x": "/etc/passwd"}, {"Evil/48": "../Other"}):
+            bad = make_txz({"Evil/index.theme": b"x"}, links)
+            with self.assertRaises(self.remote.SourceError):
+                self.remote.safe_extract(bad, TMP / "icons-evil", {"Evil"}, allow_links=True)
+
     def test_errors(self):
         import urllib.error
 

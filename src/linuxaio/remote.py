@@ -133,7 +133,17 @@ def download(url: str, sha: str, size_hint: int = 0, progress=None) -> bytes:
     return data
 
 
-def safe_extract(data: bytes, dest_root: Path, allowed: set | None = None) -> list:
+def _link_ok(m, tops) -> bool:
+    """Relative symlink that stays inside a theme folder of the same archive (icon themes need thousands of
+    these; e.g. Papirus-Dark links its size folders to Papirus)."""
+    import posixpath
+    if m.linkname.startswith("/") or "\\" in m.linkname:
+        return False
+    target = posixpath.normpath(posixpath.join(posixpath.dirname(m.name), m.linkname))
+    return not target.startswith("..") and target.split("/")[0] in tops
+
+
+def safe_extract(data: bytes, dest_root: Path, allowed: set | None = None, allow_links: bool = False) -> list:
     """tar.xz sicher entpacken: nur normale Dateien/Ordner, nichts außerhalb, keine Links,
     nur erlaubte Theme-Ordner oben, vorhandene Themes werden nie überschrieben. Gibt neue Themes zurück."""
     try:
@@ -142,13 +152,16 @@ def safe_extract(data: bytes, dest_root: Path, allowed: set | None = None) -> li
     except (tarfile.TarError, EOFError, OSError) as e:
         raise SourceError("remote.badarchive", str(e)) from e
     total, tops = 0, set()
+    link_tops = set(allowed) if allowed is not None else {Path(x.name).parts[0] for x in members if Path(x.name).parts}
     for m in members:
         p = Path(m.name)
         if m.name.startswith(("/", "\\")) or p.is_absolute() or ".." in p.parts or not p.parts:
             raise SourceError("remote.badarchive", m.name)
-        if not (m.isfile() or m.isdir()):
-            raise SourceError("remote.badarchive", f"{m.name} (Link/Gerät)")
         top = p.parts[0]
+        if m.issym() and allow_links and _link_ok(m, link_tops):
+            pass
+        elif not (m.isfile() or m.isdir()):
+            raise SourceError("remote.badarchive", f"{m.name} (Link/Gerät)")
         if not _safe_name(top) or (allowed is not None and top not in allowed):
             raise SourceError("remote.badarchive", top)
         tops.add(top)
@@ -169,6 +182,11 @@ def safe_extract(data: bytes, dest_root: Path, allowed: set | None = None) -> li
             if p.parts[0] != top:
                 continue
             target = tmp.joinpath(*p.parts[1:]) if len(p.parts) > 1 else tmp
+            if m.issym():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if not target.exists() and not target.is_symlink():
+                    os.symlink(m.linkname, target)
+                continue
             if m.isdir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
@@ -186,7 +204,7 @@ def install(entry: dict, dest_root: Path, progress=None) -> list:
     """Eintrag oder Paket laden, prüfen, entpacken."""
     data = download(entry["url"], entry["sha256"], int(entry.get("groesse") or 0), progress)
     allowed = set(entry.get("enthaelt") or [entry["name"]])
-    return safe_extract(data, dest_root, allowed)
+    return safe_extract(data, dest_root, allowed, allow_links=bool(entry.get("links")))
 
 
 def preview(url: str) -> bytes | None:
