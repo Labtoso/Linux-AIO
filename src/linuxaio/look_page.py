@@ -350,9 +350,9 @@ class LookPage(Page):
                 for it in self.items if it["name"] not in self.previews]
         fn = cursor_preview if self.kind == "cursor" else icon_preview
 
-        def work(todo=todo, fn=fn):
+        def work(part, fn=fn):
             out = []
-            for n, path, url in todo:
+            for n, path, url in part:
                 img = None
                 if url:
                     data = remote.preview(url)
@@ -361,8 +361,10 @@ class LookPage(Page):
                     img = fn(path)
                 out.append((n, img))
             return out
-        if todo:
-            start_job(self, work, self._previews_done)
+        # in Häppchen parallel laden: Vorschauen erscheinen nach und nach (Downloads von GitHub dauern)
+        for i in range(0, len(todo), 4):
+            part = todo[i:i + 4]
+            start_job(self, lambda part=part, work=work: work(part), self._previews_done)
 
     def _message(self, text: str) -> str:
         """SourceError-Text „remote.xyz: detail“ → verständliche Meldung."""

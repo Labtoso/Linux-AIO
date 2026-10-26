@@ -402,7 +402,10 @@ def main(argv) -> int:
     shot = os.environ.get("DEMANAGER_SHOT")
     if shot:
         QtCore.QTimer.singleShot(600, lambda: _shots(w, app, shot, os.environ.get("LINUXAIO_STEPS", "")))
-    return app.exec()
+    code = app.exec()
+    if any(j.isRunning() for j in Job.running):
+        os._exit(code)          # Download hängt noch: hart beenden statt Qt-Absturz beim Aufräumen
+    return code
 
 
 def _shots(w, app, shot, steps):
