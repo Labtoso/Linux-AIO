@@ -17,6 +17,61 @@ from .widgets import DRY, Runner, Segmented, SettingsPanel, app_icon, chevron_fi
 TABS = ("de", "sddm", "ply", "settings")
 
 
+class AboutDialog(QtWidgets.QDialog):
+    """Über-Dialog im App-Look: rahmenlos, rund, eigene Titelzeile (sieht auf allen Desktops gleich aus)."""
+
+    def __init__(self, win):
+        from hyprstudio.dialogs import Frame
+        super().__init__(win)
+        self.frame = Frame(win, t("about"), 460)
+        self.frame.title.hide()
+        b = self.frame.body
+        b.setSpacing(10)
+        top = QtWidgets.QHBoxLayout()
+        top.setSpacing(16)
+        ic = QtWidgets.QLabel()
+        dpr = win.devicePixelRatioF()
+        pm = app_icon().pixmap(QtCore.QSize(72, 72), dpr)
+        ic.setPixmap(pm)
+        top.addWidget(ic)
+        col = QtWidgets.QVBoxLayout()
+        name = QtWidgets.QLabel(linuxaio.APP_NAME)
+        name.setObjectName("DeName")
+        ver = QtWidgets.QLabel(f"{t('about.version')} {linuxaio.__version__} · LabtosoStudios")
+        ver.setObjectName("Label")
+        col.addWidget(name)
+        col.addWidget(ver)
+        col.addStretch()
+        top.addLayout(col, 1)
+        b.addLayout(top)
+        txt = QtWidgets.QLabel(t("about.text", url=linuxaio.REPO_URL))
+        txt.setTextFormat(Qt.TextFormat.RichText)
+        txt.setWordWrap(True)
+        txt.setOpenExternalLinks(True)
+        txt.setStyleSheet(f"a {{ color: {win.accent()}; }}")
+        txt.setFixedWidth(410)
+        txt.setMinimumHeight(txt.heightForWidth(410) + 6)      # Umbruch-Höhe vorher festlegen (Wayland schnitt ab)
+        b.addWidget(txt)
+        row = QtWidgets.QHBoxLayout()
+        gh = QtWidgets.QPushButton("GitHub")
+        gh.setCursor(Qt.CursorShape.PointingHandCursor)
+        gh.clicked.connect(lambda: QtGui.QDesktopServices.openUrl(QtCore.QUrl(linuxaio.REPO_URL)))
+        ok = QtWidgets.QPushButton(t("close"))
+        ok.setObjectName("Primary")
+        ok.setCursor(Qt.CursorShape.PointingHandCursor)
+        ok.setDefault(True)
+        ok.clicked.connect(self.frame.accept)
+        row.addWidget(gh)
+        row.addStretch()
+        row.addWidget(ok)
+        b.addLayout(row)
+
+    def exec(self):
+        self.frame.adjustSize()
+        return self.frame.exec()
+
+
+
 class MainWindow(QtWidgets.QWidget):
     logline = Signal(str)       # Protokoll aus Hintergrund-Aufgaben (thread-sicher)
 
@@ -43,7 +98,7 @@ class MainWindow(QtWidgets.QWidget):
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.resize(1360, 880)
-        self.setMinimumWidth(1100)   # Mindesthöhe ergibt sich aus dem Layout, damit nichts überlappt
+        self.setMinimumSize(880, 560)   # kleiner als das Layout: Inhalt scrollt statt sich zu überlappen
 
         outer = QtWidgets.QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -100,7 +155,14 @@ class MainWindow(QtWidgets.QWidget):
         usercmd.set_logger(self.logline.emit)
         self.settings_page = SettingsPage(self)
         self.stack.addWidget(self.settings_page)
-        cl.addWidget(self.stack, 1)
+        self.stack_scroll = QtWidgets.QScrollArea()
+        self.stack_scroll.setObjectName("StackScroll")
+        self.stack_scroll.setWidgetResizable(True)
+        self.stack_scroll.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
+        self.stack_scroll.setWidget(self.stack)
+        self.stack_scroll.viewport().setObjectName("Viewport")
+        self.stack_scroll.viewport().setStyleSheet("#Viewport { background: transparent; }")
+        cl.addWidget(self.stack_scroll, 1)
 
         self.footer = QtWidgets.QWidget()
         foot = QtWidgets.QHBoxLayout(self.footer)
@@ -182,14 +244,8 @@ class MainWindow(QtWidgets.QWidget):
         self.logview.appendPlainText(text)
 
     def confirm(self, title: str, text: str) -> bool:
-        box = QtWidgets.QMessageBox(self)
-        box.setWindowTitle(title)
-        box.setText(text)
-        box.setIcon(QtWidgets.QMessageBox.Icon.Question)
-        box.setStandardButtons(QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No)
-        box.setDefaultButton(QtWidgets.QMessageBox.StandardButton.No)
-        box.exec()
-        return box.clickedButton() is box.button(QtWidgets.QMessageBox.StandardButton.Yes)
+        from hyprstudio import dialogs
+        return dialogs.confirm(self, title, text)
 
     def task_begin(self, text: str):
         self._task = True
@@ -334,14 +390,7 @@ class MainWindow(QtWidgets.QWidget):
         self.content.setGraphicsEffect(None)
 
     def show_about(self):
-        box = QtWidgets.QMessageBox(self)
-        box.setWindowTitle(t("about"))
-        box.setIconPixmap(app_icon().pixmap(64, 64))
-        box.setTextFormat(Qt.TextFormat.RichText)
-        box.setText(f"<b>{linuxaio.APP_NAME} {linuxaio.__version__}</b><br>LabtosoStudios")
-        box.setInformativeText(t("about.text", url=linuxaio.REPO_URL))
-        box.setStyleSheet(theme.qss(self.accent()))
-        box.exec()
+        AboutDialog(self).exec()
 
     def set_language(self, code: str):
         self.cfg["lang"] = code
@@ -359,6 +408,8 @@ class MainWindow(QtWidgets.QWidget):
         self.panel.sync(self.cfg, self.backend)
 
     def apply_theme(self):
+        from hyprstudio import theme as hs_theme
+        QtWidgets.QApplication.instance().setPalette(hs_theme.palette(self.accent()))   # dunkle Palette überall
         chev = chevron_file(theme.MUTED)
         extra = f"QComboBox#Combo::down-arrow {{ image: url({chev}); width: 14px; height: 14px; }}" if chev else ""
         self.setStyleSheet(theme.qss(self.accent()) + extra)
@@ -384,14 +435,17 @@ def main(argv) -> int:
     if hasattr(QtGui.QGuiApplication, "setHighDpiScaleFactorRoundingPolicy"):
         QtGui.QGuiApplication.setHighDpiScaleFactorRoundingPolicy(
             Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    # Plattform-Themes (kde, gtk3, qt6ct) würden Dialoge/Farben verändern → aus, eigenes Design überall
+    for var in ("QT_QPA_PLATFORMTHEME", "QT_STYLE_OVERRIDE"):
+        os.environ.pop(var, None)
+    os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
     app = QtWidgets.QApplication(argv)
     app.setApplicationName(linuxaio.APP_NAME)
     app.setOrganizationName("LabtosoStudios")
     app.setApplicationVersion(linuxaio.__version__)
     app.setDesktopFileName(linuxaio.APP_ID)   # Wayland: richtiges Icon in der Plasma-Taskleiste
     app.setWindowIcon(app_icon())
-    if sys.platform != "win32" and "KDE" not in os.environ.get("XDG_CURRENT_DESKTOP", "").upper():
-        app.setStyle("Fusion")
+    app.setStyle("Fusion")   # überall gleich (kein Breeze/GTK-Stil vom System)
     from hyprstudio.widgets import RoundPopups
     app._round = RoundPopups(app)       # Auswahlmenüs rund, ohne helle Box (wie Hypr Studio)
     app.installEventFilter(app._round)

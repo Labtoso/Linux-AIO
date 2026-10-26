@@ -3,10 +3,10 @@ Quellordner einstellbar; installiert wird nach ~/.local/share/icons (ohne root).
 
 from pathlib import Path
 
-from hyprstudio.widgets import FlowGrid
+
 
 from . import looks, remote, theme, usercmd
-from .form import Page, combo, set_chip, start_job, tool_button, retranslate_buttons
+from .form import FlowGrid, Page, combo, set_chip, start_job, tool_button, retranslate_buttons
 from .i18n import t
 from .qt import QtCore, QtGui, QtWidgets, Qt
 from .widgets import Segmented, draw_icon, set_applied
@@ -193,7 +193,7 @@ class LookPage(Page):
         self.search = QtWidgets.QLineEdit()
         self.search.setObjectName("Search")
         self.search.setClearButtonEnabled(True)
-        self.search.setFixedWidth(200)
+        self.search.setFixedWidth(170)
         self.search.addAction(draw_icon("search", theme.MUTED, 16), QtWidgets.QLineEdit.ActionPosition.LeadingPosition)
         self.search.textChanged.connect(lambda _: self._filter())
         self.source = host.cfg.get(f"{kind}_source", "online")
@@ -468,8 +468,8 @@ class LookPage(Page):
         self.refresh_tiles()
 
     def choose_repo(self):
-        text, ok = QtWidgets.QInputDialog.getText(self, t("remote.repo.change"), t("remote.repo.ask"),
-                                                  QtWidgets.QLineEdit.EchoMode.Normal, self.repo)
+        from hyprstudio import dialogs
+        text, ok = dialogs.ask_text(self, t("remote.repo.change"), t("remote.repo.ask"), self.repo)
         text = (text or "").strip()
         if ok and text:
             if not remote.valid_repo(text):
@@ -497,8 +497,8 @@ class LookPage(Page):
         self.host.save()
 
     def choose_folder(self):
-        d = QtWidgets.QFileDialog.getExistingDirectory(self, t("look.folder"), str(self.folder),
-                                                       QtWidgets.QFileDialog.Option.DontUseNativeDialog)
+        from hyprstudio import dialogs
+        d = dialogs.open_dir(self, t("look.folder"), str(self.folder))
         if d:
             self.folder = Path(d)
             self.host.cfg[f"{self.kind}_dir"] = d

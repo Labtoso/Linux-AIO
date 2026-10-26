@@ -102,6 +102,11 @@ _lang = "de"
 def set_lang(lang: str) -> None:
     global _lang
     _lang = lang if lang in TEXT else "de"
+    try:                                   # eingebaute Dialoge/Seiten von Hypr Studio in derselben Sprache
+        from hyprstudio import i18n as hs_i18n
+        hs_i18n.set_lang(_lang)
+    except ImportError:
+        pass
 
 
 def lang() -> str:

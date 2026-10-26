@@ -100,4 +100,18 @@ def qss(accent: str) -> str:
     QFontComboBox#Combo {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 10px; padding: 6px 10px; }}
     QListWidget {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 10px; }}
     QDialog {{ background: {SURFACE}; }}
+    #DialogFrame {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 16px; }}
+    #RowLabel {{ color: {MUTED}; }}
+    QPushButton#DangerFill {{ background: {DANGER}; border: 1px solid {DANGER}; color: #ffffff; font-weight: 600; }}
+    QLineEdit {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 8px; padding: 6px 10px; }}
+    QLineEdit:focus {{ border-color: {accent}; }}
+    QMenu {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; padding: 6px; }}
+    QMenu::item {{ padding: 6px 14px; border-radius: 6px; }}
+    QMenu::item:selected {{ background: {accent}; color: #ffffff; }}
+    QSlider:horizontal {{ min-height: 24px; }}
+    QSlider::groove:horizontal {{ height: 4px; background: {BORDER}; border-radius: 2px; }}
+    QSlider::sub-page:horizontal {{ background: {accent}; border-radius: 2px; }}
+    QSlider::handle:horizontal {{ background: #ffffff; width: 16px; height: 16px; margin: -6px 0; border-radius: 8px; }}
+    QTreeView, QListView {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 8px; }}
+    QHeaderView::section {{ background: {SURFACE}; color: {MUTED}; border: none; padding: 4px 8px; }}
     """

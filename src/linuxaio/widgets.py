@@ -234,26 +234,56 @@ def chip(text: str, kind: str = "Chip") -> QtWidgets.QLabel:
 
 
 class ChipRow(QtWidgets.QWidget):
+    """Schilder nebeneinander; reicht die Breite nicht, brechen sie in die nächste Zeile um."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.lay = QtWidgets.QHBoxLayout(self)
+        self.lay = QtWidgets.QVBoxLayout(self)
         self.lay.setContentsMargins(0, 0, 0, 0)
         self.lay.setSpacing(6)
+        self.labels = []
+        self._w = 0
 
     def set(self, chips: list) -> None:
-        while self.lay.count():
-            w = self.lay.takeAt(0).widget()
-            if w:
-                w.hide()
-                w.setParent(None)
-                w.deleteLater()
+        for lb in self.labels:
+            lb.hide()
+            lb.setParent(None)
+            lb.deleteLater()
+        self.labels = []
         for text, kind, tip in chips:
             lb = chip(text, kind)
             if tip:
                 lb.setToolTip(tip)
-            self.lay.addWidget(lb)
+            self.labels.append(lb)
+        self._flow()
+
+    def _flow(self):
+        while self.lay.count():
+            item = self.lay.takeAt(0)
+            if item.layout():
+                while item.layout().count():
+                    item.layout().takeAt(0)
+        width = max(120, self.width() or 280)
+        row, used = None, 0
+        for lb in self.labels:
+            lb.ensurePolished()
+            w = lb.sizeHint().width()
+            if row is None or (used and used + 6 + w > width):
+                row = QtWidgets.QHBoxLayout()
+                row.setSpacing(6)
+                self.lay.addLayout(row)
+                used = 0
+            row.addWidget(lb)
             lb.show()
-        self.lay.addStretch()
+            used += w + (6 if used else 0)
+        for i in range(self.lay.count()):
+            self.lay.itemAt(i).layout().addStretch()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        if abs(self.width() - self._w) > 4:
+            self._w = self.width()
+            QtCore.QTimer.singleShot(0, self._flow)
 
 
 class Segmented(QtWidgets.QFrame):

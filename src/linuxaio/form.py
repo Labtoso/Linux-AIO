@@ -56,18 +56,25 @@ class Page(QtWidgets.QWidget):
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(12)
-        head = QtWidgets.QHBoxLayout()
+        # Kopf: Titel + Schilder | Werkzeuge; bei wenig Platz rutschen die Werkzeuge in eine zweite Zeile
+        self.head = QtWidgets.QBoxLayout(QtWidgets.QBoxLayout.Direction.LeftToRight)
+        self.head.setSpacing(8)
+        left = QtWidgets.QHBoxLayout()
         self.title = QtWidgets.QLabel()
         self.title.setObjectName("PageTitle")
-        head.addWidget(self.title)
+        left.addWidget(self.title)
         self.chips = QtWidgets.QHBoxLayout()
         self.chips.setSpacing(6)
-        head.addLayout(self.chips)
-        head.addStretch()
+        left.addLayout(self.chips)
+        left.addStretch()
+        self.head.addLayout(left, 1)
+        tools_row = QtWidgets.QHBoxLayout()
+        tools_row.addStretch()
         self.tools = QtWidgets.QHBoxLayout()
         self.tools.setSpacing(8)
-        head.addLayout(self.tools)
-        lay.addLayout(head)
+        tools_row.addLayout(self.tools)
+        self.head.addLayout(tools_row)
+        lay.addLayout(self.head)
         self.inner = QtWidgets.QWidget()
         self.inner.setObjectName("PageInner")
         self.body = QtWidgets.QVBoxLayout(self.inner)
@@ -87,6 +94,16 @@ class Page(QtWidgets.QWidget):
 
     def finish(self):
         self.body.addStretch()
+
+    def resizeEvent(self, e):
+        super().resizeEvent(e)
+        need = self.title.sizeHint().width() + 180 + sum(
+            self.tools.itemAt(i).widget().sizeHint().width() + 8
+            for i in range(self.tools.count()) if self.tools.itemAt(i).widget())
+        d = (QtWidgets.QBoxLayout.Direction.TopToBottom if self.width() < need
+             else QtWidgets.QBoxLayout.Direction.LeftToRight)
+        if self.head.direction() != d:
+            self.head.setDirection(d)
 
     def retranslate(self):
         self.title.setText(t(self.title_key))
@@ -127,6 +144,9 @@ class Row(QtWidgets.QWidget):
         lay = QtWidgets.QHBoxLayout(self)
         lay.setContentsMargins(0, 6, 0, 6)
         self.label = QtWidgets.QLabel()
+        self.label.setWordWrap(True)        # schmale Fenster: Text bricht um statt abzuschneiden
+        self.label.setMinimumWidth(80)
+        self.label.setSizePolicy(QtWidgets.QSizePolicy.Policy.Ignored, QtWidgets.QSizePolicy.Policy.Preferred)
         lay.addWidget(self.label, 1)
         lay.addWidget(control)
 
@@ -140,7 +160,9 @@ def combo() -> QtWidgets.QComboBox:
     c = QtWidgets.QComboBox()
     c.setObjectName("Combo")
     c.setCursor(Qt.CursorShape.PointingHandCursor)
-    c.setMinimumWidth(220)
+    c.setMinimumWidth(150)
+    c.setSizeAdjustPolicy(QtWidgets.QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+    c.setMinimumContentsLength(14)
     c.setMaxVisibleItems(16)
     return c
 
@@ -307,3 +329,24 @@ class MissingButton(QtWidgets.QToolButton):
         self.setStyleSheet(f"QToolButton {{ background: {theme.SURFACE2}; border: 1px solid {theme.BORDER};"
                            f" border-radius: 8px; }} QToolButton:hover {{ border-color: #d29922; }}")
         self.setToolTip(t("miss.install"))
+
+
+from hyprstudio.widgets import FlowGrid as _FlowGrid  # noqa: E402
+
+
+class FlowGrid(_FlowGrid):
+    """Kachel-Raster, das beim Verkleinern wieder umbricht (Mindestbreite = eine Kachel, nicht alle Spalten)."""
+
+    def __init__(self, cell_w: int, parent=None):
+        super().__init__(cell_w, parent)
+        self.grid.setSizeConstraint(QtWidgets.QLayout.SizeConstraint.SetNoConstraint)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred, QtWidgets.QSizePolicy.Policy.Minimum)
+
+    def minimumSizeHint(self):
+        return QtCore.QSize(self.cell_w, super().minimumSizeHint().height())
+
+    def _relayout(self, force=False):
+        super()._relayout(force)
+        rows = (len(self.items) + max(1, self._cols) - 1) // max(1, self._cols)
+        h = rows * (max((w.height() for w in self.items), default=0) + 14)
+        self.setMinimumHeight(h)
