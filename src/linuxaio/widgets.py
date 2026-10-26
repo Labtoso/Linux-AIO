@@ -185,7 +185,10 @@ class Runner(QtCore.QObject):
             prog, argv = "pkexec", [str(INSTALLED_HELPER), *args]
         else:
             root = stage_helper(root)      # root darf FUSE (Cloud, AppImage) nicht lesen → Kopie in /tmp
-            prog, argv = "pkexec", ["/usr/bin/env", f"PYTHONPATH={root}", sys.executable, "-u", "-m", "linuxaio",
+            py = sys.executable
+            if os.environ.get("APPDIR") and py.startswith(os.environ["APPDIR"]) and Path("/usr/bin/python3").is_file():
+                py = "/usr/bin/python3"     # eingebautes Python liegt im AppImage-Mount; der Helfer braucht kein Qt
+            prog, argv = "pkexec", ["/usr/bin/env", f"PYTHONPATH={root}", py, "-u", "-m", "linuxaio",
                                     "--helper", *args]
         self._err, self._buf, self.result = "", "", ""
         self.proc.readyReadStandardOutput.connect(self._read)

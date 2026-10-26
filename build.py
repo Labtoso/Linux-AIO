@@ -160,7 +160,14 @@ def build_appimage(pyz: Path) -> Path | None:
         shutil.rmtree(appdir)       # eigener Bau-Ordner, wird jedes Mal neu erzeugt
     (appdir / "usr/lib/linux-aio").mkdir(parents=True)
     shutil.copy2(pyz, appdir / "usr/lib/linux-aio/Linux-AIO.pyz")
-    write_lf(appdir / "AppRun", APPRUN, 0o755)
+    base = BUILD.parent / "appimage" / "base" / "python"       # tools/appimage_base.sh
+    if (base / "bin" / "python3").is_file():
+        shutil.copytree(base, appdir / "usr/python", symlinks=True)
+        write_lf(appdir / "AppRun", APPRUN_BUNDLED, 0o755)
+        print("AppImage: mit eigenem Python + PySide6")
+    else:
+        write_lf(appdir / "AppRun", APPRUN, 0o755)
+        print("AppImage: nutzt Python/PySide6 des Systems (tools/appimage_base.sh fehlt)")
     write_lf(appdir / "linux-aio.desktop", APPIMAGE_DESKTOP)
     shutil.copy2(ROOT / "packaging/icons/256.png", appdir / "linux-aio.png")
     shutil.copy2(ROOT / "packaging/icons/256.png", appdir / ".DirIcon")
@@ -183,7 +190,8 @@ def build_zip(appimage: Path | None, pyz: Path) -> Path:
             zi.external_attr = (0o100000 | mode) << 16
             zi.compress_type = zipfile.ZIP_DEFLATED
             z.writestr(zi, data)
-        add("Install.sh", lf(ZIP_INSTALL.replace("@VER@", VER).encode()), 0o755)
+        bundled = "1" if appimage and (BUILD / "AppDir" / "usr" / "python").is_dir() else "0"
+        add("Install.sh", lf(ZIP_INSTALL.replace("@VER@", VER).replace("@BUNDLED@", bundled).encode()), 0o755)
         add("Uninstall.sh", lf(ZIP_UNINSTALL.encode()), 0o755)
         add("README.md", lf((ROOT / "README.md").read_bytes()))
         add("LICENSE", (ROOT / "LICENSE").read_bytes())
@@ -258,6 +266,14 @@ fi
 exec python3 "$HERE/usr/lib/linux-aio/Linux-AIO.pyz" "$@"
 """
 
+APPRUN_BUNDLED = """#!/bin/sh
+# Linux AIO (AppImage): brings its own Python 3 + PySide6 – nothing needed on the system
+HERE="$(dirname "$(readlink -f "$0")")"
+export PYTHONNOUSERSITE=1
+unset PYTHONPATH PYTHONHOME
+exec "$HERE/usr/python/bin/python3" "$HERE/usr/lib/linux-aio/Linux-AIO.pyz" "$@"
+"""
+
 APPIMAGE_DESKTOP = """[Desktop Entry]
 Type=Application
 Name=Linux AIO
@@ -281,7 +297,10 @@ ICON="$HOME/.local/share/icons/hicolor/256x256/apps/de.labtosostudios.linuxaio.p
 root() { if command -v pkexec >/dev/null 2>&1; then pkexec "$@"; else sudo "$@"; fi; }
 have_qt() { python3 -c "import PySide6.QtWidgets" 2>/dev/null || python3 -c "import PyQt6.QtWidgets" 2>/dev/null; }
 
-if ! command -v python3 >/dev/null 2>&1 || ! have_qt; then
+BUNDLED=@BUNDLED@   # 1 = the AppImage brings its own Python + PySide6
+if [ "$BUNDLED" = 1 ]; then
+  : # nothing to install
+elif ! command -v python3 >/dev/null 2>&1 || ! have_qt; then
   echo "==> Installing Python 3 and Qt for Python (password needed)"
   if command -v pacman >/dev/null; then root pacman -S --needed --noconfirm python pyside6 polkit glib2 fontconfig xz
   elif command -v apt-get >/dev/null; then root apt-get update; root apt-get install -y python3 python3-pyside6.qtwidgets python3-pyside6.qtsvg python3-pyside6.qtnetwork policykit-1 libglib2.0-bin fontconfig xz-utils || root apt-get install -y python3 python3-pyqt6 python3-pyqt6.qtsvg pkexec libglib2.0-bin fontconfig xz-utils
@@ -290,7 +309,7 @@ if ! command -v python3 >/dev/null 2>&1 || ! have_qt; then
   elif command -v python3 >/dev/null 2>&1; then python3 -m pip install --user PySide6 || true
   fi
 fi
-if ! have_qt; then
+if [ "$BUNDLED" != 1 ] && ! have_qt; then
   echo "!! Qt for Python could not be installed automatically. Install PySide6 for your system and run this again."
   exit 1
 fi
