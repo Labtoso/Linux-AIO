@@ -210,6 +210,11 @@ def build_installer(pyz: Path, tarball: Path, appimage: Path | None, zipfile_: P
     (INST / "arch").mkdir(parents=True, exist_ok=True)
     if appimage:
         shutil.copy2(appimage, INST / appimage.name)
+    shutil.copy2(ROOT / "packaging/icons/256.png", INST / "linux-aio.png")
+    for f in [p for p in (appimage and INST / appimage.name, INST / zipfile_.name) if p]:
+        # Tux-Symbol für die Datei im Dateimanager (GVfs-Metadaten, klappt auch im pCloud-Ordner)
+        subprocess.run(["gio", "set", str(f), "metadata::custom-icon", (INST / "linux-aio.png").as_uri()],
+                       capture_output=True)
     shutil.copy2(zipfile_, INST / zipfile_.name)
     bundled = "1" if appimage and (BUILD / "AppDir" / "usr" / "python").is_dir() else "0"
     write_lf(INST / "Install.sh", ZIP_INSTALL.replace("@VER@", VER).replace("@BUNDLED@", bundled), 0o755)
@@ -332,6 +337,8 @@ else
 fi
 chmod 755 "$BIN/linux-aio"
 install -Dm644 "$HERE/linux-aio.png" "$ICON"
+# Tux on the AppImage file itself in the file manager (GNOME/GVfs metadata)
+[ -f "$BIN/Linux-AIO.AppImage" ] && gio set "$BIN/Linux-AIO.AppImage" metadata::custom-icon "file://$ICON" >/dev/null 2>&1 || true
 cat > "$APPS/de.labtosostudios.linuxaio.desktop" <<EOD
 [Desktop Entry]
 Type=Application
