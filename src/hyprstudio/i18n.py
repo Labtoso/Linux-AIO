@@ -396,3 +396,5 @@ def t(key: str, **kw) -> str:
 
 TEXT["de"].update({"app.walker": "Walker", "app.tofi": "Tofi", "pkg.walker": "Walker", "pkg.tofi": "Tofi"})
 TEXT["en"].update({"app.walker": "Walker", "app.tofi": "Tofi", "pkg.walker": "Walker", "pkg.tofi": "Tofi"})
+TEXT["de"].update({"pkgd.walker": "moderner Launcher mit vielen Modulen (GTK 4)", "pkgd.tofi": "winziger, sehr schneller Launcher"})
+TEXT["en"].update({"pkgd.walker": "modern launcher with many modules (GTK 4)", "pkgd.tofi": "tiny, very fast launcher"})

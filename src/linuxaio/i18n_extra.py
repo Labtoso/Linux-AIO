@@ -345,3 +345,9 @@ EXTRA["en"].update({"gn.files.restart": "Restart Files"})
 
 EXTRA["de"]["tab.launcher"] = "Launcher"
 EXTRA["en"]["tab.launcher"] = "Launcher"
+
+EXTRA["de"]["sec.launcher"] = "Launcher"
+EXTRA["en"]["sec.launcher"] = "Launcher"
+
+EXTRA["de"]["app.settings"] = "Linux-AIO-Einstellungen"
+EXTRA["en"]["app.settings"] = "Linux AIO settings"

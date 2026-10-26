@@ -10,7 +10,7 @@ from .widgets import Segmented
 SECTIONS = {
     "gnome": ("look", "cursor", "icon", "fonts", "windows", "titlebar", "topbar", "input", "autostart", "login"),
     "plasma": ("plasma", "cursor", "icon"),
-    "hyprland": ("hyprstudio", "cursor", "icon"),
+    "hyprland": ("hyprstudio", "launcher", "cursor", "icon"),
     "app": ("app",),
 }
 DEFAULT_SECTIONS = ("cursor", "icon")
@@ -39,6 +39,9 @@ def make_section(host, de: str, key: str):
     if key == "hyprstudio":
         from .hypr_embed import HyprEmbed, HyprLauncher
         return HyprLauncher(host) if host.cfg.get("hypr_mode") == "window" else HyprEmbed(host)
+    if key == "launcher":                     # Rofi, Wofi, Fuzzel, Walker, Tofi, L Launcher
+        from .hypr_embed import HyprEmbed
+        return HyprEmbed(host, launcher_only=True)
     if key == "app":
         from .app_page import AppPage
         return AppPage(host)
@@ -68,7 +71,7 @@ class DePanel(QtWidgets.QWidget):
         self.host, self.de = host, de
         self.keys = SECTIONS.get(de, DEFAULT_SECTIONS)
         self.pages = {}
-        self.top = de == "hyprland"          # Hypr Studio braucht die Breite → Segmente oben statt Leiste
+        self.top = False                     # überall die Bereichsliste links (auch Hyprland)
         lay = (QtWidgets.QVBoxLayout if self.top else QtWidgets.QHBoxLayout)(self)
         lay.setContentsMargins(0, 0, 0, 0)
         lay.setSpacing(14)
@@ -119,8 +122,8 @@ class DePanel(QtWidgets.QWidget):
                 self.nav.blockSignals(False)
         else:
             self.seg.select(key)
-        if key == "hyprstudio":
-            pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "blue"))
+        if key in ("hyprstudio", "launcher"):
+            pg.sync_look(self.host.cfg.get("lang", "en"), self.host.cfg.get("theme", "blue"))
         elif hasattr(pg, "refresh"):
             pg.refresh()
         self.host.cfg[f"section_{self.de}"] = key
@@ -133,7 +136,7 @@ class DePanel(QtWidgets.QWidget):
         else:
             self.seg.retranslate()
         for k, pg in self.pages.items():
-            if k == "hyprstudio":
+            if k in ("hyprstudio", "launcher"):
                 pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "blue"))
             elif hasattr(pg, "retranslate"):
                 pg.retranslate()
@@ -142,7 +145,7 @@ class DePanel(QtWidgets.QWidget):
 
     def apply_accent(self):
         for k, pg in self.pages.items():
-            if k == "hyprstudio":
+            if k in ("hyprstudio", "launcher"):
                 pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "blue"))
             else:
                 accent_switches(pg, self.host.accent())
@@ -160,7 +163,7 @@ class SettingsPage(QtWidgets.QWidget):
         super().__init__()
         self.host = host
         self.panels = {}
-        self.entries = [desktops.Entry("app", "Linux AIO", (), ())] + desktops.entries()
+        self.entries = desktops.entries()
         self.running = desktops.current()
         lay = QtWidgets.QHBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -195,6 +198,8 @@ class SettingsPage(QtWidgets.QWidget):
         start = self.running if self.running and self._installed(self.running) else host.cfg.get("settings_de")
         if not (start and self._installed(start)):
             start = next((e.id for e in self.entries if desktops.installed(e)), None)
+        if start == "app":
+            start = None
         if start:
             self.select(start)
 
