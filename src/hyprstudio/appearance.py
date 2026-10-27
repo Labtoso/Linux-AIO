@@ -223,17 +223,15 @@ def gtk_portal() -> bool:
 
 
 def env_content(mode: str, qt: str, fmt: str) -> str:
-    """hyprstudio_look.lua/.conf: GTK_THEME für Apps, die das Portal nicht fragen, Qt-Thema, D-Bus-Umgebung."""
-    theme = "Adwaita:dark" if mode == "dark" else "Adwaita"
+    """hyprstudio_look.lua/.conf: Qt-Thema und D-Bus-Umgebung. Kein GTK_THEME: das schaltet libadwaita-Stile ab
+    (kaputte GNOME-Apps); GTK/libadwaita folgen color-scheme übers Portal."""
     c = "--" if fmt == "lua" else "#"
     out = [f"{c} {MARK} – Hell/Dunkel, automatisch erzeugt (Sonstiges › Hell / Dunkel)"]
     if fmt == "lua":
-        out.append(f'hl.env("GTK_THEME", "{theme}")')
         if qt:
             out.append(f'hl.env("QT_QPA_PLATFORMTHEME", "{qt}")')
         out += ['hl.on("hyprland.start", function ()', f'    hl.exec_cmd("{DBUS_ENV}")', "end)"]
     else:
-        out.append(f"env = GTK_THEME,{theme}")
         if qt:
             out.append(f"env = QT_QPA_PLATFORMTHEME,{qt}")
         out.append(f"exec-once = {DBUS_ENV}")
@@ -248,27 +246,24 @@ def apply_env(mode: str, cfg_home: Path, log) -> bool:
 
 
 def apply_services(mode: str, cfg_home: Path, log) -> None:
-    """Hintergrund-Dienste (GTK-Portal mit „Öffnen mit“- und Datei-Dialogen) laufen über systemd und sehen die
-    Hyprland-Umgebung nicht: Thema in ~/.config/environment.d (gilt ab jeder Anmeldung) und sofort weitergeben."""
-    theme = "Adwaita:dark" if mode == "dark" else "Adwaita"
-    qt = qt_platform_theme()
-    pairs = [f"GTK_THEME={theme}"] + ([f"QT_QPA_PLATFORMTHEME={qt}"] if qt else [])
+    """Früher: GTK_THEME/QT_QPA_PLATFORMTHEME in ~/.config/environment.d – das galt für jede Sitzung (auch GNOME)
+    und zerlegte dort libadwaita-Apps (GNOME-Einstellungen ohne Abstände). Jetzt nur noch aufräumen: unsere
+    Datei entfernen und die Variablen aus der laufenden Sitzung nehmen. Hyprland bekommt sie über seine Config."""
     f = cfg_home / "environment.d" / "60-hyprstudio-look.conf"
-    text = f"# {MARK} – Hell/Dunkel auch für Dienste und Portal-Dialoge\n" + "\n".join(pairs) + "\n"
-    if not f.is_file() or f.read_text(encoding="utf-8") != text:
-        f.parent.mkdir(parents=True, exist_ok=True)
-        f.write_text(text, encoding="utf-8")
-        log(f"→ {f}")
-    if model.DRY or shutil.which("dbus-update-activation-environment"):
-        model.run(["dbus-update-activation-environment", "--systemd", *pairs], log, quiet=True)
+    if f.is_file() and MARK in f.read_text(encoding="utf-8", errors="replace"):
+        f.unlink()
+        log(f"− {f}")
+        if model.DRY or shutil.which("systemctl"):
+            model.run(["systemctl", "--user", "unset-environment", "GTK_THEME", "QT_QPA_PLATFORMTHEME"], log,
+                      quiet=True)
 
 
 def apply_flatpak(mode: str, log) -> None:
-    """Flatpak-Apps sehen die Umgebung von außen nicht – dort GTK_THEME einzeln setzen."""
+    """Kein GTK_THEME für Flatpak-Apps mehr (bricht libadwaita); eine frühere Überschreibung wieder entfernen.
+    Flatpak-Apps folgen dem Farbschema übers Portal."""
     if not (model.DRY or shutil.which("flatpak")):
         return
-    theme = "Adwaita:dark" if mode == "dark" else "Adwaita"
-    model.run(["flatpak", "override", "--user", f"--env=GTK_THEME={theme}"], log, quiet=True)
+    model.run(["flatpak", "override", "--user", "--unset-env=GTK_THEME"], log, quiet=True)
 
 
 def apply(mode: str, cfg_home: Path, log) -> bool:

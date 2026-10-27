@@ -10,4 +10,4 @@ Icon=de.labtosostudios.linuxaio
 Terminal=false
 Categories=Qt;KDE;System;Settings;
 Keywords=desktop;gnome;plasma;kde;xfce;hyprland;session;sddm;login;theme;plymouth;bootsplash;cursor;tweaks;settings;
-X-KDE-StartupNotify=true
+StartupNotify=false

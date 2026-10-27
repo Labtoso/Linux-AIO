@@ -40,12 +40,15 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.cfg = load_cfg()
+        from hyprstudio.widgets import install_no_wheel
+        install_no_wheel()                   # Mausrad ohne Fokus ändert nie Werte (sonst Systemänderung beim Scrollen)
         set_lang(self.cfg.get("lang", "en"))
         _qt_lang(self.cfg.get("lang", "en"))
         model.FORMAT = self.cfg.get("hypr_format", "") if self.cfg.get("hypr_format") in ("lua", "conf") else ""
         model.LAUNCHER_TOGGLE = launcher.state(self.cfg.get("launcher")).get("toggle", True)
+        self.cfg["theme"] = theme.LEGACY_ACCENT.get(self.cfg.get("theme"), self.cfg.get("theme"))
         if self.cfg.get("theme") not in theme.THEMES:
-            self.cfg["theme"] = "blue"
+            self.cfg["theme"] = "01"
         if self.cfg.get("tab") not in TABS:
             self.cfg["tab"] = "hypr"
         self._save = QtCore.QTimer(self)
@@ -393,8 +396,7 @@ class MainWindow(QtWidgets.QWidget):
         """Erster Start: dunkles Farbschema für alle Programme (unter Sonstiges umstellbar)."""
         if "appearance" in self.cfg:
             return
-        self.cfg["appearance"] = appearance.DEFAULT
-        appearance.apply(appearance.DEFAULT, model.config_home(), self.log)
+        self.cfg["appearance"] = appearance.DEFAULT   # nur merken – das System ändert erst ein Klick
         self.hypr_page.state["qt_theme"] = appearance.qt_platform_theme()  # kommt beim nächsten Anwenden mit
         self.hypr_page.changed()
         self.log(t("look.first"))

@@ -488,8 +488,11 @@ class OtherPage(QtWidgets.QWidget):
             self.look_qt.setText(t("look.qt_ok") if ok else t("look.qt_missing"))
             self.look_qt_btn.setText(t("look.qt_install"))
         self.look_qt_btn.setVisible(not (ok and portal))
-        if ok and self.win.hypr_page.state.get("qt_theme") != appearance.qt_platform_theme():
-            self.set_look(mode)  # z. B. gerade plasma-integration installiert → Hyprland-Umgebung nachziehen
+        hp = self.win.hypr_page
+        if ok and hp.state.get("qt_theme") != appearance.qt_platform_theme():
+            # nur den Hyprland-Zustand nachziehen (wirkt mit Anwenden) – Anzeigen darf nie das System ändern
+            hp.state["qt_theme"] = appearance.qt_platform_theme()
+            hp.changed()
 
     def _look_install(self):
         if not appearance.gtk_portal():
