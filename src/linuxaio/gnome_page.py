@@ -6,7 +6,7 @@ from pathlib import Path
 from hyprstudio.widgets import Switch
 
 from . import corners, gnome, installers, theme, usercmd
-from .form import Card, MissingButton, Page, Row, combo, gsection, retranslate_buttons, set_chip, start_job, tool_button
+from .form import Card, MissingButton, Page, RemoveButton, Row, combo, gsection, retranslate_buttons, set_chip, start_job, tool_button
 from .i18n import t
 from .qt import QtCore, QtGui, QtWidgets, Qt
 from .widgets import CACHE, draw_icon
@@ -48,6 +48,16 @@ class ExtInstall:
                 host.set_status(f"{t('failed')}: {res}")
         start_job(self, lambda: installers.install_extension(uuid), done)
 
+    def uninstall_ext(self, uuid: str):
+        from hyprstudio import dialogs
+        name = installers.EXT_NAMES.get(uuid, uuid)
+        if not dialogs.confirm(self, t("ext.uninstall"), t("ext.uninstall.ask", name=name)):
+            return
+        self.host.log("")
+        gnome.ext_uninstall(uuid)
+        self.host.set_status(t("ext.uninstalled", name=name))
+        self.refresh()
+
     def finished(self, ok, action, result):
         uuid = getattr(self, "_pending_ext", None)
         if action == "pkg-install" and ok and uuid:
@@ -79,10 +89,13 @@ class LookGnome(ExtInstall, Page):
         self.shell_chip = QtWidgets.QLabel()
         self.shell_get = MissingButton()
         self.shell_get.clicked.connect(lambda: self.install_ext(gnome.USER_THEME))
+        self.shell_rm = RemoveButton()
+        self.shell_rm.clicked.connect(lambda: self.uninstall_ext(gnome.USER_THEME))
         self.shell = combo()
         self.shell.textActivated.connect(lambda n: self._set_shell(n))
         sl.addWidget(self.shell_chip)
         sl.addWidget(self.shell_get)
+        sl.addWidget(self.shell_rm)
         sl.addWidget(self.shell)
         self.r_shell = Row("gn.shell", shell_w)
         themes.lay.addWidget(self.r_shell)
@@ -120,6 +133,7 @@ class LookGnome(ExtInstall, Page):
                  t("gn.ext.on") if on else (t("gn.ext.off") if ext_ok else t("gn.ext.missing")))
         self.shell_chip.setToolTip(t("gn.shell.tip"))
         self.shell_get.setVisible(not ext_ok)
+        self.shell_rm.setVisible(ext_ok and gnome.ext_removable(gnome.USER_THEME))
         self.shell_get.setEnabled(not self.host.busy())
         self.shell_get.setToolTip(t("miss.install") + ": User Themes")
         self.shell.blockSignals(True)
@@ -205,12 +219,15 @@ class WindowsPage(ExtInstall, Page):
         self.ext_chip = QtWidgets.QLabel()
         self.ext_get = MissingButton()
         self.ext_get.clicked.connect(lambda: self.install_ext(corners.EXT_UUID))
+        self.ext_rm = RemoveButton()
+        self.ext_rm.clicked.connect(lambda: self.uninstall_ext(corners.EXT_UUID))
         self.sw_ext = Switch()
         self.sw_ext.toggled.connect(self._ext_toggle)
         self.b_force = tool_button("gn.ext.force")
         self.b_force.clicked.connect(self._force)
         el.addWidget(self.ext_chip)
         el.addWidget(self.ext_get)
+        el.addWidget(self.ext_rm)
         el.addWidget(self.b_force)
         el.addWidget(self.sw_ext)
         self.r_ext = Row("gn.corners.all", ew)
@@ -300,6 +317,7 @@ class WindowsPage(ExtInstall, Page):
         self.b_force.setToolTip(t("gn.ext.force.ask"))
         self.ext_chip.setToolTip("Rounded Window Corners Reborn")
         self.ext_get.setVisible(not have)
+        self.ext_rm.setVisible(have and gnome.ext_removable(corners.EXT_UUID))
         self.ext_get.setToolTip(t("miss.install") + ": Rounded Window Corners Reborn")
         self.sw_ext.setEnabled(have and not blocked)
         self.sw_ext.set_now(on)
@@ -619,8 +637,11 @@ class TopbarPage(ExtInstall, Page):
         hl.setSpacing(8)
         self.ws_get = MissingButton()
         self.ws_get.clicked.connect(lambda: self.install_ext(gnome.WS_INDICATOR))
+        self.ws_rm = RemoveButton()
+        self.ws_rm.clicked.connect(lambda: self.uninstall_ext(gnome.WS_INDICATOR))
         hl.addWidget(self.ws_chip)
         hl.addWidget(self.ws_get)
+        hl.addWidget(self.ws_rm)
         hl.addWidget(self.sw_ws)
         self.r_ws = Row("gn.top.wsind", w)
         bar.lay.addWidget(self.r_ws)
@@ -690,6 +711,7 @@ class TopbarPage(ExtInstall, Page):
         set_chip(self.ws_chip, "Chip" if have else "ChipWarn", t("gn.ext.name") if have else t("gn.ext.missing"))
         self.ws_chip.setToolTip(t("gn.top.wsind.tip"))
         self.ws_get.setVisible(not have)
+        self.ws_rm.setVisible(have and gnome.ext_removable(gnome.WS_INDICATOR))
         self.editor.refresh()
         for sw, r, schema, gk, inverted in self.power:
             v = bool(usercmd.gget(schema, gk, False))
@@ -784,8 +806,11 @@ class BarEditor(QtWidgets.QWidget):
         self.chip = QtWidgets.QLabel()
         self.get = MissingButton()
         self.get.clicked.connect(lambda: page.install_ext(gnome.JP_UUID))
+        self.rm = RemoveButton()
+        self.rm.clicked.connect(lambda: page.uninstall_ext(gnome.JP_UUID))
         head.addWidget(self.chip)
         head.addWidget(self.get)
+        head.addWidget(self.rm)
         head.addStretch()
         lay.addLayout(head)
         self.bar = BarPreview()
@@ -835,6 +860,7 @@ class BarEditor(QtWidgets.QWidget):
                  "Just Perfection" if ready else (t("gn.ext.off") if have else t("gn.ext.missing")))
         self.chip.setToolTip(t("bar.needs"))
         self.get.setVisible(not have)
+        self.rm.setVisible(have and gnome.ext_removable(gnome.JP_UUID))
         state = {name: bool(gnome.jp_get(k, True)) for name, k, _z in gnome.BAR_ITEMS} if ready else {}
         self.bar.set_state(state, int(gnome.jp_get("clock-menu-position", 0) or 0) if ready else 0)
         self.clock.select(str(int(gnome.jp_get("clock-menu-position", 0) or 0)) if ready else "0")

@@ -78,8 +78,8 @@ def qss(accent: str) -> str:
     QToolButton:hover {{ background: {SURFACE2}; }}
     QToolButton:pressed {{ background: {RAISED}; }}
     QToolButton#CloseBtn:hover {{ background: {DANGER}; }}
-    QToolButton#ResetBtn {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 15px; }}
-    QToolButton#ResetBtn:hover {{ border-color: {LINE}; background: {HOVER}; }}
+    QToolButton#ResetBtn {{ background: transparent; border: none; border-radius: 7px; }}
+    QToolButton#ResetBtn:hover {{ background: {SURFACE2}; }}
     QScrollArea, #TileStrip {{ background: transparent; border: none; }}
     QScrollBar:horizontal {{ height: 8px; background: transparent; margin: 0 16px; }}
     QScrollBar::handle:horizontal {{ background: {BORDER}; border-radius: 4px; min-width: 40px; }}
@@ -100,6 +100,10 @@ def qss(accent: str) -> str:
     #Label {{ color: {MUTED}; font-size: 9pt; }}
     QPushButton#Lang {{ padding: 6px 14px; }}
     QPushButton#Lang:checked {{ background: {RAISED}; border-color: {LINE}; color: {TEXT}; font-weight: 600; }}
+    QListView#SearchPop {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; padding: 6px;
+        outline: none; }}
+    QListView#SearchPop::item {{ padding: 6px 10px; border-radius: 6px; }}
+    QListView#SearchPop::item:selected {{ background: {RAISED}; color: {TEXT}; }}
     QToolTip {{ background: {SURFACE2}; color: {TEXT}; border: 1px solid {BORDER}; border-radius: 6px; padding: 6px; }}
     QMessageBox {{ background: {SURFACE}; }}
     #SideBox {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}

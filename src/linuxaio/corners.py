@@ -24,7 +24,8 @@ def css(radius: int, gtk: int = 4) -> str:
     else:
         rules = [
             f"decoration {{ border-radius: {r}px; }}",
-            f"window.csd, window.csd.background {{ border-radius: {r}px; }}",
+            # Inhalt nur unten rund, sonst entsteht unter der Titelleiste eine Lücke
+            f"window.csd, window.csd.background {{ border-radius: 0 0 {r}px {r}px; }}",
             f"headerbar.titlebar, .titlebar:not(headerbar) {{ border-top-left-radius: {r}px;"
             f" border-top-right-radius: {r}px; }}",
         ]

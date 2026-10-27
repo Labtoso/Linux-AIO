@@ -395,6 +395,20 @@ __all__ = ["Job", "start_job", "Page", "Card", "Row", "GControl", "gsection", "c
            "retranslate_buttons", "set_chip", "accent_switches", "theme"]
 
 
+class RemoveButton(QtWidgets.QToolButton):
+    """Small „uninstall“ button next to an installed extension."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from .widgets import draw_icon
+        self.setIcon(draw_icon("close", theme.MUTED, 14))
+        self.setIconSize(QtCore.QSize(14, 14))
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedSize(30, 30)
+        self.setObjectName("ResetBtn")
+        self.setToolTip(t("ext.uninstall"))
+
+
 class MissingButton(QtWidgets.QToolButton):
     """Kleiner Download-Pfeil neben „fehlt“: ein Klick installiert das Fehlende."""
 

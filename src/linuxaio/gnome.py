@@ -198,6 +198,20 @@ def ext_set(uuid: str, on: bool) -> bool:
     return usercmd.gset("org.gnome.shell", "enabled-extensions", new)
 
 
+def ext_removable(uuid: str) -> bool:
+    """Only extensions in the user folder can be removed without root (system ones come from a package)."""
+    from .installers import DRY_EXT
+    return uuid in DRY_EXT or (Path.home() / ".local/share/gnome-shell/extensions" / uuid).is_dir()
+
+
+def ext_uninstall(uuid: str) -> bool:
+    from .installers import DRY_EXT
+    ext_set(uuid, False)
+    ok = usercmd.run(["gnome-extensions", "uninstall", uuid])[0]
+    DRY_EXT.discard(uuid)
+    return ok
+
+
 def shell_theme() -> str:
     return usercmd.gget("org.gnome.shell.extensions.user-theme", "name", "") or ""
 
