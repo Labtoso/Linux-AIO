@@ -10,11 +10,11 @@ from .userpresets import PREFIX, UserPresetsMixin
 from .widgets import Card, ColorButton, FlowGrid, PresetCard, Segmented, set_chip
 
 DEMO = (
-    [("sebastian", 4), ("@", 7), ("arch ", 4), ("~/Projekte ", 6), ("❯ ", 5), ("ls", 15)],
-    [("Bilder/  ", 4), ("Musik/  ", 4), ("hypr-studio.pyz  ", 2), ("notizen.md  ", 15), ("start.sh", 2)],
-    [("sebastian", 4), ("@", 7), ("arch ", 4), ("~/Projekte ", 6), ("❯ ", 5), ("git status", 15)],
-    [("Auf Branch ", 7), ("main", 2)],
-    [("geändert:  ", 1), ("src/gui.py", 3)],
+    [("user", 4), ("@", 7), ("arch ", 4), ("~/projects ", 6), ("❯ ", 5), ("ls", 15)],
+    [("Pictures/  ", 4), ("Music/  ", 4), ("hypr-studio.pyz  ", 2), ("notes.md  ", 15), ("start.sh", 2)],
+    [("user", 4), ("@", 7), ("arch ", 4), ("~/projects ", 6), ("❯ ", 5), ("git status", 15)],
+    [("On branch ", 7), ("main", 2)],
+    [("modified:  ", 1), ("src/gui.py", 3)],
     [("sebastian", 4), ("@", 7), ("arch ", 4), ("~/Projekte ", 6), ("❯ ", 5)],
 )
 TABS = ("1: zsh", "2: nvim", "3: htop")

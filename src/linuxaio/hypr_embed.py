@@ -82,6 +82,12 @@ class HyprEmbed(hgui.MainWindow):
                 hgui.MainWindow.set_tab(self, "hypr")
         self.gear.hide()                 # Einstellungen stecken in Sonstiges › Erweitert
         add_advanced(self)
+        op = self.other_page                 # Kitty lives in Linux AIO › Advanced now
+        if "kitty" in op.nav:
+            op.nav["kitty"].hide()
+            op.SECTIONS = tuple(k for k in op.SECTIONS if k != "kitty")
+            if self.cfg.get("other_section") == "kitty":
+                self.cfg["other_section"] = "fix"
         if popout:                       # eigenes Fenster: frei verschiebbar, maximierbar
             self.setWindowTitle("Hypr Studio – Linux AIO")
             self.status.hide()

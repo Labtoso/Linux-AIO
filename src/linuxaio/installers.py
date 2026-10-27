@@ -20,6 +20,9 @@ EGO = "https://extensions.gnome.org"
 
 # Schlüssel → Pakete je Paketmanager (der Root-Helfer nimmt nur diese Schlüssel an)
 PACKAGES = {
+    "yay-deps": {"pacman": ["git", "base-devel"]},
+    "alacritty": {"pacman": ["alacritty"], "apt": ["alacritty"], "dnf": ["alacritty"], "zypper": ["alacritty"]},
+    "kitty": {"pacman": ["kitty"], "apt": ["kitty"], "dnf": ["kitty"], "zypper": ["kitty"]},
     "gnome-shell-extensions": {"pacman": ["gnome-shell-extensions"], "apt": ["gnome-shell-extensions"],
                                "dnf": ["gnome-shell-extension-user-theme"], "zypper": ["gnome-shell-extensions-common"]},
     "gnome-tweaks": {"pacman": ["gnome-tweaks"], "apt": ["gnome-tweaks"], "dnf": ["gnome-tweaks"],

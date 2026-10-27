@@ -8,12 +8,12 @@ from .qt import QtCore, QtGui, QtWidgets, Qt
 from .widgets import Segmented
 
 SECTIONS = {
-    "gnome": ("look", "cursor", "icon", "fonts", "windows", "titlebar", "topbar", "input", "autostart", "login"),
-    "plasma": ("plasma", "cursor", "icon"),
-    "hyprland": ("hyprstudio", "launcher", "cursor", "icon"),
+    "gnome": ("look", "cursor", "icon", "fonts", "windows", "titlebar", "topbar", "input", "autostart", "login", "advanced"),
+    "plasma": ("plasma", "cursor", "icon", "advanced"),
+    "hyprland": ("hyprstudio", "launcher", "cursor", "icon", "advanced"),
     "app": ("app",),
 }
-DEFAULT_SECTIONS = ("cursor", "icon")
+DEFAULT_SECTIONS = ("cursor", "icon", "advanced")
 
 
 def dot_icon(color: str, size: int = 10) -> QtGui.QIcon:
@@ -42,6 +42,9 @@ def make_section(host, de: str, key: str):
     if key == "launcher":                     # Rofi, Wofi, Fuzzel, Walker, Tofi, L Launcher
         from .hypr_embed import HyprEmbed
         return HyprEmbed(host, launcher_only=True)
+    if key == "advanced":                     # yay, Kitty, Alacritty
+        from .advanced_page import AdvancedPage
+        return AdvancedPage(host)
     if key == "app":
         from .app_page import AppPage
         return AppPage(host)

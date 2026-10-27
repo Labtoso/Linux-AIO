@@ -7,6 +7,7 @@ Ausgabe-Protokoll für die GUI:
 import configparser
 import json
 import os
+import pwd
 
 import subprocess
 import sys
@@ -250,6 +251,22 @@ def main(argv: list) -> int:
             if run(cmd) != 0:
                 say("FAIL", "missing")
                 return 1
+        say("PROGRESS", "100")
+        say("OK")
+        return 0
+    if argv and argv[0] == "yay-install":
+        # nur das selbst gebaute yay-bin-Paket aus dem Cache des aufrufenden Benutzers
+        f = Path(argv[1]) if len(argv) > 1 else Path()
+        user = invoking_user()
+        home = Path(pwd.getpwuid(user[1]).pw_dir) if user else None
+        ok_dir = home and f.resolve().parent == (home / ".cache/LabtosoStudios/linuxaio/yay/yay-bin").resolve()
+        if not (DRY or (ok_dir and f.name.startswith("yay-bin-") and ".pkg.tar." in f.name and f.is_file())):
+            say("FAIL", "args pkg")
+            return 12
+        say("STEP", "install")
+        if run(["pacman", "-U", "--noconfirm", "--needed", str(f)]) != 0:
+            say("FAIL", "missing")
+            return 1
         say("PROGRESS", "100")
         say("OK")
         return 0
