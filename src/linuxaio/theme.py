@@ -17,6 +17,22 @@ DANGER = "#e5534b"
 OK = "#3fb950"
 
 
+def scale_qss(text: str, factor: float) -> str:
+    """Scale every pt/px value of a stylesheet from its base value (never cumulative: always from the
+    original text). 1px borders stay 1px."""
+    import re
+    if abs(factor - 1.0) < 0.001:
+        return text
+
+    def one(m):
+        v, unit = float(m.group(1)), m.group(2)
+        if unit == "px" and v <= 1:
+            return m.group(0)
+        n = v * factor
+        return f"{n:.1f}{unit}" if unit == "pt" else f"{max(1, round(n))}{unit}"
+    return re.sub(r"(?<![\w#.-])(\d+(?:\.\d+)?)(pt|px)\b", one, text)
+
+
 def qss(accent: str) -> str:
     return f"""
     QWidget {{ color: {TEXT}; font-size: 10pt; }}

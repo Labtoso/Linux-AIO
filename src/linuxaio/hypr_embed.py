@@ -169,6 +169,18 @@ class HyprEmbed(hgui.MainWindow):
         if self.popout:
             super().mouseDoubleClickEvent(e)
 
+    def apply_theme(self):
+        """Hypr Studio's stylesheet, scaled like Linux AIO (from its base text, never cumulative)."""
+        super().apply_theme()
+        from . import theme as aio_theme
+        try:
+            factor = self.host.ui_factor()
+        except (AttributeError, RuntimeError):
+            factor = 1.0
+        if abs(factor - 1.0) > 0.001:
+            from hyprstudio import theme as htheme
+            self.setStyleSheet(aio_theme.scale_qss(htheme.qss(self.accent()), factor))
+
     def retranslate(self):
         super().retranslate()
         if hasattr(self, "_adv_retr"):

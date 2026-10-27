@@ -420,7 +420,7 @@ class MainWindow(QtWidgets.QWidget):
         self.l_scale.setObjectName("Label")
         self.seg_scale = Segmented(("100", "90", "80"), prefix="app.scale.")
         self.seg_scale.select(str(self.cfg.get("ui_scale", "100")))
-        self.seg_scale.changed.connect(lambda v: self._app_opt("ui_scale", v))
+        self.seg_scale.changed.connect(self.set_ui_scale)
         self.l_hypr = QtWidgets.QLabel()
         self.l_hypr.setObjectName("Label")
         self.seg_hypr = Segmented(("embed", "window"), prefix="app.hypr.")
@@ -459,12 +459,41 @@ class MainWindow(QtWidgets.QWidget):
         self.settings_page.apply_accent()
         self.panel.sync(self.cfg, self.backend)
 
+    def ui_factor(self) -> float:
+        try:
+            return int(self.cfg.get("ui_scale", "100")) / 100
+        except ValueError:
+            return 1.0
+
+    def set_ui_scale(self, value: str):
+        """Live, both directions, all open windows – always computed from the base sizes."""
+        self.cfg["ui_scale"] = value
+        self.save()
+        self.apply_theme()
+        for w in self._hypr_windows():
+            w.apply_theme()
+        self.set_status(t("app.scale") + f": {value} %")
+
+    def _hypr_windows(self):
+        from .hypr_embed import HyprEmbed
+        out = list(self.findChildren(HyprEmbed))
+        pop = getattr(self, "_hypr_window", None)
+        if pop is not None:
+            out.append(pop)
+        return out
+
     def apply_theme(self):
         from hyprstudio import theme as hs_theme
+        app = QtWidgets.QApplication.instance()
+        if not hasattr(app, "_base_pt"):
+            app._base_pt = app.font().pointSizeF()
+        f = app.font()
+        f.setPointSizeF(app._base_pt * self.ui_factor())
+        app.setFont(f)
         QtWidgets.QApplication.instance().setPalette(hs_theme.palette(self.accent()))   # dunkle Palette überall
         chev = chevron_file(theme.MUTED)
         extra = f"QComboBox#Combo::down-arrow {{ image: url({chev}); width: 14px; height: 14px; }}" if chev else ""
-        self.setStyleSheet(theme.qss(self.accent()) + extra)
+        self.setStyleSheet(theme.scale_qss(theme.qss(self.accent()) + extra, self.ui_factor()))
         self.gear.setIcon(app_icon())
         self.btn_min.setIcon(draw_icon("min", theme.MUTED, 16))
         self.btn_max.setIcon(draw_icon("max", theme.MUTED, 16))
@@ -499,10 +528,7 @@ def main(argv) -> int:
     for var in ("QT_QPA_PLATFORMTHEME", "QT_STYLE_OVERRIDE"):
         os.environ.pop(var, None)
     os.environ.setdefault("QT_SCALE_FACTOR_ROUNDING_POLICY", "PassThrough")
-    scale = str(load_cfg().get("ui_scale", "100"))          # Settings › Linux AIO: 100 / 90 / 80 %
-    if scale in ("90", "80"):
-        base = float(os.environ.get("QT_SCALE_FACTOR", "1") or 1)
-        os.environ["QT_SCALE_FACTOR"] = f"{base * int(scale) / 100:.2f}"
+
     app = QtWidgets.QApplication(argv)
     app.setApplicationName(linuxaio.APP_NAME)
     app.setOrganizationName("LabtosoStudios")

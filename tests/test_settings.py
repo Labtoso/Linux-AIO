@@ -538,6 +538,21 @@ class Ui(unittest.TestCase):
         finally:
             dialogs.confirm = old
 
+    def test_ui_scale_stable(self):
+        app = self.app
+        base_qss = self.w.styleSheet()
+        base_pt = app.font().pointSizeF()
+        for _ in range(10):
+            for v in ("90", "80", "100"):
+                self.w.set_ui_scale(v)
+        self.assertEqual(self.w.styleSheet(), base_qss)              # wieder genau die Basis
+        self.assertAlmostEqual(app.font().pointSizeF(), base_pt, places=2)
+        self.w.set_ui_scale("80")
+        self.assertAlmostEqual(app.font().pointSizeF(), base_pt * 0.8, places=2)
+        self.assertIn("font-size: 8.0pt", self.w.styleSheet())
+        self.assertNotIn("QT_SCALE_FACTOR", os.environ)               # kein Neustart-Faktor mehr
+        self.w.set_ui_scale("100")
+
     def test_titlebar_clicks(self):
         pg = self.panel("gnome", "titlebar")
         pg.sw_min.set_now(False)
