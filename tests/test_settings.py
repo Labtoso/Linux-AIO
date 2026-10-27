@@ -626,5 +626,31 @@ def tearDownModule():
     shutil.rmtree(TMP, ignore_errors=True)
 
 
+class AdvancedTests(unittest.TestCase):
+    def test_alacritty_toml_parses(self):
+        import tomllib
+        from linuxaio import alacritty
+        for name in alacritty.PRESETS:
+            d = tomllib.loads(alacritty.toml(alacritty.state({"preset": name, "font": 'A "B"'})))
+            self.assertEqual(d["font"]["normal"]["family"], 'A "B"')
+            self.assertEqual(len(d["colors"]["normal"]), 8)
+
+    def test_preset_01_matches_kitty(self):
+        from hyprstudio import kitty
+        from linuxaio import alacritty
+        k, a = kitty.preset("mine"), alacritty.PRESETS["01"]
+        self.assertEqual(a["look"]["opacity"], k["opacity"])
+        self.assertEqual(a["look"]["padding"], k["padding"])
+        self.assertEqual(a["look"]["font"], k["font"])
+        self.assertEqual(a["bg"], kitty._c(k["bg"]))
+
+    def test_search_places(self):
+        from linuxaio import search
+        self.assertEqual(search.place("top.hotcorner"), ("gnome", "topbar"))
+        self.assertIsNone(search.place("win.dbl.minimize"))
+        self.assertIsNone(search.place("top.hotcorner.tip"))
+        self.assertEqual(search.place("ala.opacity")[2], "alacritty")
+
+
 if __name__ == "__main__":
     unittest.main()
