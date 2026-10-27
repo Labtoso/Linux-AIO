@@ -23,7 +23,7 @@ def load_cfg() -> dict:
     try:
         return json.loads(CONFIG.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {"lang": "en", "theme": "blue"}      # English by default, German in the settings
+        return {"lang": "en", "theme": "01"}      # English by default, German in the settings
 
 
 def save_cfg(cfg: dict) -> None:
@@ -65,13 +65,27 @@ def draw_icon(kind: str, color: str, size: int = 20) -> QtGui.QIcon:
     elif kind == "min":
         m = size * 0.3
         p.drawLine(QtCore.QPointF(m, c), QtCore.QPointF(size - m, c))
-    elif kind == "reset":
+    elif kind == "reset":                          # Kreispfeil (wie „restart“): Bogen ~300° + volle Pfeilspitze
+        import math
         p.setBrush(Qt.BrushStyle.NoBrush)
-        r = QtCore.QRectF(size * 0.2, size * 0.2, size * 0.6, size * 0.6)
-        p.drawArc(r, 60 * 16, 290 * 16)
-        tip = QtCore.QPointF(size * 0.65, size * 0.24)
-        p.drawLine(tip, QtCore.QPointF(size * 0.80, size * 0.20))
-        p.drawLine(tip, QtCore.QPointF(size * 0.70, size * 0.38))
+        rad = size * 0.31
+        r = QtCore.QRectF(c - rad, c - rad, 2 * rad, 2 * rad)
+        start = 70                                   # Bogen von 70° gegen den Uhrzeigersinn bis 10° (≈300°)
+        p.drawArc(r, start * 16, 300 * 16)
+        a = math.radians(start)                      # Pfeilspitze am Bogenanfang, zeigt im Uhrzeigersinn
+        tip = QtCore.QPointF(c + rad * math.cos(a), c - rad * math.sin(a))
+        t_dir = (math.sin(a), math.cos(a))           # Tangente im Uhrzeigersinn (Bildschirmkoordinaten)
+        n_dir = (math.cos(a), -math.sin(a))          # nach außen
+        h = size * 0.2
+        base = QtCore.QPointF(tip.x() - t_dir[0] * h * 0.2, tip.y() - t_dir[1] * h * 0.2)
+        head = QtGui.QPolygonF([
+            QtCore.QPointF(base.x() + t_dir[0] * h, base.y() + t_dir[1] * h),
+            QtCore.QPointF(base.x() + n_dir[0] * h * 0.62, base.y() + n_dir[1] * h * 0.62),
+            QtCore.QPointF(base.x() - n_dir[0] * h * 0.62, base.y() - n_dir[1] * h * 0.62)])
+        p.setBrush(p.pen().color())
+        p.setPen(QtGui.QPen(p.pen().color(), 1.0, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+                            Qt.PenJoinStyle.RoundJoin))
+        p.drawPolygon(head)
     elif kind == "max":
         m = size * 0.3
         p.drawRoundedRect(QtCore.QRectF(m, m, size - 2 * m, size - 2 * m), 1.5, 1.5)
@@ -79,6 +93,15 @@ def draw_icon(kind: str, color: str, size: int = 20) -> QtGui.QIcon:
         m = size * 0.3
         p.drawLine(QtCore.QPointF(m, c - size * 0.1), QtCore.QPointF(c, c + size * 0.12))
         p.drawLine(QtCore.QPointF(c, c + size * 0.12), QtCore.QPointF(size - m, c - size * 0.1))
+    elif kind == "chev_r":                         # zugeklappt: Pfeil nach rechts
+        m = size * 0.3
+        p.drawLine(QtCore.QPointF(c - size * 0.1, m), QtCore.QPointF(c + size * 0.12, c))
+        p.drawLine(QtCore.QPointF(c + size * 0.12, c), QtCore.QPointF(c - size * 0.1, size - m))
+    elif kind == "upload":                         # Download-Pfeil gespiegelt
+        p.drawLine(QtCore.QPointF(c, size * 0.18), QtCore.QPointF(c, size * 0.64))
+        p.drawLine(QtCore.QPointF(c - size * 0.2, size * 0.37), QtCore.QPointF(c, size * 0.18))
+        p.drawLine(QtCore.QPointF(c + size * 0.2, size * 0.37), QtCore.QPointF(c, size * 0.18))
+        p.drawLine(QtCore.QPointF(size * 0.22, size * 0.82), QtCore.QPointF(size * 0.78, size * 0.82))
     elif kind == "check":
         p.drawLine(QtCore.QPointF(size * 0.22, c + size * 0.02), QtCore.QPointF(size * 0.42, size * 0.7))
         p.drawLine(QtCore.QPointF(size * 0.42, size * 0.7), QtCore.QPointF(size * 0.8, size * 0.3))
@@ -427,7 +450,7 @@ class Picture(QtWidgets.QWidget):
         self.radius = radius
         self.pix = None
         self.seed = ""
-        self.accent = theme.THEMES["blue"]
+        self.accent = theme.THEMES["tokyo"]
         self.loading = False
         self.anim = None          # Bootsplash aus Einzelbildern
         self.movie = None         # animiertes GIF
@@ -609,6 +632,9 @@ class SettingsPanel(QtWidgets.QFrame):
     lang_changed = Signal(str)
     theme_changed = Signal(str)
     about_requested = Signal()
+    export_requested = Signal()
+    import_requested = Signal()
+    update_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -641,20 +667,31 @@ class SettingsPanel(QtWidgets.QFrame):
         self.l_theme = QtWidgets.QLabel()
         self.l_theme.setObjectName("Label")
         lay.addWidget(self.l_theme)
-        row2 = QtWidgets.QHBoxLayout()
-        row2.setSpacing(12)
+        row2 = QtWidgets.QGridLayout()          # Akzente der gemeinsamen Paletten, 5 pro Zeile
+        row2.setSpacing(10)
         self.theme_btns = {}
-        for name in theme.THEMES:
+        from hyprstudio import palettes
+        for i, name in enumerate(theme.THEMES):
             b = QtWidgets.QPushButton()
             b.setFixedSize(38, 38)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
-            b.setToolTip(name.capitalize())
+            b.setToolTip(palettes.title(name))
             b.clicked.connect(lambda _=False, n=name: self.theme_changed.emit(n))
             self.theme_btns[name] = b
-            row2.addWidget(b)
-        row2.addStretch()
+            row2.addWidget(b, i // 5, i % 5)
+        row2.setColumnStretch(5, 1)
         lay.addLayout(row2)
         lay.addStretch()
+        self.b_export = QtWidgets.QPushButton()
+        self.b_export.setIcon(draw_icon("download", theme.MUTED, 16))
+        self.b_export.clicked.connect(self.export_requested.emit)
+        self.b_import = QtWidgets.QPushButton()
+        self.b_import.setIcon(draw_icon("upload", theme.MUTED, 16))
+        self.b_import.clicked.connect(self.import_requested.emit)
+        self.b_update = QtWidgets.QPushButton()
+        self.b_update.clicked.connect(self.update_requested.emit)
+        for b in (self.b_export, self.b_import, self.b_update):
+            lay.addWidget(b)
         self.b_about = QtWidgets.QPushButton()
         self.b_about.setCursor(Qt.CursorShape.PointingHandCursor)
         self.b_about.clicked.connect(self.about_requested.emit)
@@ -669,6 +706,9 @@ class SettingsPanel(QtWidgets.QFrame):
         self.l_lang.setText(t("language"))
         self.l_theme.setText(t("theme"))
         self.b_about.setText(t("about"))
+        self.b_export.setText(t("preset.export"))
+        self.b_import.setText(t("preset.import"))
+        self.b_update.setText(t("upd.check"))
         self.lang_btns[cfg["lang"]].setChecked(True)
         for name, b in self.theme_btns.items():
             ring = "#ffffff" if name == cfg["theme"] else theme.SURFACE

@@ -223,6 +223,11 @@ def build_installer(pyz: Path, tarball: Path, appimage: Path | None, zipfile_: P
     shutil.copy2(tarball, INST / "arch" / tarball.name)
     write_lf(INST / "arch/PKGBUILD", (ROOT / "packaging/PKGBUILD").read_text(encoding="utf-8"))
     write_lf(INST / "arch/install.sh", (ROOT / "packaging/install.sh").read_text(encoding="utf-8"), 0o755)
+    # Prüfsummen für „Check for updates“ (die App lädt nur, was hierzu passt) – mit ins Release
+    import hashlib
+    sums = [f"{hashlib.sha256(f.read_bytes()).hexdigest()}  {f.name}"
+            for f in (INST / (appimage.name if appimage else ""), INST / zipfile_.name) if f.is_file() and f.name]
+    (INST / "SHA256SUMS").write_text("\n".join(sums) + "\n", encoding="utf-8")
     print("installer/ aktualisiert")
 
 
@@ -289,6 +294,7 @@ Exec=linux-aio
 Icon=linux-aio
 Terminal=false
 Categories=System;Settings;
+StartupNotify=false
 """
 
 ZIP_INSTALL = """#!/bin/sh

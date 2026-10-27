@@ -78,13 +78,16 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.cfg = load_cfg()
+        from hyprstudio.widgets import install_no_wheel
+        install_no_wheel()                   # Mausrad ohne Fokus ändert nie Werte (sonst Systemänderung beim Scrollen)
         if self.cfg.get("version") != linuxaio.__version__:   # each new version starts in English
             self.cfg["lang"] = "en"
             self.cfg["version"] = linuxaio.__version__
             save_cfg(self.cfg)
         set_lang(self.cfg.get("lang", "en"))
+        self.cfg["theme"] = theme.LEGACY_ACCENT.get(self.cfg.get("theme"), self.cfg.get("theme"))
         if self.cfg.get("theme") not in theme.THEMES:
-            self.cfg["theme"] = "blue"
+            self.cfg["theme"] = "01"
         if self.cfg.get("tab") not in TABS:
             self.cfg["tab"] = "de"
         self.backend = system.detect_backend() or ("pacman" if DRY else None)
@@ -224,6 +227,9 @@ class MainWindow(QtWidgets.QWidget):
         self.panel.lang_changed.connect(self.set_language)
         self.panel.theme_changed.connect(self.set_theme)
         self.panel.about_requested.connect(self.show_about)
+        self.panel.export_requested.connect(self.export_preset)
+        self.panel.import_requested.connect(self.import_preset)
+        self.panel.update_requested.connect(lambda: self.check_update(quiet=False))
         self._add_app_settings()
         self.anim = QtCore.QPropertyAnimation(self.panel, b"pos", self)
         self.anim.setDuration(220)
@@ -419,7 +425,7 @@ class MainWindow(QtWidgets.QWidget):
         """Tux › app settings: interface size and Hypr Studio mode (besides language, colour, About)."""
         from .app_page import restart
         lay = self.panel.layout()
-        pos = lay.indexOf(self.panel.b_about) - 1      # direkt unter den Farben, vor dem Abstand
+        pos = lay.indexOf(self.panel.b_export) - 1     # direkt unter den Farben, vor dem Abstand
         self.l_scale = QtWidgets.QLabel()
         self.l_scale.setObjectName("Label")
         self.seg_scale = Segmented(("100", "90", "80"), prefix="app.scale.")
@@ -430,13 +436,19 @@ class MainWindow(QtWidgets.QWidget):
         self.seg_hypr = Segmented(("embed", "window"), prefix="app.hypr.")
         self.seg_hypr.select(self.cfg.get("hypr_mode", "embed"))
         self.seg_hypr.changed.connect(lambda v: self._app_opt("hypr_mode", v))
+        self.l_upd = QtWidgets.QLabel()
+        self.l_upd.setObjectName("Label")
+        self.seg_upd = Segmented(("on", "off"), prefix="upd.hint.")
+        self.seg_upd.select("on" if self.cfg.get("update_hint", True) else "off")
+        self.seg_upd.changed.connect(lambda v: (self.cfg.__setitem__("update_hint", v == "on"), self.save()))
         self.b_restart = QtWidgets.QPushButton()
         self.b_restart.setObjectName("Primary")
         self.b_restart.setCursor(Qt.CursorShape.PointingHandCursor)
         self.b_restart.clicked.connect(restart)
         self.b_restart.hide()
         lay.insertSpacing(pos, 10)
-        for i, w in enumerate((self.l_scale, self.seg_scale, self.l_hypr, self.seg_hypr, self.b_restart)):
+        for i, w in enumerate((self.l_scale, self.seg_scale, self.l_hypr, self.seg_hypr, self.l_upd, self.seg_upd,
+                               self.b_restart)):
             lay.insertWidget(pos + 1 + i, w)
 
     def _app_opt(self, key, value):
@@ -447,6 +459,101 @@ class MainWindow(QtWidgets.QWidget):
 
     def show_about(self):
         AboutDialog(self).exec()
+
+    # ----- Preset-Datei (alles, was Linux AIO gesetzt hat) -----
+    def export_preset(self):
+        from hyprstudio import dialogs
+        from . import presetfile
+        path = dialogs.save_file(self, t("preset.export"), str(usercmd.real_home() / "my-setup.linuxaio"),
+                                 "Linux AIO (*.linuxaio)")
+        if not path:
+            return
+        try:
+            out = presetfile.export(self.cfg, Path(path))
+            self.set_status(t("preset.exported", path=str(out)))
+        except OSError as e:
+            self.set_status(f"{t('failed')}: {e}")
+
+    def import_preset(self):
+        from hyprstudio import dialogs
+        from . import presetfile
+        path = dialogs.open_file(self, t("preset.import"), str(usercmd.real_home()), "Linux AIO (*.linuxaio)")
+        if not path:
+            return
+        try:
+            data = presetfile.load(Path(path))
+        except presetfile.BadFile as e:
+            self.set_status(f"{t('preset.bad')}: {e}")
+            return
+        ch = presetfile.changes(data, self.cfg)
+        if not ch:
+            self.set_status(t("preset.same"))
+            return
+        lines = [f"• {a}: {n}" + (f"  ({o} → {v})" if o not in (None, "…") else "") for a, n, o, v in ch[:30]]
+        if len(ch) > 30:
+            lines.append(f"… +{len(ch) - 30}")
+        if not dialogs.confirm(self, t("preset.import"), t("preset.preview", n=len(ch)) + "\n\n" + "\n".join(lines),
+                               t("preset.apply")):
+            return
+        bak = presetfile.backup_current(self.cfg)
+        self.log("")
+        self.task_begin(t("preset.applying"))
+
+        def done(ok, res):
+            self.task_end(True, "")
+            save_cfg(self.cfg)
+            if ok:
+                msg = t("preset.done", n=res["gsettings"], path=str(bak))
+                if res["errors"]:
+                    msg += " · " + t("preset.someerr")
+                    for e in res["errors"]:
+                        self.log(e)
+                self.set_status(msg)
+                self.retranslate()
+            else:
+                self.set_status(f"{t('failed')}: {res}")
+        from .form import start_job
+        start_job(self, lambda: presetfile.apply(data, self.cfg), done)
+
+    # ----- Updates -----
+    def check_update(self, quiet: bool = True):
+        from . import updater
+        from .form import start_job
+
+        def done(ok, info):
+            if not ok:
+                if not quiet:
+                    self.set_status(t("upd.offline") if "offline" in str(info) else f"{t('failed')}: {info}")
+                return
+            if not updater.newer(info):
+                if not quiet:
+                    self.set_status(t("upd.none", ver=linuxaio.__version__))
+                return
+            if quiet:                              # Hinweis beim Start (abschaltbar)
+                self.set_status(t("upd.available", ver=info["version"]))
+                return
+            self._offer_update(info)
+        start_job(self, updater.latest, done)
+
+    def _offer_update(self, info):
+        from hyprstudio import dialogs
+        from . import updater
+        from .form import start_job
+        text = t("upd.ask", ver=info["version"], cur=linuxaio.__version__) + "\n\n" + updater.short_notes(info["notes"])
+        if not dialogs.confirm(self, t("upd.check"), text, t("upd.install")):
+            return
+        self.task_begin(t("upd.loading", ver=info["version"]))
+
+        def done(ok, res):
+            self.task_end(ok, "")
+            if not ok:
+                self.set_status(t("upd.offline") if "offline" in str(res) else f"{t('failed')}: {res}")
+                return
+            self.set_status(t("upd.done", ver=info["version"]))
+            if dialogs.confirm(self, t("upd.check"), t("upd.restart", ver=info["version"]), t("app.restart")):
+                QtCore.QProcess.startDetached(str(res), [])
+                QtWidgets.QApplication.quit()
+        start_job(self, lambda: updater.install(info), done)
 
     def set_language(self, code: str):
         self.cfg["lang"] = code
@@ -508,6 +615,8 @@ class MainWindow(QtWidgets.QWidget):
         if hasattr(self, "seg_scale"):
             self.l_scale.setText(t("app.scale"))
             self.l_hypr.setText(t("app.hypr"))
+            self.l_upd.setText(t("upd.hint"))
+            self.seg_upd.retranslate()
             self.b_restart.setText(t("app.restart"))
             self.seg_scale.retranslate()
             self.seg_hypr.retranslate()
@@ -549,7 +658,18 @@ def main(argv) -> int:
     app.aboutToQuit.connect(Job.wait_all)
     w = MainWindow()
     w.show()
+    # Start-Token nach dem ersten Fenster verbrauchen: nie an Kindprozesse (pkexec, git, Terminals …)
+    # weitergeben, sonst zeigt GNOME dauerhaft den Lade-Cursor
+    QtCore.QTimer.singleShot(0, lambda: [os.environ.pop(k, None) for k in ("DESKTOP_STARTUP_ID", "XDG_ACTIVATION_TOKEN")])
     QtCore.QTimer.singleShot(800, _integrate)
+
+    def _safe():                                 # alte globale GTK_THEME-Einträge (brechen GNOME-Apps) entfernen
+        from . import safety
+        from .form import start_job
+        start_job(w, safety.cleanup, lambda ok, res: w.set_status(t("safety.cleaned")) if ok and res else None)
+    QtCore.QTimer.singleShot(1200, _safe)
+    if w.cfg.get("update_hint", True) and not os.environ.get("DEMANAGER_SHOT"):
+        QtCore.QTimer.singleShot(4000, w.check_update)    # Hinweis unten, wenn eine neue Version da ist
     shot = os.environ.get("DEMANAGER_SHOT")
     if shot:
         QtCore.QTimer.singleShot(600, lambda: _shots(w, app, shot, os.environ.get("LINUXAIO_STEPS", "")))
@@ -596,7 +716,10 @@ def _shots(w, app, shot, steps):
         if st:
             parts = st.split(":")
             w.set_tab(parts[0])
-            if parts[0] == "settings" and len(parts) > 1:
+            if parts[0] == "settings" and len(parts) > 2 and parts[1] == "adv":
+                w.set_tab("settings")
+                w.settings_page.select_adv(parts[2])
+            elif parts[0] == "settings" and len(parts) > 1:
                 w.settings_page.select(parts[1])
                 if len(parts) > 2 and w.settings_page.panel():
                     w.settings_page.panel().show_section(parts[2])

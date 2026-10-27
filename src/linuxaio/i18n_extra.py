@@ -353,16 +353,16 @@ EXTRA["de"]["app.settings"] = "Linux-AIO-Einstellungen"
 EXTRA["en"]["app.settings"] = "Linux AIO settings"
 
 EXTRA["de"].update({"reset.tip": "Auf Standard zurücksetzen", "reset.title": "Auf Standard zurücksetzen",
-    "reset.ask": "„{page}“ auf den Standard zurücksetzen? Die aktuellen Werte werden vorher gesichert.",
+    "reset.ask": "„{page}“ auf den Standard zurücksetzen? Vorher wird eine Sicherung angelegt.", "reset.btn": "Zurücksetzen",
     "reset.done": "„{page}“ zurückgesetzt – Sicherung: {path}", "reset.undo": "Rückgängig", "reset.undone": "Wiederhergestellt"})
 EXTRA["en"].update({"reset.tip": "Reset to default", "reset.title": "Reset to default",
-    "reset.ask": "Reset “{page}” to its default? The current values are backed up first.",
+    "reset.ask": "Reset “{page}” to default? A backup is created.", "reset.btn": "Reset",
     "reset.done": "“{page}” reset – backup: {path}", "reset.undo": "Undo", "reset.undone": "Restored"})
 
-EXTRA["de"].update({"reset.sys": "Zurück zum Systemstandard „{name}“? Installierte Themes bleiben erhalten.",
+EXTRA["de"].update({"reset.sys": "„{page}“ auf den Standard „{name}“ zurücksetzen? Vorher wird eine Sicherung angelegt; installierte Themes bleiben.",
     "reset.sysdone": "Systemstandard „{name}“ gesetzt (vorher: {prev})", "reset.nodefault": "Kein Standard-Theme installiert",
     "reset.already": "Der Standard ist schon aktiv"})
-EXTRA["en"].update({"reset.sys": "Back to the system default “{name}”? Installed themes are kept.",
+EXTRA["en"].update({"reset.sys": "Reset “{page}” to the default “{name}”? A backup is created; installed themes are kept.",
     "reset.sysdone": "System default “{name}” set (before: {prev})", "reset.nodefault": "No default theme installed",
     "reset.already": "The default is already active"})
 
@@ -403,3 +403,45 @@ EXTRA["de"].update({"nothing": "Nichts zum Zurücknehmen", "undone": "Zurückgen
 EXTRA["en"].update({"nothing": "Nothing to undo", "undone": "Undone"})
 EXTRA["de"].update({"search.all": "Alles durchsuchen …"})
 EXTRA["en"].update({"search.all": "Search everything …"})
+
+_ALA = {"de": {"ala.unsupported": "Von Alacritty nicht unterstützt", "ala.cursor_more": "Nur Alacritty",
+               "ala.thickness": "Strichstärke", "ala.blink_timeout": "Blinken endet nach",
+               "ala.blink_timeout.tip": "0 = blinkt immer"},
+        "en": {"ala.unsupported": "Not supported by Alacritty", "ala.cursor_more": "Alacritty only",
+               "ala.thickness": "Thickness", "ala.blink_timeout": "Stop blinking after",
+               "ala.blink_timeout.tip": "0 = always blink"}}
+for _l, _d in _ALA.items():
+    EXTRA[_l].update(_d)
+EXTRA["de"].update({"safety.cleaned": "Alte globale Theme-Einstellung entfernt (machte GNOME-Apps kaputt) – Sicherung unter ~/.config/LabtosoStudios/backups, bitte einmal neu anmelden"})
+EXTRA["en"].update({"safety.cleaned": "Removed an old global theme override (it broke GNOME apps) – backup in ~/.config/LabtosoStudios/backups, please log out and in once"})
+
+_PU = {"de": {"preset.export": "Preset exportieren", "preset.import": "Preset importieren",
+              "preset.exported": "Exportiert: {path}", "preset.bad": "Keine gültige Linux-AIO-Datei",
+              "preset.same": "Nichts zu ändern – alles ist schon so eingestellt",
+              "preset.preview": "Das Importieren ändert {n} Einstellungen. Vorher wird eine Sicherung angelegt.",
+              "preset.apply": "Importieren", "preset.applying": "Preset wird angewendet …",
+              "preset.done": "Preset angewendet ({n} GNOME-Werte) – Sicherung: {path}",
+              "preset.someerr": "manches fehlte (Details im Protokoll)",
+              "upd.check": "Nach Updates suchen", "upd.offline": "Keine Verbindung zu GitHub – später erneut versuchen",
+              "upd.none": "Linux AIO {ver} ist aktuell", "upd.available": "Update verfügbar: Linux AIO {ver} (Pinguin › Nach Updates suchen)",
+              "upd.ask": "Linux AIO {ver} ist da (installiert: {cur}). Einstellungen und Installiertes bleiben erhalten.",
+              "upd.install": "Aktualisieren", "upd.loading": "Linux AIO {ver} wird geladen …",
+              "upd.done": "Linux AIO {ver} installiert", "upd.restart": "Jetzt mit Linux AIO {ver} neu starten?",
+              "upd.hint": "Beim Start nach Updates suchen", "upd.hint.on": "An", "upd.hint.off": "Aus"},
+       "en": {"preset.export": "Export preset", "preset.import": "Import preset",
+              "preset.exported": "Exported: {path}", "preset.bad": "Not a valid Linux AIO file",
+              "preset.same": "Nothing to change – everything is already set like this",
+              "preset.preview": "Importing changes {n} settings. A backup is created first.",
+              "preset.apply": "Import", "preset.applying": "Applying preset …",
+              "preset.done": "Preset applied ({n} GNOME values) – backup: {path}",
+              "preset.someerr": "some items were missing (details in the log)",
+              "upd.check": "Check for updates", "upd.offline": "No connection to GitHub – try again later",
+              "upd.none": "Linux AIO {ver} is up to date", "upd.available": "Update available: Linux AIO {ver} (penguin › Check for updates)",
+              "upd.ask": "Linux AIO {ver} is available (installed: {cur}). Settings and installed items are kept.",
+              "upd.install": "Update", "upd.loading": "Downloading Linux AIO {ver} …",
+              "upd.done": "Linux AIO {ver} installed", "upd.restart": "Restart with Linux AIO {ver} now?",
+              "upd.hint": "Check for updates at start", "upd.hint.on": "On", "upd.hint.off": "Off"}}
+for _l, _d in _PU.items():
+    EXTRA[_l].update(_d)
+EXTRA["de"].update({"reset.none": "Hier gibt es nichts zurückzusetzen"})
+EXTRA["en"].update({"reset.none": "Nothing to reset here"})
