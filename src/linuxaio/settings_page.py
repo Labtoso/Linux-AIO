@@ -5,15 +5,15 @@ from . import desktops, theme
 from .form import accent_switches
 from .i18n import t
 from .qt import QtCore, QtGui, QtWidgets, Qt
-from .widgets import Segmented
+from .widgets import Segmented, draw_icon
 
 SECTIONS = {
-    "gnome": ("look", "cursor", "icon", "fonts", "windows", "titlebar", "topbar", "input", "autostart", "login", "advanced"),
-    "plasma": ("plasma", "cursor", "icon", "advanced"),
-    "hyprland": ("hyprstudio", "launcher", "cursor", "icon", "advanced"),
+    "gnome": ("look", "cursor", "icon", "fonts", "windows", "titlebar", "topbar", "input", "autostart", "login"),
+    "plasma": ("plasma", "cursor", "icon"),
+    "hyprland": ("hyprstudio", "launcher", "cursor", "icon"),
     "app": ("app",),
 }
-DEFAULT_SECTIONS = ("cursor", "icon", "advanced")
+DEFAULT_SECTIONS = ("cursor", "icon")
 
 
 def dot_icon(color: str, size: int = 10) -> QtGui.QIcon:
@@ -42,9 +42,6 @@ def make_section(host, de: str, key: str):
     if key == "launcher":                     # Rofi, Wofi, Fuzzel, Walker, Tofi, L Launcher
         from .hypr_embed import HyprEmbed
         return HyprEmbed(host, launcher_only=True)
-    if key == "advanced":                     # yay, Kitty, Alacritty
-        from .advanced_page import AdvancedPage
-        return AdvancedPage(host)
     if key == "app":
         from .app_page import AppPage
         return AppPage(host)
@@ -126,7 +123,7 @@ class DePanel(QtWidgets.QWidget):
         else:
             self.seg.select(key)
         if key in ("hyprstudio", "launcher"):
-            pg.sync_look(self.host.cfg.get("lang", "en"), self.host.cfg.get("theme", "blue"))
+            pg.sync_look(self.host.cfg.get("lang", "en"), self.host.cfg.get("theme", "01"))
         elif hasattr(pg, "refresh"):
             pg.refresh()
         self.host.cfg[f"section_{self.de}"] = key
@@ -140,7 +137,7 @@ class DePanel(QtWidgets.QWidget):
             self.seg.retranslate()
         for k, pg in self.pages.items():
             if k in ("hyprstudio", "launcher"):
-                pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "blue"))
+                pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "01"))
             elif hasattr(pg, "retranslate"):
                 pg.retranslate()
                 if k == self.current and hasattr(pg, "refresh"):
@@ -149,7 +146,7 @@ class DePanel(QtWidgets.QWidget):
     def apply_accent(self):
         for k, pg in self.pages.items():
             if k in ("hyprstudio", "launcher"):
-                pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "blue"))
+                pg.sync_look(self.host.cfg.get("lang", "de"), self.host.cfg.get("theme", "01"))
             else:
                 accent_switches(pg, self.host.accent())
                 if k == self.current and k in ("cursor", "icon"):
@@ -161,11 +158,22 @@ class DePanel(QtWidgets.QWidget):
             pg.refresh()
 
 
+class _NavHost:
+    """Was Hypr Studios NavHeader vom Fenster braucht (cfg + Speichern)."""
+
+    def __init__(self, host):
+        self.host, self.cfg = host, host.cfg
+
+    def save_later(self):
+        self.host.save()
+
+
 class SettingsPage(QtWidgets.QWidget):
     def __init__(self, host):
         super().__init__()
         self.host = host
         self.panels = {}
+        self.adv_pages = {}
         self.entries = desktops.entries()
         self.running = desktops.current()
         lay = QtWidgets.QHBoxLayout(self)
@@ -177,19 +185,15 @@ class SettingsPage(QtWidgets.QWidget):
         sl = QtWidgets.QVBoxLayout(side)
         sl.setContentsMargins(10, 12, 10, 10)
         sl.setSpacing(8)
-        self.side_title = QtWidgets.QLabel()
-        self.side_title.setObjectName("Label")
-        sl.addWidget(self.side_title)
-        self.list = QtWidgets.QListWidget()
-        self.list.setObjectName("DeList")
-        self.list.setIconSize(QtCore.QSize(10, 10))
-        for e in self.entries:
-            it = QtWidgets.QListWidgetItem(e.name)
-            it.setData(Qt.ItemDataRole.UserRole, e.id)
-            it.setSizeHint(QtCore.QSize(0, 36))
-            self.list.addItem(it)
+        self.groups = {}
+        self.list = self._group(sl, "desktops", [(e.name, e.id) for e in self.entries])
         self.list.currentRowChanged.connect(self._row)
-        sl.addWidget(self.list, 1)
+        from .advanced_page import SUBS
+        self.adv = self._group(sl, "advanced", [("", k) for k in SUBS])
+        self.adv.currentRowChanged.connect(lambda r: self.select_adv(SUBS[r]) if r >= 0 else None)
+        self._spacer = QtWidgets.QWidget()       # zugeklappte Desktops: Advanced rutscht nach oben
+        sl.addWidget(self._spacer, 0)
+        self._fold("desktops")
         lay.addWidget(side)
         self.stack = QtWidgets.QStackedWidget()
         lay.addWidget(self.stack, 1)
@@ -203,8 +207,70 @@ class SettingsPage(QtWidgets.QWidget):
             start = next((e.id for e in self.entries if desktops.installed(e)), None)
         if start == "app":
             start = None
-        if start:
+        if host.cfg.get("settings_adv") in self.adv_pages_keys():
+            self.select_adv(host.cfg["settings_adv"])
+        elif start:
             self.select(start)
+
+    # ----- Seitenleiste: Gruppen „Desktops“ und „Advanced“, einklappbar (Zustand gemerkt) -----
+    def _group(self, sl, key, items):
+        from hyprstudio.widgets import NavHeader
+        lst = QtWidgets.QListWidget()
+        lst.setObjectName("DeList")
+        lst.setIconSize(QtCore.QSize(10, 10))
+        lst.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        for text, data in items:
+            it = QtWidgets.QListWidgetItem(text)
+            it.setData(Qt.ItemDataRole.UserRole, data)
+            it.setSizeHint(QtCore.QSize(0, 36))
+            it.setIcon(dot_icon("#00000000"))        # gleiche Einrückung (Platz für den Läuft-Punkt)
+            lst.addItem(it)
+        if key == "desktops":                      # lange Liste: scrollt, wenn der Platz nicht reicht
+            lst.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        else:
+            lst.setFixedHeight(36 * len(items) + 6)
+        head = NavHeader("settings:" + key, key, _NavHost(self.host))   # dasselbe Widget wie in Hypr Studio
+        head.buttons.append(lst)
+        head.clicked.connect(lambda: self._fold(key))
+        sl.addWidget(head)
+        sl.addWidget(lst, 1 if key == "desktops" else 0)
+        self.groups[key] = (head, lst)
+        return lst
+
+    def _fold(self, key):
+        head, _lst = self.groups[key]
+        if hasattr(self, "_spacer") and key == "desktops":
+            self._spacer.setSizePolicy(QtWidgets.QSizePolicy.Policy.Preferred,
+                                       QtWidgets.QSizePolicy.Policy.Expanding if head.collapsed()
+                                       else QtWidgets.QSizePolicy.Policy.Fixed)
+
+    def adv_pages_keys(self):
+        from .advanced_page import SUBS
+        return SUBS
+
+    def select_adv(self, key: str):
+        """Advanced › Kitty / Alacritty / yay rechts zeigen."""
+        from .advanced_page import make
+        if key not in self.adv_pages:
+            pg = make(key, self.host)
+            self.adv_pages[key] = pg
+            self.stack.addWidget(pg)
+            pg.retranslate()
+            accent_switches(pg, self.host.accent())
+        self.stack.setCurrentWidget(self.adv_pages[key])
+        from .advanced_page import SUBS
+        self.list.blockSignals(True)
+        self.list.setCurrentRow(-1)
+        self.list.clearSelection()
+        self.list.blockSignals(False)
+        i = SUBS.index(key)
+        if self.adv.currentRow() != i:
+            self.adv.blockSignals(True)
+            self.adv.setCurrentRow(i)
+            self.adv.blockSignals(False)
+        self.host.cfg["settings_adv"] = key
+        self.host.save()
+        return self.adv_pages[key]
 
     def _installed(self, de_id: str) -> bool:
         if de_id == "app":
@@ -243,7 +309,12 @@ class SettingsPage(QtWidgets.QWidget):
             self.list.blockSignals(True)
             self.list.setCurrentRow(i)
             self.list.blockSignals(False)
+        self.adv.blockSignals(True)
+        self.adv.setCurrentRow(-1)
+        self.adv.clearSelection()
+        self.adv.blockSignals(False)
         self.host.cfg["settings_de"] = de_id
+        self.host.cfg["settings_adv"] = ""
         self.host.save()
 
     def panel(self) -> DePanel | None:
@@ -254,7 +325,16 @@ class SettingsPage(QtWidgets.QWidget):
         return self.stack
 
     def retranslate(self):
-        self.side_title.setText(t("set.desktops"))
+        from .advanced_page import SUBS
+        from hyprstudio import i18n as hi
+        from .i18n import lang
+        hi.TEXT[lang()].update({"nav.desktops": t("set.desktops"), "nav.advanced": t("sec.advanced")})
+        for head, _lst in self.groups.values():
+            head.sync()
+        for i, k in enumerate(SUBS):
+            self.adv.item(i).setText(t("adv." + k))
+        for pg in self.adv_pages.values():
+            pg.retranslate()
         self.empty.setText(t("set.none"))
         self.mark()
         for p in self.panels.values():

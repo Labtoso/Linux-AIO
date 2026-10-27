@@ -15,7 +15,7 @@ DEMO = (
     [("user", 4), ("@", 7), ("arch ", 4), ("~/projects ", 6), ("❯ ", 5), ("git status", 15)],
     [("On branch ", 7), ("main", 2)],
     [("modified:  ", 1), ("src/gui.py", 3)],
-    [("sebastian", 4), ("@", 7), ("arch ", 4), ("~/Projekte ", 6), ("❯ ", 5)],
+    [("user", 4), ("@", 7), ("arch ", 4), ("~/projects ", 6), ("❯ ", 5)],
 )
 TABS = ("1: zsh", "2: nvim", "3: htop")
 
@@ -65,7 +65,7 @@ def paint_terminal(p: QtGui.QPainter, r: QtCore.QRectF, s: dict, trail_phase: fl
         f.setPixelSize(max(4, int(11 * k + 3)))
         p.setFont(f)
         p.setPen(QtGui.QColor("#aab4c3"))
-        p.drawText(tb, Qt.AlignmentFlag.AlignCenter, "kitty")
+        p.drawText(tb, Qt.AlignmentFlag.AlignCenter, s.get("_title", "kitty"))
         for i, col in enumerate(("#e5534b", "#d29922", "#3fb950")):
             p.setBrush(QtGui.QColor(col))
             p.setPen(Qt.PenStyle.NoPen)
@@ -205,11 +205,16 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
     """Eigenständiger Editor mit derselben Schnittstelle wie die Seiten (state/set/changed) für die Karten."""
     SUBS = ("presets", "look", "font", "cursor", "tabs", "colors", "behavior", "start")
     KIND = "kitty"
+    CFG = "kitty"               # Schlüssel im Config (Alacritty nutzt denselben Editor mit „alacritty_k“)
+    PROGRAM = "kitty"
 
     def __init__(self, win):
         super().__init__()
         self.win = win
-        self.state = kitty.state(win.cfg.get("kitty"))
+        self.state = self.make_state(win.cfg.get(self.CFG))
+        for k in ("kitty_preset", "kitty_applied_preset"):     # „mine“ heißt jetzt „01“
+            if win.cfg.get(k) == "mine":
+                win.cfg[k] = "01"
         self.cards, self.switches, self.segs, self.presets = [], [], [], {}
         lay = QtWidgets.QVBoxLayout(self)
         lay.setContentsMargins(0, 0, 0, 0)
@@ -253,13 +258,31 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
             il.setContentsMargins(0, 0, 6, 0)
             il.setSpacing(12)
             self.build(key, il)
+            self.build_extra(key, il)
             il.addStretch()
             sa.setWidget(inner)
             self.stack.addWidget(sa)
             self.pages[key] = sa
         self.refresh_controls()
-        self.preview.set_state(self.state)
-        self.show_sub(win.cfg.get("kitty_sub", "presets"))
+        self.preview.set_state(self.view(self.state))
+        self.show_sub(win.cfg.get(self.CFG + "_sub", "presets"))
+
+    # ----- Programm (Alacritty überschreibt diese vier) -----
+    def make_state(self, saved):
+        return kitty.state(saved)
+
+    def write(self):
+        return kitty.apply(self.state, model.config_home(), self.win.log)
+
+    def restore(self):
+        return kitty.undo(model.config_home(), self.win.log)
+
+    def view(self, s):
+        """State as the preview shows it (Alacritty: no tabs, no cursor trail, own title)."""
+        return s
+
+    def build_extra(self, key, lay):
+        """Zusätzliche Karten eines anderen Programms pro Unterseite."""
 
     # ----- Aufbau -----
     def card(self, layout, title_key) -> Card:
@@ -273,10 +296,12 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
             self.build_user_presets(lay)
             grid = FlowGrid(212)
             for n in kitty.PRESETS:
+                if n == "mine":          # alter Name von „01“
+                    continue
                 pc = PresetCard(n)
                 pc.setProperty("tkey", "kp." + n)
                 pc.clicked.connect(self.use_preset)
-                pc.set_pixmap(render_card(kitty.preset(n, self.state)))
+                pc.set_pixmap(render_card(self.view(kitty.preset(n, self.state))))
                 grid.add(pc)
                 self.presets[n] = pc
             lay.addWidget(grid)
@@ -350,7 +375,7 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
             return
         self.state[key] = value
         if key in kitty.LOOK:
-            self.win.cfg["kitty_preset"] = ""
+            self.win.cfg[self.CFG + "_preset"] = ""
         self.changed()
         if key in ("trail", "trail_decay_fast", "trail_decay_slow"):
             self.preview.play()
@@ -361,9 +386,9 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
         self.set("palette", pal)
 
     def changed(self):
-        self.win.cfg["kitty"] = self.state
+        self.win.cfg[self.CFG] = self.state
         self.win.save_later()
-        self.preview.set_state(self.state)
+        self.preview.set_state(self.view(self.state))
         self.update_applied()
 
     def refresh_controls(self):
@@ -371,14 +396,14 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
             c.refresh(self.state)
 
     def sanitize(self, d):
-        return kitty.state(d)
+        return self.make_state(d)
 
     def state_pixmap(self, s):
-        return render_card(s)
+        return render_card(self.view(s))
 
     def use_preset(self, name):
         self.state = self.user_state(name) if name.startswith(PREFIX) else kitty.preset(name, self.state)
-        self.win.cfg["kitty_preset"] = name
+        self.win.cfg[self.CFG + "_preset"] = name
         self.refresh_controls()
         self.changed()
         self.preview.play()
@@ -386,7 +411,7 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
     def from_hypr(self):
         a = model.norm(self.win.hypr_page.state["active1"])[:7]
         self.state.update({"sel_bg": a, "tab_active_bg": a, "cursor": a})
-        self.win.cfg["kitty_preset"] = ""
+        self.win.cfg[self.CFG + "_preset"] = ""
         self.refresh_controls()
         self.changed()
 
@@ -395,7 +420,7 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
             key = "presets"
         self.sub.select(key)
         self.stack.setCurrentWidget(self.pages[key])
-        self.win.cfg["kitty_sub"] = key
+        self.win.cfg[self.CFG + "_sub"] = key
         self.win.save_later()
 
     def _sig(self):
@@ -404,39 +429,39 @@ class KittyEditor(UserPresetsMixin, QtWidgets.QWidget):
     def update_applied(self):
         if not hasattr(self, "applied"):
             return
-        ok = self.win.cfg.get("kitty_applied_sig") == self._sig()
+        ok = self.win.cfg.get(self.CFG + "_applied_sig") == self._sig()
         set_chip(self.applied, ok, t("applied") if ok else t("not_applied"))
-        applied = self.win.cfg.get("kitty_applied_preset", "") if ok else ""
-        sel = self.win.cfg.get("kitty_preset", "")
+        applied = self.win.cfg.get(self.CFG + "_applied_preset", "") if ok else ""
+        sel = self.win.cfg.get(self.CFG + "_preset", "")
         for n, pc in self.presets.items():
             pc.refresh(n == sel, self.win.accent(), n == applied)
 
     def apply(self):
         self.win.log("")
-        if not model.which("kitty"):
+        if not model.which(self.PROGRAM):
             self.win.log(t("k.missing"))
-        ok, info = kitty.apply(self.state, model.config_home(), self.win.log)
+        ok, info = self.write()
         self.win.report(ok, info)
         if ok:
-            self.win.cfg["kitty_applied_sig"] = self._sig()
-            self.win.cfg["kitty_applied_preset"] = self.win.cfg.get("kitty_preset", "")
+            self.win.cfg[self.CFG + "_applied_sig"] = self._sig()
+            self.win.cfg[self.CFG + "_applied_preset"] = self.win.cfg.get(self.CFG + "_preset", "")
             self.win.save_later()
-            pre = self.presets.get(self.win.cfg["kitty_applied_preset"])
+            pre = self.presets.get(self.win.cfg[self.CFG + "_applied_preset"])
             self.win.set_status(t("applied") + (f": {pre.name.text()}" if pre else "") + " · " + t("k.reload"))
             self.update_applied()
 
     def undo(self):
         self.win.log("")
-        ok = kitty.undo(model.config_home(), self.win.log)
+        ok = self.restore()
         self.win.set_status(t("undone") if ok else t("nothing"))
         if ok:
-            self.win.cfg["kitty_applied_sig"] = ""
+            self.win.cfg[self.CFG + "_applied_sig"] = ""
             self.update_applied()
 
     def reset_state(self):
-        self.state = kitty.state(None)
+        self.state = self.make_state(None)
         for k in ("preset", "applied_sig", "applied_preset"):
-            self.win.cfg[f"kitty_{k}"] = ""
+            self.win.cfg[f"{self.CFG}_{k}"] = ""
         self.refresh_controls()
         self.changed()
 

@@ -104,10 +104,11 @@ class Page(QtWidgets.QWidget):
 
     def finish(self):
         self.body.addStretch()
-        if self.reset_keys() or getattr(self, "has_reset", False):
-            from .widgets import draw_icon
-            self.b_reset.setIcon(draw_icon("reset", theme.MUTED, 16))
-            self.b_reset.show()
+        # Zurücksetzen überall an derselben Stelle; ohne Rücksetzbares sichtbar, aber ausgegraut
+        from .widgets import draw_icon
+        self.b_reset.setIcon(draw_icon("reset", theme.MUTED, 16))
+        self.b_reset.setEnabled(bool(self.reset_keys() or getattr(self, "has_reset", False)))
+        self.b_reset.show()
 
     # ----- Zurücksetzen -----
     def reset_keys(self) -> list:
@@ -119,8 +120,8 @@ class Page(QtWidgets.QWidget):
 
     def _reset_clicked(self):
         from hyprstudio import dialogs
-        host = getattr(self, "host", None)
-        if host is None or not dialogs.confirm(self, t("reset.title"), t("reset.ask", page=self.title.text())):
+        host = getattr(self, "host", None) or self.window()     # einfache Seiten kennen ihr Fenster nur so
+        if not hasattr(host, "offer_undo") or not dialogs.confirm(self, t("reset.title"), t("reset.ask", page=self.title.text()), t("reset.btn"), danger=True):
             return
         import json
         bak = usercmd.backup_dir()
@@ -158,7 +159,7 @@ class Page(QtWidgets.QWidget):
 
     def retranslate(self):
         self.title.setText(t(self.title_key))
-        self.b_reset.setToolTip(t("reset.tip"))
+        self.b_reset.setToolTip(t("reset.tip") if self.b_reset.isEnabled() else t("reset.none"))
         for card in self.findChildren(Card):
             card.retranslate()
         for c in self.controls:
@@ -372,7 +373,7 @@ def retranslate_buttons(widget: QtWidgets.QWidget) -> None:
 CHIP_COLORS = {"Chip": None, "ChipOk": theme.OK, "ChipWarn": "#d29922", "ChipAccent": "accent"}
 
 
-def set_chip(lb: QtWidgets.QLabel, kind: str, text: str, accent: str = theme.THEMES["blue"]) -> None:
+def set_chip(lb: QtWidgets.QLabel, kind: str, text: str, accent: str = theme.THEMES["tokyo"]) -> None:
     """Schild mit Stil direkt am Widget (objectName-Wechsel + polish liefert eine zu kleine Größe)."""
     col = CHIP_COLORS.get(kind)
     col = accent if col == "accent" else col

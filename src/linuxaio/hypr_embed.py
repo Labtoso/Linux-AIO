@@ -221,7 +221,7 @@ class HyprLauncher(QtWidgets.QWidget):
         if win is None:
             win = HyprEmbed(self.host, popout=True)
             self.host._hypr_window = win
-        win.sync_look(self.host.cfg.get("lang", "en"), self.host.cfg.get("theme", "blue"))
+        win.sync_look(self.host.cfg.get("lang", "en"), self.host.cfg.get("theme", "01"))
         win.show()
         win.raise_()
         win.activateWindow()

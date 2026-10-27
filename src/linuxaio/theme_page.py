@@ -234,8 +234,15 @@ class ThemePage(QtWidgets.QWidget):
         self._b_reset = b
         return b
 
+    def reset_area(self) -> str:
+        return t("tab.sddm") if self.act == "sddm" else t("tab.ply")
+
     def _reset_default(self):
         from hyprstudio import dialogs
+        # immer zuerst fragen (auch wenn nichts zu tun ist), erst danach prüfen
+        if not dialogs.confirm(self, t("reset.title"), t("reset.ask", page=self.reset_area()), t("reset.btn"),
+                               danger=True):
+            return
         self.reload_local()
         ids = [x["id"] for x in self.local]
         target = self.default_theme if self.default_theme in ids else ""
@@ -245,8 +252,6 @@ class ThemePage(QtWidgets.QWidget):
         prev = self.current
         if prev == target:
             self.host.set_status(t("reset.already"))
-            return
-        if not dialogs.confirm(self, t("reset.title"), t("reset.sys", name=target)):
             return
         self.host.run([f"{self.act}-set", target], f"{self.act}-set", self)
         if prev:

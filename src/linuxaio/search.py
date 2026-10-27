@@ -9,7 +9,6 @@ from .qt import QtCore, QtGui, QtWidgets, Qt
 # i18n key prefix → (desktop, section[, sub page]); first match wins
 PLACES = (
     (("ala.",), ("*", "advanced", "alacritty")), (("adv.yay",), ("*", "advanced", "yay")),
-    (("adv.kitty",), ("*", "advanced", "kitty")),
     (("gn.look", "gn.gtk", "gn.shell", "look.scheme", "look.accent", "look.anim"), ("gnome", "look")),
     (("font.ui", "font.doc", "font.mono", "font.title", "font.hint", "font.aa", "font.scale"), ("gnome", "fonts")),
     (("win.", "gn.windows", "gn.corners", "gn.files"), ("gnome", "windows")),
@@ -64,20 +63,26 @@ def entries(data: dict, sections: dict, current_de: str) -> list:
         for key in sections.get(de, ()):
             res.append((t("sec." + key), f"{t('tab.settings')} › {names.get(de, de)}", ("sec", de, key, "", "")))
     adv_de = current_de if current_de in inst else (inst[0] if inst else "")
-    for sub in ("yay", "kitty", "alacritty"):
-        if adv_de:
-            res.append((t("adv." + sub), f"{t('tab.settings')} › {names.get(adv_de, adv_de)} › {t('sec.advanced')}",
-                        ("sec", adv_de, "advanced", sub, "")))
+    adv = f"{t('tab.settings')} › {t('sec.advanced')}"
+    for sub in ("kitty", "alacritty", "yay"):
+        res.append((t("adv." + sub), adv, ("adv", sub, "")))
+    from hyprstudio import i18n as hi            # Kitty-/Alacritty-Optionen (gleiche Beschriftung in beiden)
+    for key, text in hi.TEXT[i18n.lang()].items():
+        if key.startswith("k.") and not key.startswith(("k.missing", "k.reload")) and "{" not in text and len(text) <= 48:
+            for sub in ("kitty", "alacritty"):
+                res.append((text, f"{adv} › {t('adv.' + sub)}", ("adv", sub, key)))
     for key, text in i18n.TEXT[i18n.lang()].items():
         p = place(key)
         if not p or "{" in text or len(text) > 48:
             continue
-        de = adv_de if p[0] == "*" else p[0]
+        if p[0] == "*":
+            res.append((text, f"{adv} › {t('adv.' + p[2])}", ("adv", p[2], key)))
+            continue
+        de = p[0]
         if de not in inst:
             continue
-        sub = p[2] if len(p) > 2 else ""
         where = f"{t('tab.settings')} › {names.get(de, de)} › {t('sec.' + p[1])}"
-        res.append((text, where, ("sec", de, p[1], sub, key)))
+        res.append((text, where, ("sec", de, p[1], "", key)))
     for tab, label in (("sddm", t("tab.sddm")), ("ply", t("tab.ply"))):
         res += [(n, label, ("theme", tab, n)) for n in data[tab]]
     look_de = current_de if current_de in inst else adv_de
@@ -168,6 +173,11 @@ def go(host, target):
         page = host.sddm_page if target[1] == "sddm" else host.ply_page
         if hasattr(page, "search_edit"):
             page.search_edit.setText(target[2])
+    elif kind == "adv":
+        host.set_tab("settings")
+        pg = host.settings_page.select_adv(target[1])
+        if target[2]:
+            QtCore.QTimer.singleShot(60, lambda: _reveal(pg, target[2]))
     elif kind == "sec":
         _, de, key, sub, rowkey = target
         host.set_tab("settings")
@@ -189,6 +199,16 @@ def _reveal(page, key):
     w = next((r for r in page.findChildren(Row) if r.key == key), None)
     if w is None:
         w = next((c for c in page.findChildren(QtWidgets.QFrame) if getattr(c, "title_key", None) == key), None)
+    if w is None:                                 # Hypr-Studio-Karten: Beschriftung mit tkey
+        w = next((lb for lb in page.findChildren(QtWidgets.QLabel) if lb.property("tkey") == key), None)
+        if w is not None:
+            stack = w.parent()                       # passende Unterseite (Kitty-Editor) zeigen
+            while stack is not None and not hasattr(stack, "show_sub"):
+                stack = stack.parent()
+            if stack is not None:
+                for sub, sa_ in stack.pages.items():
+                    if sa_.isAncestorOf(w):
+                        stack.show_sub(sub)
     if w is None:
         return
     sa = w.parent()
@@ -197,7 +217,7 @@ def _reveal(page, key):
     if sa is not None:
         sa.ensureWidgetVisible(w, 0, 60)
     from . import theme
-    lb = getattr(w, "label", None) or getattr(w, "head", None)
+    lb = w if isinstance(w, QtWidgets.QLabel) else (getattr(w, "label", None) or getattr(w, "head", None))
     if lb is None:
         return
     old = lb.styleSheet()

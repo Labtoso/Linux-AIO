@@ -69,7 +69,14 @@ class EditorPage(UserPresetsMixin, QtWidgets.QWidget):
         self.acts = acts
         self.page_title = QtWidgets.QLabel()
         self.page_title.setObjectName("PageTitle")
-        acts.addWidget(self.page_title)
+        trow = QtWidgets.QHBoxLayout()               # Titel + Zurücksetzen (wie überall in Linux AIO)
+        trow.setSpacing(6)
+        trow.addWidget(self.page_title)
+        from . import section_reset
+        self.b_reset = section_reset.button(self.reset_section)
+        trow.addWidget(self.b_reset, 0, Qt.AlignmentFlag.AlignVCenter)
+        trow.addStretch()
+        acts.addLayout(trow)
         self.applied = QtWidgets.QLabel()
         acts.addWidget(self.applied, 0, Qt.AlignmentFlag.AlignLeft)
         acts.addStretch()
@@ -152,6 +159,14 @@ class EditorPage(UserPresetsMixin, QtWidgets.QWidget):
         for k, w in self.externals.items():
             for b in getattr(getattr(w, "content", w), "actions", []):
                 b.setVisible(k == key and ready)
+
+    def reset_section(self):
+        """Nur den offenen Bereich auf Standard (Sicherung vorher, wirkt mit Anwenden)."""
+        from . import section_reset
+        key = self.win.cfg.get(f"{self.KIND}_section") or self.SECTIONS[0]
+        pg = self.pages.get(key)
+        if pg is not None:
+            section_reset.reset(self, pg, self.sanitize(None), t("sec." + key), f"{self.KIND}-{key}")
 
     # ----- Aufbau-Helfer -----
     def card(self, layout, title_key) -> Card:

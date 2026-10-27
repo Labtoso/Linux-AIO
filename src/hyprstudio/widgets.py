@@ -18,7 +18,7 @@ def load_cfg() -> dict:
     try:
         return json.loads(CONFIG.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {"lang": "en", "theme": "blue"}  # neu installiert: Englisch (Deutsch im Zahnrad-Menü)
+        return {"lang": "en", "theme": "01"}  # neu installiert: Englisch (Deutsch im Zahnrad-Menü)
 
 
 def save_cfg(cfg: dict) -> None:
@@ -145,7 +145,7 @@ class Switch(QtWidgets.QAbstractButton):
         self.setCheckable(True)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setFixedSize(42, 24)
-        self.accent = theme.THEMES["blue"]
+        self.accent = theme.THEMES["tokyo"]
         self._pos = 0.0
         self._anim = QtCore.QVariantAnimation(self)
         self._anim.setDuration(140)
@@ -285,6 +285,7 @@ class Card(QtWidgets.QFrame):
     def _add(self, key, widget, value=None, tip=None, refresh=None, label_key=None):
         r = self.grid.rowCount()
         lb = self._label(label_key or key, tip)
+        lb.setProperty("skey", key)          # Zustands-Schlüssel der Zeile (Alacritty markiert damit Fehlendes)
         self.grid.addWidget(lb, r, 0)
         if value is None:
             self.grid.addWidget(widget, r, 1, 1, 2, Qt.AlignmentFlag.AlignLeft)
@@ -584,18 +585,19 @@ class SettingsPanel(QtWidgets.QFrame):
         self.l_theme = QtWidgets.QLabel()
         self.l_theme.setObjectName("Label")
         lay.addWidget(self.l_theme)
-        row2 = QtWidgets.QHBoxLayout()
-        row2.setSpacing(12)
+        row2 = QtWidgets.QGridLayout()          # Akzente der gemeinsamen Paletten, 5 pro Zeile
+        row2.setSpacing(10)
         self.theme_btns = {}
-        for name in theme.THEMES:
+        from hyprstudio import palettes
+        for i, name in enumerate(theme.THEMES):
             b = QtWidgets.QPushButton()
             b.setFixedSize(38, 38)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
-            b.setProperty("tipkey", "accent." + name)
+            b.setToolTip(palettes.title(name))
             b.clicked.connect(lambda _=False, n=name: self.theme_changed.emit(n))
             self.theme_btns[name] = b
-            row2.addWidget(b)
-        row2.addStretch()
+            row2.addWidget(b, i // 5, i % 5)
+        row2.setColumnStretch(5, 1)
         lay.addLayout(row2)
         lay.addStretch()
         self.l_reset = QtWidgets.QLabel()
@@ -670,7 +672,7 @@ class SettingsPanel(QtWidgets.QFrame):
         self.lang_btns[cfg["lang"]].setChecked(True)
         for name, b in self.theme_btns.items():
             b.setToolTip(t("accent." + name))
-            ring = (theme.THEMES["blue"] if name == "white" else "#ffffff") if name == cfg["theme"] else theme.SURFACE
+            ring = (theme.THEMES["tokyo"] if name == "01" else "#ffffff") if name == cfg["theme"] else theme.SURFACE
             b.setStyleSheet(f"QPushButton {{ background:{theme.THEMES[name]}; border:3px solid {ring};"
                             f" border-radius:19px; padding:0; }}")
         self.info.setText(f"{info}\nv{hyprstudio.__version__} · LabtosoStudios")
@@ -738,6 +740,67 @@ def round_popup(combo: QtWidgets.QComboBox) -> None:
     win.setStyleSheet("QComboBoxPrivateContainer { background: transparent; border: none; }")
 
 
+class NoWheel(QtCore.QObject):
+    """Mausrad über Auswahllisten, Reglern und Zahlenfeldern ohne Fokus ändert nichts (scrollt die Seite).
+    Nur ein bewusster Klick/Fokus ändert Werte – Darüberfahren oder Scrollen darf nie etwas am System tun."""
+
+    _busy = False
+
+    @staticmethod
+    def clickable(obj) -> bool:
+        if isinstance(obj, QtWidgets.QScrollBar):
+            return False
+        if isinstance(obj, (QtWidgets.QAbstractButton, QtWidgets.QComboBox, QtWidgets.QAbstractSlider,
+                            QtWidgets.QTabBar)):
+            return True
+        mo = obj.metaObject()
+        return any(mo.indexOfSignal(sig) >= 0 for sig in ("clicked()", "clicked(QString)", "clicked(bool)"))
+
+    def _cursor(self, obj):
+        """Alles Klickbare: Hand; deaktiviert: normaler Pfeil (zentral statt bei jedem Knopf einzeln)."""
+        if not isinstance(obj, QtWidgets.QWidget):
+            return
+        if isinstance(obj, QtWidgets.QListView):     # Listeneinträge (Seitenleisten, Desktops …)
+            obj.viewport().setCursor(Qt.CursorShape.PointingHandCursor)
+            return
+        if not self.clickable(obj):
+            return
+        if obj.testAttribute(Qt.WidgetAttribute.WA_SetCursor) and obj.cursor().shape() not in (
+                Qt.CursorShape.PointingHandCursor, Qt.CursorShape.ArrowCursor):
+            return                                   # eigener Cursor (z. B. Greifhand im Leisten-Editor)
+        obj.setCursor(Qt.CursorShape.PointingHandCursor if obj.isEnabled() else Qt.CursorShape.ArrowCursor)
+
+    def eventFilter(self, obj, e):
+        et = e.type()
+        if et in (QtCore.QEvent.Type.Polish, QtCore.QEvent.Type.Show, QtCore.QEvent.Type.EnabledChange):
+            if not self._busy:
+                self._busy = True
+                try:
+                    self._cursor(obj)
+                except RuntimeError:                 # Widget gerade gelöscht
+                    pass
+                finally:
+                    self._busy = False
+            return False
+        if e.type() == QtCore.QEvent.Type.Wheel and isinstance(
+                obj, (QtWidgets.QComboBox, QtWidgets.QAbstractSlider, QtWidgets.QAbstractSpinBox)) \
+                and not obj.hasFocus():
+            sa = obj.parent()                    # Seite stattdessen scrollen
+            while sa is not None and not isinstance(sa, QtWidgets.QAbstractScrollArea):
+                sa = sa.parent()
+            if sa is not None and not isinstance(obj, QtWidgets.QScrollBar):
+                QtWidgets.QApplication.sendEvent(sa.verticalScrollBar(), e)
+            return not isinstance(obj, QtWidgets.QScrollBar)
+        return False
+
+
+def install_no_wheel() -> None:
+    app = QtWidgets.QApplication.instance()
+    if app is not None and getattr(app, "_nowheel", None) is None:
+        app._nowheel = NoWheel(app)
+        app.installEventFilter(app._nowheel)
+
+
 class RoundPopups(QtCore.QObject):
     """App-weit: jedes Auswahlmenü bekommt runde Ecken ohne helle Box."""
 
@@ -754,7 +817,8 @@ class RoundPopups(QtCore.QObject):
 
 
 class NavHeader(QtWidgets.QPushButton):
-    """Kategorie in der Seitenleiste: Akzentfarbe, kleine Großbuchstaben, per Klick ein-/ausklappbar.
+    """Einklappbare Kategorie – das eine Widget für alle Seitenleisten (Hypr Studio und Linux AIO):
+    Pfeil links (offen ▾ / zu ▸), Text daneben, Zustand im Config gemerkt.
     Der gerade offene Bereich bleibt auch eingeklappt sichtbar."""
 
     def __init__(self, gid: str, key: str, win, parent=None):
@@ -779,7 +843,7 @@ class NavHeader(QtWidgets.QPushButton):
     def sync(self, *_):
         c = self.collapsed()
         for b in self.buttons:
-            b.setVisible(not c or b.isChecked())
+            b.setVisible(not c or (isinstance(b, QtWidgets.QAbstractButton) and b.isChecked()))
         self.retranslate()
         self.update()
 
@@ -787,24 +851,16 @@ class NavHeader(QtWidgets.QPushButton):
         self.setText(t("nav." + self.key))
         self.setToolTip(t("nav.fold") if not self.collapsed() else t("nav.unfold"))
 
-    def enterEvent(self, e):
-        super().enterEvent(e)
-        self.update()
-
-    def leaveEvent(self, e):
-        super().leaveEvent(e)
-        self.update()
-
     def paintEvent(self, e):
-        """Kleiner Pfeil rechts – nur beim Darüberfahren oder wenn eingeklappt (wie in Dateimanagern)."""
         super().paintEvent(e)
-        if not (self.underMouse() or self.collapsed()):
-            return
         p = QtGui.QPainter(self)
         p.setRenderHint(QtGui.QPainter.RenderHint.Antialiasing)
-        p.setPen(QtGui.QPen(QtGui.QColor(theme.MUTED), 1.4, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
+        col = theme.TEXT if self.underMouse() else theme.MUTED
+        p.setPen(QtGui.QPen(QtGui.QColor(col), 1.5, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap,
                             Qt.PenJoinStyle.RoundJoin))
-        cx, cy, d = self.width() - 16, self.height() - 12, 3.5
+        fm = self.fontMetrics()                  # Pfeil auf Höhe der Schrift (Abstand oben größer als unten)
+        cy = self.height() - 4 - fm.height() / 2 if self.height() > fm.height() + 10 else self.height() / 2
+        cx, d = 13, 3.2
         pts = ([QtCore.QPointF(cx - d / 2, cy - d), QtCore.QPointF(cx + d / 2, cy), QtCore.QPointF(cx - d / 2, cy + d)]
                if self.collapsed() else
                [QtCore.QPointF(cx - d, cy - d / 2), QtCore.QPointF(cx, cy + d / 2), QtCore.QPointF(cx + d, cy - d / 2)])
