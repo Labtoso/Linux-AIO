@@ -1,13 +1,9 @@
-"""Dunkles Design (Design-Vorlage Nr. 1) mit 3 Akzentfarben, kein Light-Theme."""
+"""Dunkles Design (Design-Vorlage Nr. 1) mit den Akzentfarben der gemeinsamen Paletten, kein Light-Theme."""
 
-THEMES = {
-    "blue": "#3d8bfd",
-    "teal": "#22b8cf",
-    "violet": "#8b7cf6",
-    "orange": "#ff9248",
-    "white": "#eef2f7",
-    "mint": "#6fdcb4",
-}
+from .palettes import LEGACY_ACCENT, PALETTES  # noqa: E402
+
+# Akzentfarben der Oberfläche = gemeinsame Paletten (gleiche Namen/Reihenfolge wie alle Presets)
+THEMES = {k: p["ui"] for k, p in PALETTES.items()}
 
 
 def on_accent(accent: str) -> str:
@@ -56,9 +52,9 @@ def qss(accent: str) -> str:
     #Side {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}
     QPushButton#Nav {{ background: transparent; border: none; border-radius: 6px; padding: 8px 14px;
                        text-align: left; color: {MUTED}; }}
-    QPushButton#NavHead {{ background: transparent; border: none; color: #6b788a; font-size: 9pt; font-weight: 600;
-                           text-align: left; padding: 14px 8px 4px 14px; }}
-    QPushButton#NavHead:hover {{ color: {MUTED}; }}
+    QPushButton#NavHead {{ background: transparent; border: none; color: {MUTED}; font-size: 9pt; font-weight: 600;
+                           text-align: left; padding: 12px 8px 4px 24px; }}
+    QPushButton#NavHead:hover {{ color: {TEXT}; }}
     QPushButton#Nav:hover {{ background: {SURFACE2}; color: {TEXT}; }}
     QPushButton#Nav:checked {{ background: {SURFACE2}; color: {TEXT}; }}
     #Card {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}
@@ -133,6 +129,8 @@ def qss(accent: str) -> str:
     QToolButton {{ background: transparent; border: none; border-radius: 8px; padding: 4px; }}
     QToolButton:hover {{ background: {SURFACE2}; }}
     QToolButton#CloseBtn:hover {{ background: {DANGER}; }}
+    QToolButton#ResetBtn {{ background: transparent; border: none; border-radius: 7px; }}
+    QToolButton#ResetBtn:hover {{ background: {SURFACE2}; }}
     QScrollArea {{ background: transparent; border: none; }}
     QScrollArea > QWidget#qt_scrollarea_viewport {{ background: transparent; }}
     #ScrollInner {{ background: transparent; }}

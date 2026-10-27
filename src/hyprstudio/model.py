@@ -8,6 +8,8 @@ import sys
 import time
 from pathlib import Path
 
+from . import palettes
+
 MARK = "Hypr Studio (LabtosoStudios)"
 DRY = os.environ.get("HYPRSTUDIO_DRYRUN") == "1" or sys.platform == "win32"
 FORMAT = ""  # Erweiterte Einstellungen: "lua" (neu, 0.55+), "conf" (alt, hyprlang bis 0.56) oder "" = erkennen
@@ -86,7 +88,7 @@ HYPR_DEFAULT = {
 }
 LOOK_KEYS = tuple(list(HYPR_DEFAULT)[:list(HYPR_DEFAULT).index("layout")])
 
-HYPR_PRESETS = {
+_HYPR_PRESETS_OWN = {
     "hyprland": {},
     "tokyo": {"active1": "#7aa2f7ff", "active2": "#bb9af7ff", "inactive": "#414868aa", "gaps_in": 5,
               "gaps_out": 12, "rounding": 10, "inactive_opacity": 0.92, "blur_size": 6, "blur_passes": 2},
@@ -121,6 +123,7 @@ HYPR_PRESETS = {
     "minimal": {"gradient": False, "active1": "#3d8bfdff", "inactive": "#2a2f38ff", "border_size": 1,
                 "gaps_in": 0, "gaps_out": 0, "rounding": 0, "blur": False, "shadow": False, "anim": False},
 }
+HYPR_PRESETS = palettes.unify(_HYPR_PRESETS_OWN, lambda p: {"active1": p["accent"] + "ff", "active2": p["accent2"] + "ff", "inactive": p["muted"] + "aa"})  # gemeinsame Namen/Farben
 
 CURVES = {
     "smooth": ((0.23, 1.0), (0.32, 1.0)),
@@ -1310,7 +1313,7 @@ MODULES = ("custom/launcher", "hyprland/workspaces", "hyprland/window", "clock",
            "battery", "backlight", "bluetooth", "cpu", "memory", "temperature", "disk", "mpris",
            "hyprland/language", "idle_inhibitor", "power-profiles-daemon", "tray", "custom/power")
 
-WAYBAR_PRESETS = {
+_WAYBAR_PRESETS_OWN = {
     "float": {},
     "islands": {"style": "islands", "bg": "#151c26ee", "radius": 14, "height": 32},
     "classic": {"style": "bar", "margin": 0, "radius": 0, "height": 30, "bg": "#0e131aff", "ws_look": "underline",
@@ -1347,6 +1350,7 @@ WAYBAR_PRESETS = {
              "right": ["idle_inhibitor", "hyprland/language", "cpu", "memory", "disk", "temperature", "pulseaudio",
                        "backlight", "network", "bluetooth", "battery", "tray", "custom/power"]},
 }
+WAYBAR_PRESETS = palettes.unify(_WAYBAR_PRESETS_OWN, lambda p: {"bg": p["bg"] + "ee", "fg": p["fg"] + "ff", "accent": p["accent"] + "ff"})  # gemeinsame Namen/Farben
 
 PALETTE = ("#7aa2f7ff", "#9ece6aff", "#e0af68ff", "#bb9af7ff", "#7dcfffff", "#f7768eff", "#ff9e64ff", "#73dacaff")
 

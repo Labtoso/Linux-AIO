@@ -5,12 +5,13 @@ import re
 from pathlib import Path
 
 from . import usercmd
+from hyprstudio import palettes
 
 START = "/* Linux AIO buttons start"
 END = "/* Linux AIO buttons end */"
 
 # shape: circle | square | wide | flat;  icons: Symbole immer / nur beim Darüberfahren / nie
-THEMES = {
+_THEMES_OWN = {
     "macos": {"titel": "macOS", "shape": "circle", "size": 14, "close": "#ff5f57", "min": "#febc2e",
               "max": "#28c840", "icons": "hover"},
     "round": {"titel": "Rund", "shape": "circle", "size": 24, "close": "#3a424d", "min": "#3a424d",
@@ -28,6 +29,7 @@ THEMES = {
     "nord": {"titel": "Nord", "shape": "circle", "size": 16, "close": "#bf616a", "min": "#ebcb8b",
              "max": "#a3be8c", "icons": "hover"},
 }
+THEMES = palettes.unify(_THEMES_OWN, lambda p: {"titel": p["title"], "shape": "circle", "size": 16, "close": p["red"], "min": p["yellow"], "max": p["green"], "icons": "hover"})  # gemeinsame Namen/Farben
 
 
 def _rules(sel_btn: str, sel_img: str, p: dict, gtk: int = 4) -> list:

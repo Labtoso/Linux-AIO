@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 
 from .model import MARK, _backup_foreign, muted_color, norm, rgba_css, undo_file
+from . import palettes
 
 APPS = ("rofi", "wofi", "fuzzel", "walker", "tofi", "llauncher")
 COMMANDS = {"rofi": "rofi -show drun", "wofi": "wofi --show drun", "fuzzel": "fuzzel", "walker": "walker",
@@ -26,7 +27,7 @@ LAUNCHER_DEFAULT = {
 LOOK = ("bg", "fg", "accent", "sel", "sel_fg", "input_bg", "border", "border_width", "radius", "el_radius",
         "width", "lines", "columns", "padding", "spacing", "position", "offset", "grid", "icon_size")
 
-PRESETS = {
+_PRESETS_OWN = {
     "spotlight": {},
     "grid": {"grid": True, "columns": 5, "lines": 3, "icon_size": 48, "width": 760, "radius": 18, "el_radius": 12},
     "compact": {"position": "top", "offset": 60, "width": 480, "lines": 6, "radius": 10, "padding": 10,
@@ -63,6 +64,7 @@ PRESETS = {
     "gruvbox": {"bg": "#282828f0", "fg": "#ebdbb2ff", "accent": "#fabd2fff", "sel": "#fabd2f33",
                 "input_bg": "#3c3836ff", "border": "#fabd2fff", "radius": 4, "el_radius": 2},
 }
+PRESETS = palettes.unify(_PRESETS_OWN, lambda p: {"bg": p["bg"] + "f0", "fg": p["fg"] + "ff", "accent": p["accent"] + "ff", "sel": p["accent"] + "33", "input_bg": p["bg2"] + "ff", "border": p["accent"] + "ff"})  # gemeinsame Namen/Farben
 
 
 def _ini_value(f: Path, section: str, key: str) -> str:

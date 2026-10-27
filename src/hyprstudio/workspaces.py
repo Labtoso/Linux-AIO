@@ -130,7 +130,7 @@ class WsRow(QtWidgets.QFrame):
 
     def _dots(self):
         extra = self.w["no_rounding"] or self.w["layout"] or self.w["on_empty"]
-        self.more.setIcon(draw_icon("dots", theme.THEMES["blue"] if extra else theme.MUTED, 16))
+        self.more.setIcon(draw_icon("dots", theme.THEMES["tokyo"] if extra else theme.MUTED, 16))
         tips = [t("ws.no_rounding")] if self.w["no_rounding"] else []
         if self.w["layout"]:
             tips.append(t("layout." + self.w["layout"]))

@@ -247,7 +247,7 @@ class BindRow(QtWidgets.QFrame):
 
     def _flags_changed(self, *_):
         on = [f for f, a in self.flag_acts.items() if a.isChecked()]
-        self.more.setIcon(draw_icon("dots", theme.THEMES["blue"] if on else theme.MUTED, 16))
+        self.more.setIcon(draw_icon("dots", theme.THEMES["tokyo"] if on else theme.MUTED, 16))
         self.more.setToolTip(t("keys.flags") + (": " + ", ".join(t("flag." + f) for f in on) if on else ""))
         self.changed.emit()
 

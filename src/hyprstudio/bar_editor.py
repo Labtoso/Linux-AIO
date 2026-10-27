@@ -21,7 +21,7 @@ class BarEditor(QtWidgets.QWidget):
         self.drag = None      # (modul, herkunft) – herkunft = Seite oder "palette"
         self.drag_pos = None
         self.hover = None
-        self.accent = theme.THEMES["blue"]
+        self.accent = theme.THEMES["tokyo"]
 
     def load(self, ws: dict):
         self.ws = ws

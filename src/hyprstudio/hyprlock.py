@@ -16,6 +16,7 @@ from pathlib import Path
 
 from . import model
 from .model import MARK, rgba_hypr
+from . import palettes
 
 BGS = ("screenshot", "wallpaper", "image", "color")
 CLOCKS = ("24", "12", "sec")
@@ -50,7 +51,7 @@ LOCK_DEFAULT = {
     "hide_cursor": True, "grace": 0, "ignore_empty": True, "lock_bind": False,
 }
 
-PRESETS = {
+_PRESETS_OWN = {
     "catppuccin": {},
     "glass": {"bg": "wallpaper", "blur_passes": 4, "blur_size": 9, "brightness": 0.75, "accent": "#ffffff66",
               "inner_color": "#ffffff1a", "text_color": "#ffffffff", "input_text": "#ffffffff", "outline": 2},
@@ -116,6 +117,7 @@ PRESETS = {
                     "accent": "#ffffff66", "inner_color": "#ffffff1a", "text_color": "#ffffffff",
                     "input_text": "#ffffffff", "avatar": True, "avatar_size": 100, "clock_size": 90},
 }
+PRESETS = palettes.unify(_PRESETS_OWN, lambda p: {"accent": p["accent"] + "ff", "inner_color": p["bg"] + "dd", "text_color": p["fg"] + "ff", "input_text": p["fg"] + "ff", "fail_color": p["red"] + "ff", "check_color": p["yellow"] + "ff"}, {"rosepine": "rose"})  # gemeinsame Namen/Farben
 LOOK_KEYS = tuple(k for k in LOCK_DEFAULT if k not in ("lock_bind", "hide_cursor", "grace", "ignore_empty",
                                                          "greet_text", "avatar_path", "bg_path", "placeholder"))
 

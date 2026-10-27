@@ -4,31 +4,12 @@ import json
 import shutil
 from pathlib import Path
 
-from . import model
+from . import model, palettes
 from .model import MARK, norm
 
 INCLUDE = "include hyprstudio.conf"
 
-PALETTES = {  # 16 Farben: color0 … color15
-    "tokyo": ["#15161e", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#a9b1d6",
-              "#414868", "#f7768e", "#9ece6a", "#e0af68", "#7aa2f7", "#bb9af7", "#7dcfff", "#c0caf5"],
-    "catppuccin": ["#45475a", "#f38ba8", "#a6e3a1", "#f9e2af", "#89b4fa", "#f5c2e7", "#94e2d5", "#bac2de",
-                   "#585b70", "#f38ba8", "#a6e3a1", "#f9e2af", "#89b4fa", "#f5c2e7", "#94e2d5", "#a6adc8"],
-    "nord": ["#3b4252", "#bf616a", "#a3be8c", "#ebcb8b", "#81a1c1", "#b48ead", "#88c0d0", "#e5e9f0",
-             "#4c566a", "#bf616a", "#a3be8c", "#ebcb8b", "#81a1c1", "#b48ead", "#8fbcbb", "#eceff4"],
-    "dracula": ["#21222c", "#ff5555", "#50fa7b", "#f1fa8c", "#bd93f9", "#ff79c6", "#8be9fd", "#f8f8f2",
-                "#6272a4", "#ff6e6e", "#69ff94", "#ffffa5", "#d6acff", "#ff92df", "#a4ffff", "#ffffff"],
-    "gruvbox": ["#282828", "#cc241d", "#98971a", "#d79921", "#458588", "#b16286", "#689d6a", "#a89984",
-                "#928374", "#fb4934", "#b8bb26", "#fabd2f", "#83a598", "#d3869b", "#8ec07c", "#ebdbb2"],
-    "rosepine": ["#26233a", "#eb6f92", "#31748f", "#f6c177", "#9ccfd8", "#c4a7e7", "#ebbcba", "#e0def4",
-                 "#6e6a86", "#eb6f92", "#31748f", "#f6c177", "#9ccfd8", "#c4a7e7", "#ebbcba", "#e0def4"],
-    "everforest": ["#475258", "#e67e80", "#a7c080", "#dbbc7f", "#7fbbb3", "#d699b6", "#83c092", "#d3c6aa",
-                   "#475258", "#e67e80", "#a7c080", "#dbbc7f", "#7fbbb3", "#d699b6", "#83c092", "#d3c6aa"],
-    "onedark": ["#282c34", "#e06c75", "#98c379", "#e5c07b", "#61afef", "#c678dd", "#56b6c2", "#abb2bf",
-                "#5c6370", "#e06c75", "#98c379", "#e5c07b", "#61afef", "#c678dd", "#56b6c2", "#ffffff"],
-    "retro": ["#000000", "#ff5555", "#33ff66", "#ffcc00", "#3399ff", "#cc66ff", "#33cccc", "#b0ffb0",
-              "#335533", "#ff7777", "#66ff99", "#ffe066", "#66b3ff", "#dd99ff", "#66e0e0", "#e0ffe0"],
-}
+PALETTES = {k: p["ansi"] for k, p in palettes.PALETTES.items()}  # 16 Farben: color0 … color15
 
 KITTY_DEFAULT = {
     # Farben
@@ -56,29 +37,32 @@ LOOK = ("palette", "fg", "bg", "cursor", "sel_fg", "sel_bg", "url", "tab_active_
         "tab_powerline")
 
 
-def _theme(pal: str, fg: str, bg: str, accent: str, tab_bg: str, muted: str, url: str | None = None) -> dict:
-    p = PALETTES[pal]
-    return {"palette": p, "fg": fg, "bg": bg, "cursor": fg, "sel_fg": bg, "sel_bg": accent, "url": url or p[6],
-            "tab_active_fg": bg, "tab_active_bg": accent, "tab_inactive_fg": muted, "tab_inactive_bg": tab_bg}
+def _theme(p: dict) -> dict:
+    return {"palette": p["ansi"], "fg": p["fg"], "bg": p["bg"], "cursor": p["fg"], "sel_fg": p["bg"],
+            "sel_bg": p["accent"], "url": p["ansi"][6], "tab_active_fg": p["bg"], "tab_active_bg": p["accent"],
+            "tab_inactive_fg": p["muted"], "tab_inactive_bg": p["bg2"], "font": palettes.FONT,
+            "font_size": palettes.FONT_SIZE}
 
 
-PRESETS = {
+_TOKYO_TABS = {"tab_inactive_fg": "#787c99", "tab_inactive_bg": "#16161e"}   # Kittys Tokyo-Night-Tabs wie bisher
+PRESETS = palettes.themed(_theme, extras={
     # „01“ = Sebastians Kitty-Config (Vault: Skripte/Kitty Config), 2026-10-20: Deckkraft 0.7, ohne Blur
-    "mine": {"display_server": "x11", "opacity": 0.7, "blur": 0},
-    "tokyo": {},
-    "catppuccin": _theme("catppuccin", "#cdd6f4", "#1e1e2e", "#cba6f7", "#181825", "#7f849c"),
-    "nord": _theme("nord", "#d8dee9", "#2e3440", "#88c0d0", "#3b4252", "#7b88a1") | {"cursor_shape": "block"},
-    "dracula": _theme("dracula", "#f8f8f2", "#282a36", "#bd93f9", "#21222c", "#6272a4"),
-    "gruvbox": _theme("gruvbox", "#ebdbb2", "#282828", "#fabd2f", "#1d2021", "#928374") | {
-        "cursor_shape": "block", "tab_style": "slant"},
-    "rosepine": _theme("rosepine", "#e0def4", "#191724", "#ebbcba", "#1f1d2e", "#6e6a86") | {"tab_powerline": "round"},
-    "everforest": _theme("everforest", "#d3c6aa", "#2d353b", "#a7c080", "#272e33", "#859289"),
-    "onedark": _theme("onedark", "#abb2bf", "#282c34", "#61afef", "#21252b", "#5c6370"),
+    "01": _TOKYO_TABS | {"display_server": "x11", "opacity": 0.7, "blur": 0},
+    "tokyo": _TOKYO_TABS,
+    "nord": {"cursor_shape": "block"},
+    "gruvbox": {"cursor_shape": "block", "tab_style": "slant"},
+    "rosepine": {"tab_powerline": "round"},
+}, rest={
     "glass": {"opacity": 0.6, "blur": 48, "padding": 18, "trail": 3},
     "solid": {"opacity": 1.0, "blur": 0, "trail": 0, "tab_style": "fade"},
-    "retro": _theme("retro", "#33ff66", "#000000", "#33ff66", "#001100", "#227733") | {
-        "opacity": 0.95, "blur": 0, "cursor_shape": "block", "trail": 0, "tab_style": "separator", "padding": 8},
-}
+    "retro": {"palette": ["#000000", "#ff5555", "#33ff66", "#ffcc00", "#3399ff", "#cc66ff", "#33cccc", "#b0ffb0",
+                          "#335533", "#ff7777", "#66ff99", "#ffe066", "#66b3ff", "#dd99ff", "#66e0e0", "#e0ffe0"],
+              "fg": "#33ff66", "bg": "#000000", "cursor": "#33ff66", "sel_fg": "#000000", "sel_bg": "#33ff66",
+              "url": "#33cccc", "tab_active_fg": "#000000", "tab_active_bg": "#33ff66", "tab_inactive_fg": "#227733",
+              "tab_inactive_bg": "#001100", "opacity": 0.95, "blur": 0, "cursor_shape": "block", "trail": 0,
+              "tab_style": "separator", "padding": 8},
+})
+PRESETS["mine"] = PRESETS["01"]                  # alter Name aus früheren Versionen
 
 
 def _copy(d):

@@ -1,7 +1,7 @@
 """Dark design like Hypr Studio: 6 accent colours; accent only for the main action, switches, sliders,
 check boxes, focus and progress; selected tabs/segments/lists are neutral. Roundness by role."""
 
-from hyprstudio.theme import THEMES, on_accent  # noqa: E402,F401  (gleiche 6 Akzentfarben wie Hypr Studio)
+from hyprstudio.theme import LEGACY_ACCENT, THEMES, on_accent  # noqa: E402,F401  (gleiche Akzente wie Hypr Studio)
 
 RAISED = "#2b3747"   # gewählter Zustand (Tabs, Segmente, Listen) – neutral statt Akzent
 LINE = "#3a4a5f"     # Rahmen beim Darüberfahren
@@ -100,6 +100,9 @@ def qss(accent: str) -> str:
     #Label {{ color: {MUTED}; font-size: 9pt; }}
     QPushButton#Lang {{ padding: 6px 14px; }}
     QPushButton#Lang:checked {{ background: {RAISED}; border-color: {LINE}; color: {TEXT}; font-weight: 600; }}
+    QPushButton#NavHead {{ background: transparent; border: none; color: {MUTED}; font-size: 9pt; font-weight: 600;
+                           text-align: left; padding: 12px 8px 4px 24px; }}
+    QPushButton#NavHead:hover {{ color: {TEXT}; }}
     QListView#SearchPop {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 10px; padding: 6px;
         outline: none; }}
     QListView#SearchPop::item {{ padding: 6px 10px; border-radius: 6px; }}

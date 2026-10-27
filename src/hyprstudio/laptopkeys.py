@@ -109,7 +109,7 @@ def cli() -> int:
     try:
         cfg = json.loads(CONFIG.read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        cfg = {"lang": "en", "theme": "blue"}
+        cfg = {"lang": "en", "theme": "01"}
     if cfg.get("hypr_format") in ("lua", "conf"):
         model.FORMAT = cfg["hypr_format"]
     s = model.hypr_state(cfg.get("hypr"))
