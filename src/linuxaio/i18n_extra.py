@@ -365,3 +365,41 @@ EXTRA["de"].update({"reset.sys": "Zurück zum Systemstandard „{name}“? Insta
 EXTRA["en"].update({"reset.sys": "Back to the system default “{name}”? Installed themes are kept.",
     "reset.sysdone": "System default “{name}” set (before: {prev})", "reset.nodefault": "No default theme installed",
     "reset.already": "The default is already active"})
+
+EXTRA["de"].update({"ext.uninstall": "Erweiterung deinstallieren", "ext.uninstall.ask": "„{name}“ wirklich deinstallieren?",
+    "ext.uninstalled": "{name} deinstalliert"})
+EXTRA["en"].update({"ext.uninstall": "Uninstall extension", "ext.uninstall.ask": "Really uninstall “{name}”?",
+    "ext.uninstalled": "{name} uninstalled"})
+
+EXTRA["de"].update({"sec.advanced": "Erweitert", "adv.yay": "yay", "adv.kitty": "Kitty", "adv.alacritty": "Alacritty",
+    "adv.yay.card": "AUR-Helfer",
+    "adv.yay.desc": "yay installiert Pakete aus dem Arch User Repository. Linux AIO lädt yay-bin von aur.archlinux.org, "
+                    "baut es als dein Benutzer mit makepkg und installiert das fertige Paket mit pacman.",
+    "adv.yay.ok": "yay ist installiert", "adv.yay.no": "yay ist nicht installiert",
+    "adv.yay.arch": "Nur auf Arch-basierten Systemen (pacman) verfügbar",
+    "adv.yay.s1": "Schritt 1/3: git und base-devel installieren …", "adv.yay.s2": "Schritt 2/3: yay-bin laden und bauen …",
+    "adv.yay.s3": "Schritt 3/3: Paket installieren …", "adv.yay.done": "yay installiert – im Terminal: yay -S <paket>",
+    "adv.kitty.missing": "Kitty ist nicht installiert. Einstellungen werden trotzdem gespeichert.",
+    "adv.alacritty.missing": "Alacritty ist nicht installiert. Einstellungen werden trotzdem gespeichert.",
+    "ala.presets": "Farbschema", "ala.font": "Schrift", "ala.window": "Fenster", "ala.cursor": "Cursor",
+    "ala.family": "Schriftart", "ala.size": "Größe", "ala.padding": "Innenabstand (px)", "ala.opacity": "Deckkraft",
+    "ala.shape": "Form", "ala.blink": "Blinken", "ala.undo": "Original wiederherstellen",
+    "ala.applied": "Angewendet: {path} – Alacritty übernimmt es sofort"})
+EXTRA["en"].update({"sec.advanced": "Advanced", "adv.yay": "yay", "adv.kitty": "Kitty", "adv.alacritty": "Alacritty",
+    "adv.yay.card": "AUR helper",
+    "adv.yay.desc": "yay installs packages from the Arch User Repository. Linux AIO fetches yay-bin from aur.archlinux.org, "
+                    "builds it as your user with makepkg and installs the finished package with pacman.",
+    "adv.yay.ok": "yay is installed", "adv.yay.no": "yay is not installed",
+    "adv.yay.arch": "Only available on Arch-based systems (pacman)",
+    "adv.yay.s1": "Step 1/3: installing git and base-devel …", "adv.yay.s2": "Step 2/3: fetching and building yay-bin …",
+    "adv.yay.s3": "Step 3/3: installing the package …", "adv.yay.done": "yay installed – in a terminal: yay -S <package>",
+    "adv.kitty.missing": "Kitty is not installed. Settings are still saved.",
+    "adv.alacritty.missing": "Alacritty is not installed. Settings are still saved.",
+    "ala.presets": "Colour scheme", "ala.font": "Font", "ala.window": "Window", "ala.cursor": "Cursor",
+    "ala.family": "Font family", "ala.size": "Size", "ala.padding": "Padding (px)", "ala.opacity": "Opacity",
+    "ala.shape": "Shape", "ala.blink": "Blinking", "ala.undo": "Restore original",
+    "ala.applied": "Applied: {path} – Alacritty picks it up right away"})
+EXTRA["de"].update({"nothing": "Nichts zum Zurücknehmen", "undone": "Zurückgenommen"})
+EXTRA["en"].update({"nothing": "Nothing to undo", "undone": "Undone"})
+EXTRA["de"].update({"search.all": "Alles durchsuchen …"})
+EXTRA["en"].update({"search.all": "Search everything …"})

@@ -136,6 +136,10 @@ class MainWindow(QtWidgets.QWidget):
         self.tabs.changed.connect(self.set_tab)
         right = QtWidgets.QHBoxLayout()
         right.addStretch()
+        from .search import SearchBox
+        self.search = SearchBox(self)            # globale Suche: Seiten, Einstellungen, Themes
+        right.addWidget(self.search, 0, Qt.AlignmentFlag.AlignVCenter)
+        right.addSpacing(8)
         self.btn_min = QtWidgets.QToolButton()
         self.btn_min.clicked.connect(self.showMinimized)
         self.btn_max = QtWidgets.QToolButton()
@@ -512,6 +516,7 @@ class MainWindow(QtWidgets.QWidget):
         self.btn_close.setToolTip(t("close"))
         self.btn_log.setText(t("log"))
         self.tabs.retranslate()
+        self.search.retranslate()
         self.de_page.retranslate()
         self.sddm_page.retranslate()
         self.ply_page.retranslate()
@@ -595,6 +600,9 @@ def _shots(w, app, shot, steps):
                 w.settings_page.select(parts[1])
                 if len(parts) > 2 and w.settings_page.panel():
                     w.settings_page.panel().show_section(parts[2])
+                    pg = w.settings_page.panel().pages.get(parts[2])
+                    if len(parts) > 3 and hasattr(pg, "show_sub"):
+                        pg.show_sub(parts[3])
         for _ in range(int(os.environ.get("LINUXAIO_WAIT", "12"))):   # Hintergrund-Aufgaben (Vorschauen) abwarten
             app.processEvents()
             QtCore.QThread.msleep(100)
