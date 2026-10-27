@@ -255,7 +255,15 @@ class ChipRow(QtWidgets.QWidget):
         self.labels = []
         self._w = 0
 
+    tip_target = None      # set → no badges, status only as tooltip of this widget
+
     def set(self, chips: list) -> None:
+        if self.tip_target is not None:
+            lines = [text + (f" – {tip}" if tip else "") for text, _kind, tip in chips]
+            base = self.tip_target.property("base_tip") or ""
+            self.tip_target.setToolTip("\n".join(([base] if base else []) + lines))
+            self.hide()
+            return
         for lb in self.labels:
             lb.hide()
             lb.setParent(None)

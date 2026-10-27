@@ -160,6 +160,7 @@ class ThemePage(QtWidgets.QWidget):
         self.name.setWordWrap(True)
         side.addWidget(self.name)
         self.chips = ChipRow()
+        self.chips.tip_target = self.name
         side.addWidget(self.chips)
         self.info = QtWidgets.QLabel()
         self.info.setObjectName("Label")
@@ -457,7 +458,7 @@ class ThemePage(QtWidgets.QWidget):
 
         if store:
             self.name.setText(it["name"])
-            self.name.setToolTip(it["summary"])
+            self.name.setProperty("base_tip", it["summary"])
             chips = []
             if it["store_id"] in self.mine_store:
                 chips.append((t("installed"), "ChipOk", ""))
@@ -489,7 +490,7 @@ class ThemePage(QtWidgets.QWidget):
             self.btn3.hide()
         else:
             self.name.setText(it["name"])
-            self.name.setToolTip(it["description"])
+            self.name.setProperty("base_tip", it["description"])
             chips = []
             if it["id"] == self.current:
                 chips.append((t("sddm.active"), "ChipAccent", ""))

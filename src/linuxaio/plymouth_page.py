@@ -83,6 +83,7 @@ class PlymouthPage(ThemePage):
         self.ply_label = QtWidgets.QLabel()
         self.ply_label.setObjectName("Label")
         self.ply_chips = ChipRow()
+        self.ply_chips.tip_target = self.ply_label
         self.btn_setup = QtWidgets.QPushButton()
         self.btn_setup.setObjectName("Primary")
         self.btn_setup.setCursor(Qt.CursorShape.PointingHandCursor)

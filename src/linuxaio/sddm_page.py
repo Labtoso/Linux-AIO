@@ -28,6 +28,7 @@ class SDDMPage(ThemePage):
         self.dm_label = QtWidgets.QLabel()
         self.dm_label.setObjectName("Label")
         self.dm_chips = ChipRow()
+        self.dm_chips.tip_target = self.dm_label
         self.btn_dm_enable = QtWidgets.QPushButton()
         self.btn_dm_enable.setObjectName("Primary")
         self.btn_dm_enable.setCursor(Qt.CursorShape.PointingHandCursor)

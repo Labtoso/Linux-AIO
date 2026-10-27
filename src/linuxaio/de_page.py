@@ -45,6 +45,7 @@ class DEPage(QtWidgets.QWidget):
         self.de_name.setObjectName("DeName")
         side.addWidget(self.de_name)
         self.chips = ChipRow()
+        self.chips.tip_target = self.de_name
         side.addWidget(self.chips)
         side.addSpacing(8)
         self.seg = Segmented(catalog.VARIANTS)
@@ -119,7 +120,7 @@ class DEPage(QtWidgets.QWidget):
                     break
         self.big.set(de, self.variant)
         self.de_name.setText(de.name)
-        self.de_name.setToolTip(de.desc[lang()])
+        self.de_name.setProperty("base_tip", de.desc[lang()])
 
         chips = []
         if de.wayland:
