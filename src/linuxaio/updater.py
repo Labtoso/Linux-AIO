@@ -37,7 +37,12 @@ fetch = _get   # Tests ersetzen das
 def latest(releases: list | None = None) -> dict | None:
     """{version, notes, appimage_url, sums_url, size} of the newest real release, or None."""
     if releases is None:
-        releases = json.loads(fetch(API))
+        try:
+            releases = json.loads(fetch(API))
+        except SourceError as e:
+            if "rate limit" not in str(e.detail).lower() and "403" not in str(e.detail):
+                raise
+            return _latest_without_api()             # API-Limit erreicht: über die Release-Seite
     best = None
     for r in releases:
         tag = str(r.get("tag_name", ""))
@@ -53,6 +58,23 @@ def latest(releases: list | None = None) -> dict | None:
         if best is None or vtuple(info["version"]) > vtuple(best["version"]):
             best = info
     return best
+
+
+def _latest_without_api() -> dict | None:
+    """Fallback without the GitHub API: …/releases/latest redirects to the newest tag."""
+    req = urllib.request.Request("https://github.com/Labtoso/Linux-AIO/releases/latest", headers={"User-Agent": UA},
+                                 method="HEAD")
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            tag = r.geturl().rstrip("/").rsplit("/", 1)[-1]
+    except (urllib.error.URLError, OSError, TimeoutError) as e:
+        raise SourceError("remote.offline", str(getattr(e, "reason", e))) from e
+    if not re.fullmatch(r"v\d+\.\d+\.\d+", tag):
+        return None
+    base = f"https://github.com/Labtoso/Linux-AIO/releases/download/{tag}/"
+    name = f"Linux-AIO-{tag[1:]}-x86_64.AppImage"
+    return {"version": tag[1:], "notes": "", "appimage_url": base + name, "appimage_name": name,
+            "sums_url": base + "SHA256SUMS", "size": 0}
 
 
 def newer(info: dict | None) -> bool:
