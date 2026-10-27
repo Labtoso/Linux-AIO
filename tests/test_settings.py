@@ -534,7 +534,8 @@ class Ui(unittest.TestCase):
             fonts = self.panel("gnome", "fonts")
             self.assertTrue(fonts.b_reset.isVisibleTo(fonts))
             auto = self.panel("gnome", "autostart")
-            self.assertFalse(auto.b_reset.isVisibleTo(auto))           # nichts zum Zurücksetzen
+            self.assertTrue(auto.b_reset.isVisibleTo(auto))            # überall an derselben Stelle …
+            self.assertFalse(auto.b_reset.isEnabled())                 # … aber nichts zum Zurücksetzen
         finally:
             dialogs.confirm = old
 
@@ -629,20 +630,38 @@ def tearDownModule():
 class AdvancedTests(unittest.TestCase):
     def test_alacritty_toml_parses(self):
         import tomllib
+        from hyprstudio import kitty, palettes
         from linuxaio import alacritty
-        for name in alacritty.PRESETS:
-            d = tomllib.loads(alacritty.toml(alacritty.state({"preset": name, "font": 'A "B"'})))
+        for name in palettes.ORDER:
+            s = alacritty.state(dict(kitty.preset(name), font='A "B"', fastfetch=True, blink=0.5))
+            d = tomllib.loads(alacritty.toml(s))
             self.assertEqual(d["font"]["normal"]["family"], 'A "B"')
             self.assertEqual(len(d["colors"]["normal"]), 8)
+            self.assertEqual(d["cursor"]["blink_interval"], 500)
+            self.assertIn("fastfetch", d["terminal"]["shell"]["args"][1])
 
     def test_preset_01_matches_kitty(self):
+        """Alacritty „01“ = Kitty „01“ 1:1 (same state, same colours, font, padding, opacity, cursor)."""
+        import tomllib
         from hyprstudio import kitty
         from linuxaio import alacritty
-        k, a = kitty.preset("mine"), alacritty.PRESETS["01"]
-        self.assertEqual(a["look"]["opacity"], k["opacity"])
-        self.assertEqual(a["look"]["padding"], k["padding"])
-        self.assertEqual(a["look"]["font"], k["font"])
-        self.assertEqual(a["bg"], kitty._c(k["bg"]))
+        k = kitty.preset("01")
+        d = tomllib.loads(alacritty.toml(alacritty.state(None)))
+        self.assertEqual(d["window"]["opacity"], k["opacity"])
+        self.assertEqual(d["window"]["padding"]["x"], k["padding"])
+        self.assertEqual(d["font"]["normal"]["family"], k["font"])
+        self.assertEqual(d["font"]["size"], k["font_size"])
+        self.assertEqual(d["colors"]["primary"]["background"], kitty._c(k["bg"]))
+        self.assertEqual(d["cursor"]["style"]["shape"], "Beam")
+
+    def test_all_preset_sets_share_names_and_order(self):
+        from hyprstudio import hyprlock, kitty, launcher, model, palettes, theme
+        from linuxaio import buttons
+        for d in (kitty.PRESETS, launcher.PRESETS, model.HYPR_PRESETS, model.WAYBAR_PRESETS, hyprlock.PRESETS,
+                  buttons.THEMES, theme.THEMES):
+            self.assertEqual(tuple(list(d)[:len(palettes.ORDER)]), palettes.ORDER)
+        self.assertEqual(launcher.PRESETS["nord"]["accent"], palettes.PALETTES["nord"]["accent"] + "ff")
+        self.assertEqual(model.HYPR_PRESETS["dracula"]["active1"], palettes.PALETTES["dracula"]["accent"] + "ff")
 
     def test_search_places(self):
         from linuxaio import search
@@ -650,6 +669,268 @@ class AdvancedTests(unittest.TestCase):
         self.assertIsNone(search.place("win.dbl.minimize"))
         self.assertIsNone(search.place("top.hotcorner.tip"))
         self.assertEqual(search.place("ala.opacity")[2], "alacritty")
+
+
+
+class CursorRuleTests(unittest.TestCase):
+    def test_no_wait_cursor_anywhere(self):
+        """The full loading cursor must never appear (at most BusyCursor, always reset in finally)."""
+        root = Path(__file__).resolve().parent.parent / "src"
+        bad = [str(f.relative_to(root)) for f in root.rglob("*.py") if "WaitCursor" in f.read_text(encoding="utf-8")]
+        self.assertEqual(bad, [])
+
+    def test_desktop_entries_no_startup_notify(self):
+        base = Path(__file__).resolve().parent.parent
+        texts = [(base / "packaging/de.labtosostudios.linuxaio.desktop").read_text(encoding="utf-8"),
+                 (base / "build.py").read_text(encoding="utf-8"),
+                 (base / "src/linuxaio/integrate.py").read_text(encoding="utf-8")]
+        for txt in texts:
+            self.assertNotIn("StartupNotify=true", txt)
+        self.assertIn("StartupNotify=false", texts[0])
+
+
+
+class NoSystemChangeTests(unittest.TestCase):
+    """Rule since 2.5.1: opening pages, hover, wheel and focus never change the system (only explicit clicks),
+    and nothing sets GTK_THEME/QT overrides globally."""
+
+    FORBIDDEN = ("set-environment", "--env=GTK_THEME", "--env=QT_", 'hl.env("GTK_THEME"', "env = GTK_THEME",
+                 'f"GTK_THEME=', "GTK_THEME={", "QT_STYLE_OVERRIDE=")
+
+    def test_static_no_global_theme_env(self):
+        bad = []
+        for f in SRC.rglob("*.py"):
+            for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+                code = line.split("#", 1)[0]
+                if any(x in code for x in self.FORBIDDEN) and "unset" not in code:
+                    bad.append(f"{f.relative_to(SRC)}:{n}: {line.strip()}")
+        self.assertEqual(bad, [])
+
+    def test_hypr_look_env_has_no_gtk_theme(self):
+        from hyprstudio import appearance
+        for fmt in ("lua", "conf"):
+            self.assertNotIn("GTK_THEME", appearance.env_content("dark", "kde", fmt))
+
+    def test_gtk_css_only_allowed_rules(self):
+        """Whitelist: button themes only style window controls, corners only set radii."""
+        import re
+        from linuxaio import buttons, corners
+        css = "".join(buttons.css(n) for n in buttons.THEMES) + corners.css(12, 4) + corners.css(12, 3)
+        for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
+            sel = sel.strip()
+            if not sel or sel.startswith("/*") or sel.startswith("@"):
+                continue
+            props = {p.split(":", 1)[0].strip() for p in body.split(";") if ":" in p}
+            if "windowcontrols" in sel or "titlebutton" in sel:
+                continue
+            self.assertTrue(props <= {"border-radius", "--window-radius", "border-top-left-radius",
+                                      "border-top-right-radius"}, f"{sel}: {props}")
+
+    def test_browsing_every_page_writes_nothing(self):
+        from linuxaio.qt import QtCore, QtGui, QtWidgets
+        app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+        from hyprstudio import appearance, model
+        from linuxaio import gui, usercmd as U
+        from linuxaio import widgets as W
+        W.CONFIG = TMP / "config" / "linuxaio-nowrite.json"
+        writes = []
+        saved = (U.gset, U.greset, U.run, model.run, appearance.apply, W.Runner.start)
+        U.gset = lambda *a, **k: writes.append(("gset", a)) or True
+        U.greset = lambda *a, **k: writes.append(("greset", a)) or True
+        U.run = lambda cmd, *a, **k: writes.append(("run", tuple(cmd))) or (True, "")
+        model.run = lambda cmd, *a, **k: writes.append(("hs-run", tuple(cmd))) or True
+        appearance.apply = lambda *a, **k: writes.append(("appearance", a)) or True
+        W.Runner.start = lambda self, args: writes.append(("root", tuple(args)))
+        os.environ["LINUXAIO_ALL_DE"] = "1"
+        try:
+            w = gui.MainWindow()
+            w.show()
+
+            def pump(n=4):
+                for _ in range(n):
+                    app.processEvents()
+                    QtCore.QThread.msleep(10)
+
+            from hyprstudio.widgets import NoWheel
+            no_hand = set()
+
+            def poke(root):
+                """Hover, wheel and focus on every widget of the visible page; clickable = pointing hand."""
+                for wid in root.findChildren(QtWidgets.QWidget):
+                    if not wid.isVisible():
+                        continue
+                    if NoWheel.clickable(wid) and wid.isEnabled() and \
+                            wid.cursor().shape() != QtCore.Qt.CursorShape.PointingHandCursor and \
+                            wid.cursor().shape() in (QtCore.Qt.CursorShape.ArrowCursor,):
+                        no_hand.add(f"{type(wid).__name__} {wid.objectName()} {getattr(wid, 'text', lambda: '')()}"[:80])
+                    pos = QtCore.QPointF(wid.rect().center())
+                    app.sendEvent(wid, QtGui.QEnterEvent(pos, pos, pos))
+                    app.sendEvent(wid, QtGui.QWheelEvent(pos, pos, QtCore.QPoint(0, 0), QtCore.QPoint(0, -120),
+                                                         QtCore.Qt.MouseButton.NoButton,
+                                                         QtCore.Qt.KeyboardModifier.NoModifier,
+                                                         QtCore.Qt.ScrollPhase.NoScrollPhase, False))
+                    app.sendEvent(wid, QtGui.QFocusEvent(QtCore.QEvent.Type.FocusIn))
+                pump(2)
+
+            for tab in ("de", "sddm", "ply", "settings"):
+                w.set_tab(tab)
+                pump()
+                poke(w.stack.currentWidget())
+            sp = w.settings_page
+            for de in ("gnome", "plasma", "hyprland"):
+                sp.select(de)
+                panel = sp.panel()
+                if panel is None:
+                    continue
+                for key in panel.keys:
+                    panel.show_section(key)
+                    pump()
+                    pg = panel.pages[key]
+                    poke(pg)
+                    other = getattr(pg, "other_page", None)       # eingebettetes Hypr Studio: alle Bereiche
+                    if other is not None:
+                        for sec in other.SECTIONS:
+                            other.show_section(sec)
+                            pump()
+                            poke(other)
+                    for ed in (getattr(pg, "hypr_page", None), getattr(pg, "waybar_page", None),
+                               getattr(pg, "launcher_page", None)):
+                        if ed is not None:
+                            for sec in ed.SECTIONS:
+                                ed.show_section(sec)
+                                pump()
+                                poke(ed)
+            for key in ("kitty", "alacritty", "yay"):
+                poke(sp.select_adv(key))
+            pump(10)
+            w.hide()
+        finally:
+            U.gset, U.greset, U.run, model.run, appearance.apply, W.Runner.start = saved
+            os.environ.pop("LINUXAIO_ALL_DE", None)
+        self.maxDiff = None
+        self.assertEqual([str(x)[:160] for x in writes], [])
+        self.assertEqual(sorted(no_hand), [])
+
+
+
+class PresetUpdateTests(unittest.TestCase):
+    def test_preset_roundtrip_and_preview(self):
+        from linuxaio import presetfile, usercmd as U
+        U.gset("org.gnome.desktop.interface", "clock-format", "24h")
+        cfg = {"theme": "nord", "alacritty_k": {"opacity": 0.7}, "lang": "de"}
+        f = presetfile.export(cfg, TMP / "mine")
+        self.assertEqual(f.suffix, ".linuxaio")
+        data = presetfile.load(f)
+        self.assertNotIn("lang", data["app"])                        # Sprache bleibt beim Import wie sie ist
+        U.gset("org.gnome.desktop.interface", "clock-format", "12h")
+        ch = presetfile.changes(data, {"theme": "01"})
+        self.assertTrue(any(n == "clock-format" for _a, n, _o, _v in ch))
+        presetfile.backup_current({"theme": "01"})
+        cfg2 = {"theme": "01"}
+        res = presetfile.apply(data, cfg2, log=lambda s: None)
+        self.assertEqual(cfg2["theme"], "nord")
+        self.assertEqual(U.gget("org.gnome.desktop.interface", "clock-format"), "24h")
+        self.assertGreater(res["gsettings"], 0)
+
+    def test_preset_rejects_foreign_files(self):
+        from linuxaio import presetfile
+        bad = TMP / "x.linuxaio"
+        bad.write_text('{"format": "other"}', encoding="utf-8")
+        with self.assertRaises(presetfile.BadFile):
+            presetfile.load(bad)
+
+    def test_update_picks_newest_release_not_assets(self):
+        from linuxaio import updater
+
+        def rel(tag, sums=True):
+            assets = [{"name": f"Linux-AIO-{tag[1:]}-x86_64.AppImage", "browser_download_url": "u", "size": 1}]
+            if sums:
+                assets.append({"name": "SHA256SUMS", "browser_download_url": "s"})
+            return {"tag_name": tag, "assets": assets, "body": "## Added\n- x\n## Install\n- y"}
+        info = updater.latest([rel("v2.5.0"), {"tag_name": "assets", "assets": []}, rel("v9.0.1"),
+                               rel("v9.9.9", sums=False), dict(rel("v10.0.0"), prerelease=True)])
+        self.assertEqual(info["version"], "9.0.1")
+        self.assertTrue(updater.newer(info))
+        self.assertNotIn("Install", updater.short_notes(info["notes"]))
+        self.assertFalse(updater.newer({"version": "0.1.0"}))
+
+    def test_update_rejects_bad_checksum(self):
+        import hashlib
+        from linuxaio import remote, updater
+        tgt = TMP / "bin" / "Linux-AIO.AppImage"
+        saved = updater.target, updater.fetch, updater.urllib.request.urlopen
+        payload = b"new appimage"
+
+        class R:
+            headers = {"Content-Length": str(len(payload))}
+
+            def __init__(self):
+                self.d = [payload, b""]
+
+            def read(self, n):
+                return self.d.pop(0)
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+        updater.target = lambda: tgt
+        updater.urllib.request.urlopen = lambda req, timeout=60: R()
+        info = {"version": "9.0.0", "appimage_url": "https://example.invalid/u", "appimage_name": "Linux-AIO-9.0.0-x86_64.AppImage",
+                "sums_url": "s"}
+        try:
+            updater.fetch = lambda url, timeout=20: ("0" * 64 + "  Linux-AIO-9.0.0-x86_64.AppImage\n").encode()
+            with self.assertRaises(remote.SourceError):
+                updater.install(info, log=lambda s: None)
+            self.assertFalse(tgt.exists())
+            good = hashlib.sha256(payload).hexdigest()
+            updater.fetch = lambda url, timeout=20: (good + "  Linux-AIO-9.0.0-x86_64.AppImage\n").encode()
+            updater.install(info, log=lambda s: None)
+            self.assertEqual(tgt.read_bytes(), payload)
+        finally:
+            updater.target, updater.fetch, updater.urllib.request.urlopen = saved
+
+
+class ResetConfirmTests(unittest.TestCase):
+    def test_every_reset_asks_first(self):
+        """Every reset button opens the confirmation (Cancel = nothing happens)."""
+        from linuxaio.qt import QtWidgets
+        app = QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+        from hyprstudio import dialogs
+        from linuxaio import gui
+        from linuxaio import widgets as W
+        W.CONFIG = TMP / "config" / "linuxaio-reset.json"
+        asked = []
+        saved = dialogs.confirm
+        dialogs.confirm = lambda parent, title, text, *a, **k: asked.append(text) or False
+        os.environ["LINUXAIO_ALL_DE"] = "1"
+        try:
+            w = gui.MainWindow()
+            w.show()
+            pages = [w.sddm_page, w.ply_page]
+            sp = w.settings_page
+            sp.select("gnome")
+            p = sp.panel()
+            for key in p.keys:
+                p.show_section(key)
+                pages.append(p.pages[key])
+            for key in ("kitty", "alacritty"):
+                pages.append(sp.select_adv(key))
+            app.processEvents()
+            buttons = []
+            for pg in pages:
+                buttons += [b for b in pg.findChildren(QtWidgets.QToolButton) if b.objectName() == "ResetBtn"
+                            and b.toolTip() and not b.isHidden() and b.isEnabled()]
+            self.assertGreater(len(buttons), 5)
+            for b in buttons:
+                n = len(asked)
+                b.click()
+                self.assertEqual(len(asked), n + 1, f"{b.toolTip()} in {type(b.window()).__name__} {getattr(b.parent(), "title_key", "")} {type(b.parent()).__name__} host={hasattr(b.parent(), "host")}")
+            w.hide()
+        finally:
+            dialogs.confirm = saved
+            os.environ.pop("LINUXAIO_ALL_DE", None)
 
 
 if __name__ == "__main__":
