@@ -11,7 +11,10 @@ Linux settings in one place: install and switch desktop environments, SDDM login
   - **GNOME:** GNOME Tweaks options, title bar buttons and button themes (GTK and Firefox/Zen), window corner radius, top bar editor and power menu, fonts from Google Fonts and Nerd Fonts, startup apps, login screen (GDM), missing extensions with one click
   - **Plasma:** colour scheme and Plasma style
   - **Hyprland:** the complete [Hypr Studio](https://github.com/Labtoso/HyprStudio), embedded or as its own window
-- **Advanced:** install yay with one click, configure Kitty and Alacritty (presets, font, padding, opacity, cursor)
+- **Advanced:** install yay with one click; Kitty and Alacritty share one editor with the same presets and options
+- **Same look everywhere:** every built-in preset set (Kitty, Alacritty, Hyprland, Waybar, launchers, lock screen, title bar buttons, app accents) uses the same names and colours: 01, Tokyo Night, Catppuccin, Nord, Dracula, Gruvbox, One Dark, Rosé Pine, Everforest
+- **Presets:** export everything Linux AIO set to a `.linuxaio` file and import it again (preview and backup first)
+- **Updates:** check for updates from the app (checksum verified, settings are kept)
 - **Search:** one search field for pages, settings and themes (Ctrl+F)
 - **App:** interface size 100 / 90 / 80 %
 
