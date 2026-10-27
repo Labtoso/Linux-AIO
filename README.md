@@ -11,6 +11,8 @@ Linux settings in one place: install and switch desktop environments, SDDM login
   - **GNOME:** GNOME Tweaks options, title bar buttons and button themes (GTK and Firefox/Zen), window corner radius, top bar editor and power menu, fonts from Google Fonts and Nerd Fonts, startup apps, login screen (GDM), missing extensions with one click
   - **Plasma:** colour scheme and Plasma style
   - **Hyprland:** the complete [Hypr Studio](https://github.com/Labtoso/HyprStudio), embedded or as its own window
+- **Advanced:** install yay with one click, configure Kitty and Alacritty (presets, font, padding, opacity, cursor)
+- **Search:** one search field for pages, settings and themes (Ctrl+F)
 - **App:** interface size 100 / 90 / 80 %
 
 ## Install
