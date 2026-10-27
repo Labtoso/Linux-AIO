@@ -29,7 +29,7 @@ def cleanup(log=usercmd.log) -> list:
         usercmd.run(["systemctl", "--user", "unset-environment", *VARS])
         done.append("systemd user environment")
     over = usercmd.query(["flatpak", "override", "--user", "--show"]) or ""
-    if any(line.startswith("GTK_THEME=") for line in over.splitlines()):
+    if any(line.startswith("GTK_THEME=") and line.strip() != "GTK_THEME=" for line in over.splitlines()):
         usercmd.run(["flatpak", "override", "--user", "--unset-env=GTK_THEME"])
         done.append("Flatpak GTK_THEME")
     return done

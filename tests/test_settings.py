@@ -933,5 +933,29 @@ class ResetConfirmTests(unittest.TestCase):
             os.environ.pop("LINUXAIO_ALL_DE", None)
 
 
+
+class SafetyCleanupTests(unittest.TestCase):
+    def test_cleanup_only_when_something_is_there(self):
+        from linuxaio import safety, usercmd as U
+        saved = U.query, U.run
+        calls = []
+        U.run = lambda cmd, *a, **k: calls.append(cmd) or (True, "")
+        try:
+            U.query = lambda cmd, *a, **k: "[Environment]\nGTK_THEME=\n\n[Context]\nunset-environment=GTK_THEME;\n" \
+                if cmd[0] == "flatpak" else ""
+            self.assertEqual(safety.cleanup(lambda s: None), [])          # schon aufgeräumt: keine Meldung
+            U.query = lambda cmd, *a, **k: "[Environment]\nGTK_THEME=Adwaita:dark\n" if cmd[0] == "flatpak" else ""
+            self.assertEqual(safety.cleanup(lambda s: None), ["Flatpak GTK_THEME"])
+            f = U.config_dir() / safety.ENV_FILE
+            f.parent.mkdir(parents=True, exist_ok=True)
+            f.write_text("# Hypr Studio (LabtosoStudios)\nGTK_THEME=Adwaita:dark\n", encoding="utf-8")
+            U.query = lambda cmd, *a, **k: "GTK_THEME=Adwaita:dark" if cmd[0] == "systemctl" else ""
+            done = safety.cleanup(lambda s: None)
+            self.assertFalse(f.exists())
+            self.assertIn("systemd user environment", done)
+        finally:
+            U.query, U.run = saved
+
+
 if __name__ == "__main__":
     unittest.main()
