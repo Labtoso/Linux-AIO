@@ -1,0 +1,542 @@
+{
+ "basics": [
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "Q",
+   "action": "exec",
+   "arg": "kitty",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "C",
+   "action": "close",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "E",
+   "action": "exec",
+   "arg": "dolphin",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "R",
+   "action": "launcher",
+   "arg": "rofi",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "V",
+   "action": "float",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "F",
+   "action": "fullscreen",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "J",
+   "action": "togglesplit",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "P",
+   "action": "pseudo",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "L",
+   "action": "exec",
+   "arg": "hyprlock",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "M",
+   "action": "exit",
+   "arg": "",
+   "flags": []
+  }
+ ],
+ "focus": [
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "left",
+   "action": "focus",
+   "arg": "left",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "right",
+   "action": "focus",
+   "arg": "right",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "up",
+   "action": "focus",
+   "arg": "up",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "down",
+   "action": "focus",
+   "arg": "down",
+   "flags": []
+  }
+ ],
+ "move": [
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "left",
+   "action": "movewin",
+   "arg": "left",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "right",
+   "action": "movewin",
+   "arg": "right",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "up",
+   "action": "movewin",
+   "arg": "up",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "down",
+   "action": "movewin",
+   "arg": "down",
+   "flags": []
+  }
+ ],
+ "workspaces": [
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "1",
+   "action": "workspace",
+   "arg": "1",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "2",
+   "action": "workspace",
+   "arg": "2",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "3",
+   "action": "workspace",
+   "arg": "3",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "4",
+   "action": "workspace",
+   "arg": "4",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "5",
+   "action": "workspace",
+   "arg": "5",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "6",
+   "action": "workspace",
+   "arg": "6",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "7",
+   "action": "workspace",
+   "arg": "7",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "8",
+   "action": "workspace",
+   "arg": "8",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "9",
+   "action": "workspace",
+   "arg": "9",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "0",
+   "action": "workspace",
+   "arg": "10",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "1",
+   "action": "movetows",
+   "arg": "1",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "2",
+   "action": "movetows",
+   "arg": "2",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "3",
+   "action": "movetows",
+   "arg": "3",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "4",
+   "action": "movetows",
+   "arg": "4",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "5",
+   "action": "movetows",
+   "arg": "5",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "6",
+   "action": "movetows",
+   "arg": "6",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "7",
+   "action": "movetows",
+   "arg": "7",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "8",
+   "action": "movetows",
+   "arg": "8",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "9",
+   "action": "movetows",
+   "arg": "9",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "0",
+   "action": "movetows",
+   "arg": "10",
+   "flags": []
+  }
+ ],
+ "special": [
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "S",
+   "action": "special",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "S",
+   "action": "movespecial",
+   "arg": "",
+   "flags": []
+  }
+ ],
+ "mouse": [
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "mouse:272",
+   "action": "drag",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "mouse:273",
+   "action": "resize",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "mouse_down",
+   "action": "wsnext",
+   "arg": "",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER"
+   ],
+   "key": "mouse_up",
+   "action": "wsprev",
+   "arg": "",
+   "flags": []
+  }
+ ],
+ "media": [
+  {
+   "mods": [],
+   "key": "XF86AudioRaiseVolume",
+   "action": "exec",
+   "arg": "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+",
+   "flags": [
+    "locked",
+    "repeating"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86AudioLowerVolume",
+   "action": "exec",
+   "arg": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-",
+   "flags": [
+    "locked",
+    "repeating"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86AudioMute",
+   "action": "exec",
+   "arg": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+   "flags": [
+    "locked",
+    "repeating"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86AudioMicMute",
+   "action": "exec",
+   "arg": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+   "flags": [
+    "locked",
+    "repeating"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86MonBrightnessUp",
+   "action": "exec",
+   "arg": "brightnessctl -e4 -n2 set 5%+",
+   "flags": [
+    "locked",
+    "repeating"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86MonBrightnessDown",
+   "action": "exec",
+   "arg": "brightnessctl -e4 -n2 set 5%-",
+   "flags": [
+    "locked",
+    "repeating"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86AudioNext",
+   "action": "exec",
+   "arg": "playerctl next",
+   "flags": [
+    "locked"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86AudioPlay",
+   "action": "exec",
+   "arg": "playerctl play-pause",
+   "flags": [
+    "locked"
+   ]
+  },
+  {
+   "mods": [],
+   "key": "XF86AudioPrev",
+   "action": "exec",
+   "arg": "playerctl previous",
+   "flags": [
+    "locked"
+   ]
+  }
+ ],
+ "screenshot": [
+  {
+   "mods": [],
+   "key": "Print",
+   "action": "exec",
+   "arg": "grim -g \"$(slurp)\" - | wl-copy",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SHIFT"
+   ],
+   "key": "Print",
+   "action": "exec",
+   "arg": "grim - | wl-copy",
+   "flags": []
+  },
+  {
+   "mods": [
+    "SUPER",
+    "SHIFT"
+   ],
+   "key": "C",
+   "action": "exec",
+   "arg": "hyprpicker -a",
+   "flags": []
+  }
+ ]
+}

@@ -1,0 +1,255 @@
+{
+ "01": {
+  "bg": "#1a1b26ee",
+  "fg": "#c0caf5ff",
+  "accent": "#7aa2f7ff"
+ },
+ "tokyo": {
+  "bg": "#1a1b26ee",
+  "fg": "#c0caf5ff",
+  "accent": "#7aa2f7ff"
+ },
+ "catppuccin": {
+  "style": "islands",
+  "radius": 14,
+  "border_width": 1,
+  "border": "#313244ff",
+  "colorful": true,
+  "bg": "#1e1e2eee",
+  "fg": "#cdd6f4ff",
+  "accent": "#cba6f7ff"
+ },
+ "nord": {
+  "style": "float",
+  "radius": 8,
+  "border_width": 1,
+  "border": "#4c566aff",
+  "bg": "#2e3440ee",
+  "fg": "#d8dee9ff",
+  "accent": "#88c0d0ff"
+ },
+ "dracula": {
+  "bg": "#282a36ee",
+  "fg": "#f8f8f2ff",
+  "accent": "#bd93f9ff"
+ },
+ "gruvbox": {
+  "style": "bar",
+  "margin": 0,
+  "radius": 0,
+  "ws_look": "box",
+  "height": 30,
+  "bg": "#282828ee",
+  "fg": "#ebdbb2ff",
+  "accent": "#fabd2fff"
+ },
+ "onedark": {
+  "bg": "#282c34ee",
+  "fg": "#abb2bfff",
+  "accent": "#61afefff"
+ },
+ "rosepine": {
+  "bg": "#191724ee",
+  "fg": "#e0def4ff",
+  "accent": "#ebbcbaff"
+ },
+ "everforest": {
+  "bg": "#2d353bee",
+  "fg": "#d3c6aaff",
+  "accent": "#a7c080ff"
+ },
+ "float": {},
+ "islands": {
+  "style": "islands",
+  "bg": "#151c26ee",
+  "radius": 14,
+  "height": 32
+ },
+ "classic": {
+  "style": "bar",
+  "margin": 0,
+  "radius": 0,
+  "height": 30,
+  "bg": "#0e131aff",
+  "ws_look": "underline",
+  "left": [
+   "hyprland/workspaces",
+   "hyprland/window"
+  ],
+  "center": [
+   "clock"
+  ],
+  "right": [
+   "cpu",
+   "memory",
+   "pulseaudio",
+   "network",
+   "battery",
+   "tray"
+  ]
+ },
+ "minimal": {
+  "style": "float",
+  "height": 28,
+  "margin": 6,
+  "radius": 10,
+  "bg": "#0e131aaa",
+  "ws_look": "text",
+  "left": [
+   "hyprland/workspaces"
+  ],
+  "center": [],
+  "right": [
+   "clock"
+  ]
+ },
+ "bottom": {
+  "position": "bottom",
+  "style": "islands",
+  "bg": "#151c26ee",
+  "left": [
+   "custom/launcher",
+   "hyprland/workspaces"
+  ],
+  "center": [
+   "hyprland/window"
+  ],
+  "right": [
+   "pulseaudio",
+   "network",
+   "battery",
+   "clock",
+   "tray"
+  ]
+ },
+ "glass": {
+  "style": "float",
+  "bg": "#ffffff1f",
+  "fg": "#ffffffff",
+  "border_width": 1,
+  "border": "#ffffff33",
+  "radius": 16,
+  "height": 36,
+  "margin": 10
+ },
+ "rainbow": {
+  "style": "islands",
+  "bg": "#1a1b26ee",
+  "colorful": true,
+  "ws_look": "box",
+  "radius": 10,
+  "left": [
+   "custom/launcher",
+   "hyprland/workspaces",
+   "mpris"
+  ],
+  "center": [
+   "clock"
+  ],
+  "right": [
+   "cpu",
+   "memory",
+   "pulseaudio",
+   "network",
+   "battery",
+   "tray",
+   "custom/power"
+  ]
+ },
+ "dock": {
+  "position": "bottom",
+  "style": "islands",
+  "height": 40,
+  "radius": 20,
+  "margin": 10,
+  "bg": "#151c26f0",
+  "ws_look": "box",
+  "left": [],
+  "center": [
+   "custom/launcher",
+   "hyprland/workspaces"
+  ],
+  "right": [
+   "clock",
+   "tray"
+  ]
+ },
+ "neon": {
+  "style": "float",
+  "bg": "#0b0b14f0",
+  "fg": "#f8f8ffff",
+  "accent": "#ff2bd6ff",
+  "border_width": 2,
+  "border": "#ff2bd6ff",
+  "radius": 12,
+  "colorful": true,
+  "ws_look": "underline"
+ },
+ "pills": {
+  "style": "islands",
+  "bg": "#1b2430ff",
+  "radius": 18,
+  "height": 34,
+  "ws_look": "box",
+  "pad": 14
+ },
+ "underline": {
+  "style": "bar",
+  "margin": 0,
+  "radius": 0,
+  "height": 30,
+  "bg": "#11111bff",
+  "ws_look": "underline",
+  "left": [
+   "hyprland/workspaces",
+   "hyprland/window"
+  ],
+  "center": [],
+  "right": [
+   "pulseaudio",
+   "network",
+   "battery",
+   "clock",
+   "tray"
+  ]
+ },
+ "clear": {
+  "style": "float",
+  "bg": "#00000000",
+  "fg": "#ffffffff",
+  "ws_look": "text",
+  "border_width": 0
+ },
+ "full": {
+  "style": "bar",
+  "margin": 0,
+  "radius": 0,
+  "height": 32,
+  "bg": "#0e131af0",
+  "colorful": true,
+  "left": [
+   "custom/launcher",
+   "hyprland/workspaces",
+   "hyprland/window"
+  ],
+  "center": [
+   "clock",
+   "mpris"
+  ],
+  "right": [
+   "idle_inhibitor",
+   "hyprland/language",
+   "cpu",
+   "memory",
+   "disk",
+   "temperature",
+   "pulseaudio",
+   "backlight",
+   "network",
+   "bluetooth",
+   "battery",
+   "tray",
+   "custom/power"
+  ]
+ }
+}

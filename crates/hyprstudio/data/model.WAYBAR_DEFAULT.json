@@ -1,0 +1,52 @@
+{
+ "position": "top",
+ "style": "float",
+ "height": 34,
+ "margin": 8,
+ "radius": 12,
+ "spacing": 4,
+ "bg": "#0e131add",
+ "fg": "#e6edf5ff",
+ "accent": "#3d8bfdff",
+ "border_width": 0,
+ "border": "#253142ff",
+ "pad": 10,
+ "ws_look": "pill",
+ "colorful": false,
+ "left": [
+  "custom/launcher",
+  "hyprland/workspaces"
+ ],
+ "center": [
+  "clock"
+ ],
+ "right": [
+  "pulseaudio",
+  "network",
+  "battery",
+  "tray"
+ ],
+ "enabled": true,
+ "layer": "top",
+ "exclusive": true,
+ "tooltips": true,
+ "font": "JetBrainsMono Nerd Font",
+ "font_size": 13,
+ "font_weight": "bold",
+ "icons": true,
+ "clock24": true,
+ "clock_fmt": "hm",
+ "ws_format": "number",
+ "ws_persist": 0,
+ "win_len": 48,
+ "bat_warn": 30,
+ "bat_crit": 15,
+ "net_fmt": "essid",
+ "vol_step": 5,
+ "vol_click": "pavucontrol",
+ "interval": 5,
+ "tray_size": 16,
+ "mpris_len": 32,
+ "launcher": "rofi -show drun",
+ "power_cmd": "wlogout"
+}
