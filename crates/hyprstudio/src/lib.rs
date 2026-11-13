@@ -21,3 +21,5 @@ pub mod fonts;
 pub mod appearance;
 pub mod laptopkeys;
 pub mod sysactions;
+pub mod kitty;
+pub mod launcher;
