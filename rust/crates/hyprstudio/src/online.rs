@@ -72,7 +72,7 @@ pub const WALL_PACKS: &[WallPack] = &[
 ];
 pub const MAX_WALLS: usize = 12;
 
-fn get(url: &str, timeout: u64) -> Result<Vec<u8>, String> {
+pub fn get(url: &str, timeout: u64) -> Result<Vec<u8>, String> {
     net::get_bytes(url, timeout, &net::user_agent())
 }
 

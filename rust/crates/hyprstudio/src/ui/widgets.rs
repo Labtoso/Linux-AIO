@@ -956,6 +956,7 @@ pub fn flow_grid() -> gtk::FlowBox {
 
 pub struct NavHeader {
     pub button: gtk::Button,
+    conf: shell::Conf,
     gid: String,
     key: String,
     arrow: gtk::DrawingArea,
@@ -964,7 +965,7 @@ pub struct NavHeader {
 }
 
 impl NavHeader {
-    pub fn new(gid: &str, key: &str) -> Rc<NavHeader> {
+    pub fn new(gid: &str, key: &str, conf: shell::Conf) -> Rc<NavHeader> {
         let button = gtk::Button::new();
         button.add_css_class("NavHead");
         cursor_hand(&button);
@@ -977,7 +978,7 @@ impl NavHeader {
         row.append(&arrow);
         row.append(&text);
         button.set_child(Some(&row));
-        let h = Rc::new(NavHeader { button, gid: gid.into(), key: key.into(), arrow, text,
+        let h = Rc::new(NavHeader { button, conf, gid: gid.into(), key: key.into(), arrow, text,
             buttons: RefCell::new(vec![]) });
         let w = Rc::downgrade(&h);
         h.arrow.set_draw_func(move |a, cr, wd, ht| {
@@ -1017,15 +1018,12 @@ impl NavHeader {
     }
 
     pub fn collapsed(&self) -> bool {
-        let cfg = shell().cfg();
-        let c = cfg.borrow();
-        c.strs("nav_collapsed").contains(&self.gid)
+        self.conf.cfg.borrow().strs("nav_collapsed").contains(&self.gid)
     }
 
     pub fn toggle(&self) {
         {
-            let cfg = shell().cfg();
-            let mut c = cfg.borrow_mut();
+            let mut c = self.conf.cfg.borrow_mut();
             let mut lst = c.strs("nav_collapsed");
             if let Some(i) = lst.iter().position(|x| x == &self.gid) {
                 lst.remove(i);
@@ -1034,7 +1032,7 @@ impl NavHeader {
             }
             c.insert("nav_collapsed".into(), Value::Array(lst.into_iter().map(Value::String).collect()));
         }
-        shell().save_later();
+        self.conf.save_later();
         self.sync();
     }
 
@@ -1054,12 +1052,12 @@ impl NavHeader {
 }
 
 /// Seitenleiste nach Kategorien ordnen: Überschrift, darunter ihre Bereiche; Bereiche ohne Kategorie ans Ende.
-pub fn nav_groups(layout: &gtk::Box, nav: &[(String, gtk::ToggleButton)], groups: &[(&str, Vec<&str>)], kind: &str)
-    -> Vec<Rc<NavHeader>> {
+pub fn nav_groups(layout: &gtk::Box, nav: &[(String, gtk::ToggleButton)], groups: &[(&str, Vec<&str>)], kind: &str,
+    conf: &shell::Conf) -> Vec<Rc<NavHeader>> {
     let mut heads = vec![];
     let mut placed = vec![];
     for (key, items) in groups {
-        let h = NavHeader::new(&format!("{}:{}", kind, key), key);
+        let h = NavHeader::new(&format!("{}:{}", kind, key), key, conf.clone());
         layout.append(&h.button);
         for k in items {
             if let Some((_, b)) = nav.iter().find(|(n, _)| n == k) {

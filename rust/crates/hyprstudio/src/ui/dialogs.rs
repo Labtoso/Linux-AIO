@@ -2,7 +2,8 @@
 //! Text eingeben, Rückfrage, Datei/Ordner wählen, speichern, Farbe wählen.
 #![allow(deprecated)]
 
-use super::draw::Rgba;
+use super::draw::{self, Rgba};
+use super::theme;
 use super::widgets::{button, cursor_hand, hbox, label, spacer, vbox};
 use crate::i18n::t;
 use gtk::prelude::*;
@@ -299,29 +300,72 @@ pub fn pick_color(parent: Option<&gtk::Window>, color: &str, title: &str, live: 
     d.run(move |ok| done(ok.then(|| from_gdk(&cc3.rgba()))));
 }
 
+/// Eintrag eines Popup-Menüs (wie QMenu): Aktion, Haken, Trennlinie, Abschnittstitel.
+pub enum MenuEntry {
+    Item(String),
+    Check(String, bool),
+    Sep,
+    Header(String),
+}
+
 /// Auswahl aus einer kurzen Liste (Kontextmenü-Ersatz): Einträge als Knöpfe in einem Popover.
 pub fn menu<W: IsA<gtk::Widget>>(anchor: &W, x: f64, y: f64, items: Vec<(String, bool)>, done: impl Fn(usize) + 'static) {
+    let mut entries = Vec::new();
+    for (text, sep) in items {
+        if sep {
+            entries.push(MenuEntry::Sep);
+        }
+        entries.push(MenuEntry::Item(text));
+    }
+    popup_menu(anchor, Some((x, y)), entries, done);
+}
+
+/// Popup-Menü an `anchor` (an Punkt `at` oder unter dem Widget). `done(i)` bekommt den Index unter allen
+/// anklickbaren Einträgen (Item/Check, in Reihenfolge).
+pub fn popup_menu<W: IsA<gtk::Widget>>(anchor: &W, at: Option<(f64, f64)>, entries: Vec<MenuEntry>,
+                                       done: impl Fn(usize) + 'static) {
     let pop = gtk::Popover::new();
     pop.set_has_arrow(false);
+    pop.add_css_class("Menu");
     pop.set_parent(anchor);
-    pop.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+    if let Some((x, y)) = at {
+        pop.set_pointing_to(Some(&gdk::Rectangle::new(x as i32, y as i32, 1, 1)));
+    }
     pop.set_position(gtk::PositionType::Bottom);
     let bx = vbox(0);
     let done = Rc::new(done);
-    for (i, (text, sep_before)) in items.into_iter().enumerate() {
-        if sep_before {
-            let s = gtk::Separator::new(gtk::Orientation::Horizontal);
-            s.add_css_class("MenuSep");
-            bx.append(&s);
-        }
-        let b = gtk::Button::with_label(&text);
+    let mut idx = 0usize;
+    for e in entries {
+        let (text, check) = match e {
+            MenuEntry::Sep => {
+                let s = gtk::Separator::new(gtk::Orientation::Horizontal);
+                s.add_css_class("MenuSep");
+                bx.append(&s);
+                continue;
+            }
+            MenuEntry::Header(h) => {
+                let l = label(&h, "MenuHeader");
+                bx.append(&l);
+                continue;
+            }
+            MenuEntry::Item(t) => (t, None),
+            MenuEntry::Check(t, on) => (t, Some(on)),
+        };
+        let b = gtk::Button::new();
         b.add_css_class("MenuItem");
-        if let Some(l) = b.child().and_then(|c| c.downcast::<gtk::Label>().ok()) {
-            l.set_xalign(0.0);
+        let row = hbox(8);
+        if let Some(on) = check {
+            let img = draw::icon_image("check", if on { theme::TEXT } else { "#00000000" }, 14);
+            row.append(&img);
         }
+        let l = label(&text, "");
+        row.append(&l);
+        b.set_child(Some(&row));
         cursor_hand(&b);
         let p = pop.clone();
         let d = done.clone();
+        let i = idx;
+        idx += 1;
         b.connect_clicked(move |_| {
             p.popdown();
             d(i);

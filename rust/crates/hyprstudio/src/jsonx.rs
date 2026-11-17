@@ -196,3 +196,35 @@ mod tests {
         assert_eq!(py_float(2.0), "2.0");
     }
 }
+
+/// Python-`json.dumps(obj, sort_keys=True)` (ensure_ascii wie Python-Standard: alles außer ASCII als \uXXXX).
+pub fn dumps_sorted(v: &Value) -> String {
+    fn sort(v: &Value) -> Value {
+        match v {
+            Value::Object(m) => {
+                let mut keys: Vec<&String> = m.keys().collect();
+                keys.sort();
+                let mut o = Obj::new();
+                for k in keys {
+                    o.insert(k.clone(), sort(&m[k]));
+                }
+                Value::Object(o)
+            }
+            Value::Array(a) => Value::Array(a.iter().map(sort).collect()),
+            x => x.clone(),
+        }
+    }
+    let s = dumps(&sort(v));
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_ascii() {
+            out.push(c);
+        } else {
+            let mut buf = [0u16; 2];
+            for u in c.encode_utf16(&mut buf) {
+                out.push_str(&format!("\\u{:04x}", u));
+            }
+        }
+    }
+    out
+}

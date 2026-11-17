@@ -6,3 +6,6 @@ pub mod shell;
 pub mod widgets;
 pub mod dialogs;
 pub mod preview;
+pub mod keys;
+pub mod workspaces;
+pub mod bar_editor;

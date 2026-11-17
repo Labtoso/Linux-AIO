@@ -19,6 +19,19 @@ pub trait Shell {
     fn show_log(&self) {}
 }
 
+/// Einstellungen eines Fensters + „später speichern“ (Hypr Studio und Linux AIO haben je eigene).
+#[derive(Clone)]
+pub struct Conf {
+    pub cfg: Rc<RefCell<Obj>>,
+    pub save: Rc<dyn Fn()>,
+}
+
+impl Conf {
+    pub fn save_later(&self) {
+        (self.save)()
+    }
+}
+
 thread_local! {
     static SHELL: RefCell<Option<Rc<dyn Shell>>> = const { RefCell::new(None) };
 }

@@ -67,7 +67,7 @@ fn make_wall(w: i32, h: i32) -> cairo::ImageSurface {
 }
 
 /// Hintergrund und seine unscharfe Fassung (klein gerechnet und wieder vergrößert).
-fn wallpaper(w: i32, h: i32) -> (cairo::ImageSurface, cairo::ImageSurface) {
+pub fn wallpaper(w: i32, h: i32) -> (cairo::ImageSurface, cairo::ImageSurface) {
     WALL.with(|c| {
         if let Some(x) = c.borrow().get(&(w, h)) {
             return x.clone();

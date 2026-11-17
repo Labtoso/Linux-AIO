@@ -151,12 +151,19 @@ popover modelbutton:hover {{ background: {a}; color: {on}; }}
 .MenuItem:hover {{ background: {a}; }}
 .MenuItem:hover label {{ color: {on}; }}
 .MenuSep {{ background: {BORDER}; min-height: 1px; margin: 5px 8px; }}
+.MenuHeader {{ color: {MUTED}; font-size: 9pt; font-weight: 600; padding: 6px 12px 2px 12px; }}
 
 scale {{ min-height: 24px; padding: 0 8px; }}
 scale trough {{ min-height: 6px; background: {SURFACE2}; border: none; border-radius: 3px; outline: none; }}
 scale highlight {{ background: {a}; border: none; border-radius: 3px; min-height: 6px; }}
 scale slider {{ background: {TEXT}; min-width: 16px; min-height: 16px; margin: -5px; border-radius: 8px; border: none; box-shadow: none; }}
 scale slider:hover {{ background: #ffffff; }}
+
+.ModList {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 12px; padding: 6px; }}
+.ModItem {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 8px; padding: 6px 8px; margin: 2px 0; }}
+.ModItem.sel {{ border-color: {a}; }}
+.ModList.drop {{ border-color: {a}; }}
+.DropMark {{ background: {a}; min-height: 2px; border-radius: 1px; }}
 
 checkbutton {{ padding: 0; }}
 checkbutton label {{ margin-left: 4px; }}

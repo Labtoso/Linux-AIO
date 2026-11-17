@@ -147,7 +147,7 @@ pub fn fail_reason(output: &str) -> Option<&'static str> {
     None
 }
 
-fn pkgs_for(key: &str, pm: &str) -> Vec<&'static str> {
+pub fn pkgs_for(key: &str, pm: &str) -> Vec<&'static str> {
     get(key).and_then(|p| p.pkgs.iter().find(|(m, _)| *m == pm)).map(|(_, v)| v.to_vec()).unwrap_or_default()
 }
 

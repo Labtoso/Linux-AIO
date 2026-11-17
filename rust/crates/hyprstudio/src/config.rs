@@ -5,7 +5,17 @@ use crate::util;
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
+static PATH: std::sync::RwLock<Option<PathBuf>> = std::sync::RwLock::new(None);
+
+/// Anderer Ort (Linux AIO im Testmodus: nicht im echten Home).
+pub fn set_path(p: PathBuf) {
+    *PATH.write().unwrap() = Some(p);
+}
+
 pub fn path() -> PathBuf {
+    if let Some(p) = PATH.read().unwrap().clone() {
+        return p;
+    }
     util::xdg_config().join("LabtosoStudios").join("hyprstudio.json")
 }
 
