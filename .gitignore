@@ -13,4 +13,4 @@ installer/arch/*.tar.gz
 installer/portable/
 pkg/
 installer/
-/target
+/rust/target

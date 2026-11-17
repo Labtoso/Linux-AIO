@@ -1,10 +1,11 @@
 """Golden files: outputs of the former Python model for many states (Rust tests compare against them)."""
 import json, os, sys, copy
 from pathlib import Path
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
+RUST = ROOT / "rust"
 sys.path.insert(0, str(ROOT / "src"))
 from hyprstudio import model
-OUT = ROOT / "crates" / "hyprstudio" / "tests" / "golden"
+OUT = RUST / "crates" / "hyprstudio" / "tests" / "golden"
 cases = []
 for name in model.HYPR_PRESETS:
     s = model.preset_state(name)

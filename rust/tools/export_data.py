@@ -5,13 +5,14 @@ import os
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
+RUST = ROOT / "rust"
 sys.path.insert(0, str(ROOT / "src"))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 os.environ["DEMANAGER_DRYRUN"] = "1"
 
-HS = ROOT / "crates" / "hyprstudio" / "data"
-LA = ROOT / "crates" / "linuxaio" / "data"
+HS = RUST / "crates" / "hyprstudio" / "data"
+LA = RUST / "crates" / "linuxaio" / "data"
 
 
 def dump(path: Path, obj) -> None:
@@ -59,5 +60,5 @@ def main(which):
 
 
 if __name__ == "__main__":
-    spec = json.loads((ROOT / "tools" / "export_list.json").read_text())
+    spec = json.loads((RUST / "tools" / "export_list.json").read_text())
     main(spec)
