@@ -19,3 +19,4 @@ tar.workspace = true
 flate2.workspace = true
 xz2.workspace = true
 glob.workspace = true
+libc.workspace = true

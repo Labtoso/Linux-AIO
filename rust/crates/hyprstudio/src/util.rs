@@ -123,8 +123,16 @@ pub fn output(cmd: &[&str], timeout: u64) -> String {
 
 /// Programm im Hintergrund starten (eigene Sitzung, keine Ausgabe), wie `Popen(..., start_new_session=True)`.
 pub fn spawn_detached(cmd: &[&str]) -> std::io::Result<()> {
+    spawn_detached_in(cmd, None)
+}
+
+/// Wie `spawn_detached`, mit Arbeitsordner.
+pub fn spawn_detached_in(cmd: &[&str], cwd: Option<&Path>) -> std::io::Result<()> {
     use std::os::unix::process::CommandExt;
     let mut c = Command::new(cmd[0]);
+    if let Some(d) = cwd {
+        c.current_dir(d);
+    }
     c.args(&cmd[1..]).stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
     c.process_group(0);
     for k in ["DESKTOP_STARTUP_ID", "XDG_ACTIVATION_TOKEN"] {

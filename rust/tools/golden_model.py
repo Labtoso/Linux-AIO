@@ -36,3 +36,34 @@ data = {"hypr": [{"name": n, "state": s, "lua": model.hypr_lua(s), "conf": model
 lua_text = open(ROOT / "tools" / "sample_hyprland.lua").read() if (ROOT / "tools" / "sample_hyprland.lua").exists() else ""
 (OUT / "model.json").write_text(json.dumps(data, ensure_ascii=False, indent=1))
 print(len(cases), len(wb))
+
+# ---- kitty, launcher, hyprlock, paper, perf ----
+from hyprstudio import kitty, launcher, hyprlock, paper, perf
+model.DRY = True
+H = Path("/H/.config")
+ext = {"kitty": [], "launcher": [], "lock": [], "paper": [], "perf": []}
+for name in kitty.PRESETS:
+    k = kitty.preset(name)
+    ext["kitty"].append({"name": name, "state": k, "conf": kitty.conf(k)})
+k = kitty.preset("tokyo"); k.update({"fastfetch": True, "start_cmds": ["echo hi"], "opacity": 0.85})
+ext["kitty"].append({"name": "start", "state": k, "conf": kitty.conf(k, H / "kitty" / kitty.START),
+                     "script": kitty.start_script(k), "start": str(H / "kitty" / kitty.START)})
+for name in launcher.PRESETS:
+    for app in launcher.APPS:
+        s = launcher.preset(name); s["app"] = app
+        ext["launcher"].append({"name": f"{name}/{app}", "state": s,
+                                "files": [[str(p), c] for p, c in launcher.files(s, H)]})
+for name in hyprlock.PRESETS:
+    s = hyprlock.preset_state(name)
+    ext["lock"].append({"name": name, "state": s, "conf": hyprlock.lock_conf(s, "/W/pic.jpg")})
+s = hyprlock.preset_state("sidebar"); s.update({"avatar": True, "greet_text": "Hallo\nWelt", "clock_fmt": "12"})
+ext["lock"].append({"name": "x1", "state": s, "conf": hyprlock.lock_conf(s, "")})
+for st in [{"path": "~/a.jpg"}, {"path": "~/Bilder", "random": True, "recursive": True, "timeout": 60, "fit": "tile"},
+           {"path": "", "monitors": {"HDMI-A-1": {"path": "/x/b.png", "fit": "bad"}, "DP-1": {"path": "/dir"}}, "splash": True}]:
+    s = paper.paper_state(st)
+    ext["paper"].append({"state": s, "conf": paper.paper_conf(s)})
+for pe in [{"portal_env": False, "light": False}, {"portal_env": True, "light": True}, {"portal_env": True, "light": False}]:
+    for fmt in ("lua", "conf"):
+        ext["perf"].append({"state": pe, "fmt": fmt, "out": perf.content(pe, fmt)})
+(OUT / "ext.json").write_text(json.dumps(ext, ensure_ascii=False, indent=1))
+print({k: len(v) for k, v in ext.items()})
