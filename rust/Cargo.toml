@@ -26,6 +26,7 @@ zip = { version = "2", default-features = false, features = ["deflate"] }
 sha2 = "0.10"
 libc = "0.2"
 bzip2 = "0.4"
+pangocairo = "0.20"
 
 [profile.release]
 lto = true
