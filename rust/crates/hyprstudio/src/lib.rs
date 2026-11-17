@@ -24,3 +24,5 @@ pub mod sysactions;
 pub mod kitty;
 pub mod launcher;
 pub mod hyprlock; pub mod paper; pub mod perf; pub mod reset;
+pub mod online;
+pub mod applauncher;

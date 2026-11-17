@@ -25,6 +25,7 @@ glob = "0.3"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 sha2 = "0.10"
 libc = "0.2"
+bzip2 = "0.4"
 
 [profile.release]
 lto = true
