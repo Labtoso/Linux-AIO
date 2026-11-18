@@ -30,4 +30,5 @@ pub mod integrate;
 pub mod alacritty;
 pub mod yay;
 pub mod presetfile;
+pub mod buttons;
 pub mod ui;

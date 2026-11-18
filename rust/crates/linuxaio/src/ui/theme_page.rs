@@ -641,6 +641,11 @@ impl ThemePage {
         self.rebuild();
     }
 
+    /// Globale Suche: Theme-Namen ins Suchfeld.
+    pub fn set_search(&self, text: &str) {
+        self.search_edit.set_text(text);
+    }
+
     fn search_now(self: &Rc<Self>) {
         let q = self.search_edit.text().trim().to_string();
         if q == *self.search.borrow() {
@@ -954,7 +959,7 @@ enum LocalOrStore {
 /// Datei laden, Fortschritt in Prozent melden.
 fn download_with_progress(url: &str, ptx: &async_channel::Sender<u32>) -> Result<Vec<u8>, String> {
     use std::io::Read;
-    let agent = ureq::AgentBuilder::new().timeout_connect(std::time::Duration::from_secs(20)).build();
+    let agent = hyprstudio::net::builder().timeout_connect(std::time::Duration::from_secs(20)).build();
     let resp = agent.get(url).set("User-Agent", &remote::ua()).call().map_err(|e| e.to_string())?;
     let total: u64 = resp.header("Content-Length").and_then(|s| s.parse().ok()).unwrap_or(0);
     let mut r = resp.into_reader();

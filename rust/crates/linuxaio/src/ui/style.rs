@@ -42,7 +42,15 @@ list.DeList > row:selected, list.NavList > row:selected {{ background: {RAISED};
 list.DeList > row:selected label, list.NavList > row:selected label {{ font-weight: 600; color: {TEXT}; }}
 list.DeList > row:disabled label {{ color: {DISABLED}; }}
 .APageTitle {{ font-size: 15pt; font-weight: 700; }}
-.ACard {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}
+.ACard {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; padding: 12px 16px; }}
+.ASection {{ padding-top: 8px; }}
+.Pad10 {{ padding: 10px; }}
+.Pad22 {{ padding: 22px; }}
+.PadFont {{ padding: 10px 12px; }}
+.PadSide {{ padding: 12px 10px 10px 10px; }}
+.PadBar {{ padding: 8px 10px 8px 14px; }}
+.ACard.APack {{ padding: 10px 10px 10px 16px; }}
+.ACard.AInst {{ padding: 10px 16px; }}
 .ACardTitle {{ color: {MUTED}; font-size: 9pt; font-weight: 600; padding-bottom: 2px; }}
 .AMono {{ color: {MUTED}; font-family: "JetBrains Mono", "Hack", monospace; font-size: 9pt; }}
 .ALabel {{ color: {MUTED}; font-size: 9pt; }}

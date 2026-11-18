@@ -111,6 +111,8 @@ impl Studio {
             w.add_css_class("hs-window");
             w.set_default_size(1220, 860);
             w.set_size_request(1000, 720);
+            // aus Linux AIO geöffnet: Schließen versteckt nur (erneut öffnen zeigt dasselbe Fenster)
+            w.set_hide_on_close(opts.popout);
             Some(w)
         } else {
             None
@@ -251,7 +253,7 @@ impl Studio {
             other: OnceCell::new(), waybar_gate: OnceCell::new(), launcher_gate: OnceCell::new(),
             me: RefCell::new(Weak::new()) });
         *s.me.borrow_mut() = Rc::downgrade(&s);
-        if !s.opts.embedded {
+        if !s.opts.embedded && s.opts.host.is_none() {
             shell::set_shell(s.clone());
         }
         theme::apply(&s.accent());

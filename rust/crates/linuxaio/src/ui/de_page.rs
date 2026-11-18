@@ -150,7 +150,7 @@ impl DePage {
         p
     }
 
-    fn select(&self, de_id: &str) {
+    pub fn select(&self, de_id: &str) {
         *self.current.borrow_mut() = de_id.to_string();
         let v = self.state.borrow().get(de_id).and_then(|s| s.get("variant")).and_then(|v| v.as_str())
             .map(String::from).unwrap_or_else(|| "standard".into());

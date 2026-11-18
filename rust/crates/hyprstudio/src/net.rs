@@ -3,8 +3,13 @@
 use std::io::Read;
 use std::time::Duration;
 
+/// Wie urllib: Proxy aus der Umgebung, Zertifikate des Systems.
+pub fn builder() -> ureq::AgentBuilder {
+    ureq::AgentBuilder::new().try_proxy_from_env(true)
+}
+
 pub fn agent(timeout: u64) -> ureq::Agent {
-    ureq::AgentBuilder::new().timeout(Duration::from_secs(timeout)).build()
+    builder().timeout(Duration::from_secs(timeout)).build()
 }
 
 pub fn user_agent() -> String {

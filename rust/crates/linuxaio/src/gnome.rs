@@ -500,7 +500,7 @@ pub const POWER_ITEMS: [(&str, &str, &str, bool); 3] = [("pw.logout", "org.gnome
     ("pw.switch", "org.gnome.desktop.lockdown", "disable-user-switching", true),
     ("pw.lock", "org.gnome.desktop.lockdown", "disable-lock-screen", true)];
 
-fn jp_cmd() -> Vec<String> {
+pub fn jp_cmd() -> Vec<String> {
     match ext_dir(JP_UUID) {
         Some(d) => vec!["gsettings".into(), "--schemadir".into(), d.join("schemas").display().to_string()],
         None => vec!["gsettings".into()],

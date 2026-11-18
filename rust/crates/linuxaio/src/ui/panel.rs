@@ -45,7 +45,7 @@ impl Panel {
         root.add_css_class("Panel");
         root.set_size_request(300, -1);
         root.set_halign(gtk::Align::Start);
-        hyprstudio::ui::widgets::margins(&root, 22, 22, 22, 22);
+        root.add_css_class("Pad22");
         let title = label("", "PanelTitle");
         title.set_margin_bottom(10);
         root.append(&title);

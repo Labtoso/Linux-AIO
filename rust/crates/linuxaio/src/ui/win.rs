@@ -1091,7 +1091,16 @@ fn shots(shot: String, steps: String) {
         let st = items[i].clone();
         if !st.is_empty() {
             let parts: Vec<&str> = st.split(':').collect();
-            w.set_tab(parts[0]);
+            if parts[0] == "go" {
+                // Suche testen: Text eintippen, ersten Treffer öffnen
+                if let Some(s) = w.search.get() {
+                    s.entry.set_text(parts[1]);
+                    s.debug_dump();
+                    s.entry.emit_activate();
+                }
+            } else {
+                w.set_tab(parts[0]);
+            }
             if let Some(sp) = w.settings_page.get() {
                 if parts[0] == "settings" && parts.len() > 2 && parts[1] == "adv" {
                     sp.select_adv(parts[2]);

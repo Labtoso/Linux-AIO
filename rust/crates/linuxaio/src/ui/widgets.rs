@@ -176,6 +176,8 @@ impl ChipRow {
             }
             self.root.insert(&l, -1);
         }
+        // eine Zeile wie in Qt (sonst stapelt die FlowBox bei halign=Start untereinander)
+        self.root.set_min_children_per_line(chips.len().max(1) as u32);
         self.root.set_visible(true);
     }
 }

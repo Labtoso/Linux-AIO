@@ -84,7 +84,7 @@ pub fn get(url: &str, timeout: u64, accept: &str) -> Result<Vec<u8>, NetErr> {
     if let Some(f) = FETCH.lock().unwrap().as_ref() {
         return f(url);
     }
-    let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(timeout)).build();
+    let agent = hyprstudio::net::builder().timeout(Duration::from_secs(timeout)).build();
     let mut req = agent.get(url).set("User-Agent", &ua());
     if !accept.is_empty() {
         req = req.set("Accept", accept);
@@ -196,7 +196,7 @@ pub fn download(url: &str, sha: &str, size_hint: u64, mut progress: Option<&mut 
     let data = if FETCH.lock().unwrap().is_some() {
         fetch(url).map_err(|e| SourceError::new("remote.offline", &e.to_string()))?
     } else {
-        let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(60)).build();
+        let agent = hyprstudio::net::builder().timeout(Duration::from_secs(60)).build();
         let resp = agent.get(url).set("User-Agent", &ua()).call()
             .map_err(|e| SourceError::new("remote.offline", &net_err(e).to_string()))?;
         let total: u64 = resp.header("Content-Length").and_then(|v| v.parse().ok()).filter(|n| *n > 0).unwrap_or(size_hint);

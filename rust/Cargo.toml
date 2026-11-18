@@ -17,7 +17,7 @@ regex = "1"
 once_cell = "1"
 fancy-regex = "0.14"
 async-channel = "2"
-ureq = "2"
+ureq = { version = "2", features = ["native-certs"] }
 tar = "0.4"
 flate2 = "1"
 xz2 = { version = "0.1", features = ["static"] }
