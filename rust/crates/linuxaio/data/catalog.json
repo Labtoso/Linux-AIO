@@ -1,0 +1,963 @@
+[
+ {
+  "id": "gnome",
+  "name": "GNOME",
+  "sessions": [
+   "gnome",
+   "gnome-xorg"
+  ],
+  "detect": [
+   "GNOME"
+  ],
+  "wayland": true,
+  "x11": true,
+  "tiling": false,
+  "color": "#1d3557",
+  "layout": "gnome",
+  "desc": {
+   "de": "GNOME wie vom Projekt gedacht: ohne Anpassungen",
+   "en": "GNOME as intended upstream, unmodified"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "gnome-shell",
+     "gnome-session",
+     "gnome-control-center",
+     "gnome-settings-daemon",
+     "nautilus",
+     "gnome-console",
+     "gnome-keyring",
+     "gnome-backgrounds",
+     "xdg-desktop-portal-gnome"
+    ],
+    "apt": [
+     "vanilla-gnome-desktop|gnome-core"
+    ],
+    "dnf": [
+     "gnome-shell",
+     "gnome-session-wayland-session|gnome-session",
+     "gnome-control-center",
+     "nautilus",
+     "ptyxis|gnome-terminal"
+    ],
+    "zypper": [
+     "pattern:gnome_basic"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "gnome"
+    ],
+    "apt": [
+     "vanilla-gnome-desktop|gnome",
+     "gnome-tweaks"
+    ],
+    "dnf": [
+     "@gnome-desktop"
+    ],
+    "zypper": [
+     "pattern:gnome"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "gnome",
+     "gnome-extra",
+     "gnome-tweaks",
+     "?extension-manager",
+     "?gnome-shell-extension-appindicator",
+     "?gnome-shell-extension-dash-to-dock"
+    ],
+    "apt": [
+     "gnome",
+     "gnome-tweaks",
+     "?gnome-shell-extension-manager",
+     "?gnome-shell-extension-dashtodock",
+     "?gnome-shell-extension-appindicator"
+    ],
+    "dnf": [
+     "@gnome-desktop",
+     "gnome-tweaks",
+     "?gnome-extensions-app",
+     "?gnome-shell-extension-dash-to-dock",
+     "?gnome-shell-extension-appindicator"
+    ],
+    "zypper": [
+     "pattern:gnome",
+     "?gnome-tweaks",
+     "?gnome-shell-extension-dash-to-dock"
+    ]
+   }
+  }
+ },
+ {
+  "id": "plasma",
+  "name": "KDE Plasma",
+  "sessions": [
+   "plasma",
+   "plasmax11",
+   "plasmawayland"
+  ],
+  "detect": [
+   "KDE"
+  ],
+  "wayland": true,
+  "x11": true,
+  "tiling": false,
+  "color": "#14324a",
+  "layout": "plasma",
+  "desc": {
+   "de": "Flexibler Desktop, frei anpassbar",
+   "en": "Flexible, fully customisable desktop"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "plasma-desktop",
+     "konsole",
+     "dolphin",
+     "plasma-pa",
+     "plasma-nm",
+     "kscreen",
+     "breeze-gtk"
+    ],
+    "apt": [
+     "kde-plasma-desktop"
+    ],
+    "dnf": [
+     "plasma-desktop",
+     "konsole",
+     "dolphin"
+    ],
+    "zypper": [
+     "pattern:kde_plasma"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "plasma",
+     "konsole",
+     "dolphin",
+     "kate",
+     "ark",
+     "spectacle"
+    ],
+    "apt": [
+     "kde-standard"
+    ],
+    "dnf": [
+     "@kde-desktop"
+    ],
+    "zypper": [
+     "pattern:kde"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "plasma",
+     "kde-applications-meta"
+    ],
+    "apt": [
+     "kde-full"
+    ],
+    "dnf": [
+     "@kde-desktop",
+     "?@kde-apps"
+    ],
+    "zypper": [
+     "pattern:kde",
+     "?pattern:kde_applications"
+    ]
+   }
+  }
+ },
+ {
+  "id": "xfce",
+  "name": "Xfce",
+  "sessions": [
+   "xfce"
+  ],
+  "detect": [
+   "XFCE"
+  ],
+  "wayland": false,
+  "x11": true,
+  "tiling": false,
+  "color": "#2b3a2f",
+  "layout": "xfce",
+  "desc": {
+   "de": "Leicht und klassisch",
+   "en": "Light and classic"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "xorg-server",
+     "xfce4"
+    ],
+    "apt": [
+     "xfce4"
+    ],
+    "dnf": [
+     "xfce4-session",
+     "xfwm4",
+     "xfce4-panel",
+     "xfdesktop",
+     "Thunar",
+     "xfce4-terminal"
+    ],
+    "zypper": [
+     "pattern:xfce_basic"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "xorg-server",
+     "xfce4",
+     "xfce4-goodies"
+    ],
+    "apt": [
+     "xfce4",
+     "xfce4-goodies"
+    ],
+    "dnf": [
+     "@xfce-desktop"
+    ],
+    "zypper": [
+     "pattern:xfce"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "xorg-server",
+     "xfce4",
+     "xfce4-goodies",
+     "network-manager-applet",
+     "pavucontrol",
+     "gvfs"
+    ],
+    "apt": [
+     "xubuntu-desktop|task-xfce-desktop"
+    ],
+    "dnf": [
+     "@xfce-desktop",
+     "?@xfce-apps",
+     "?@xfce-extra-plugins"
+    ],
+    "zypper": [
+     "pattern:xfce",
+     "?pattern:xfce_office"
+    ]
+   }
+  }
+ },
+ {
+  "id": "cinnamon",
+  "name": "Cinnamon",
+  "sessions": [
+   "cinnamon",
+   "cinnamon-wayland"
+  ],
+  "detect": [
+   "X-Cinnamon",
+   "Cinnamon"
+  ],
+  "wayland": false,
+  "x11": true,
+  "tiling": false,
+  "color": "#3a2f22",
+  "layout": "cinnamon",
+  "desc": {
+   "de": "Vertrautes Startmenü-Layout (Linux Mint)",
+   "en": "Familiar start-menu layout (Linux Mint)"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "xorg-server",
+     "cinnamon"
+    ],
+    "apt": [
+     "cinnamon-core"
+    ],
+    "dnf": [
+     "cinnamon"
+    ],
+    "zypper": [
+     "cinnamon"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "xorg-server",
+     "cinnamon",
+     "nemo-fileroller",
+     "gnome-terminal"
+    ],
+    "apt": [
+     "cinnamon"
+    ],
+    "dnf": [
+     "@cinnamon-desktop|cinnamon"
+    ],
+    "zypper": [
+     "pattern:cinnamon|cinnamon"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "xorg-server",
+     "cinnamon",
+     "nemo-fileroller",
+     "gnome-terminal",
+     "xed",
+     "xreader",
+     "blueman"
+    ],
+    "apt": [
+     "cinnamon-desktop-environment"
+    ],
+    "dnf": [
+     "@cinnamon-desktop|cinnamon"
+    ],
+    "zypper": [
+     "pattern:cinnamon|cinnamon",
+     "?nemo-extension-fileroller"
+    ]
+   }
+  }
+ },
+ {
+  "id": "mate",
+  "name": "MATE",
+  "sessions": [
+   "mate"
+  ],
+  "detect": [
+   "MATE"
+  ],
+  "wayland": false,
+  "x11": true,
+  "tiling": false,
+  "color": "#26402a",
+  "layout": "mate",
+  "desc": {
+   "de": "Klassisches GNOME-2-Erbe",
+   "en": "Classic GNOME 2 heritage"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "xorg-server",
+     "mate"
+    ],
+    "apt": [
+     "mate-desktop-environment-core"
+    ],
+    "dnf": [
+     "@mate-desktop"
+    ],
+    "zypper": [
+     "pattern:mate_basic"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "xorg-server",
+     "mate",
+     "mate-extra"
+    ],
+    "apt": [
+     "mate-desktop-environment"
+    ],
+    "dnf": [
+     "@mate-desktop"
+    ],
+    "zypper": [
+     "pattern:mate"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "xorg-server",
+     "mate",
+     "mate-extra",
+     "network-manager-applet"
+    ],
+    "apt": [
+     "mate-desktop-environment-extras"
+    ],
+    "dnf": [
+     "@mate-desktop",
+     "?@mate-applications"
+    ],
+    "zypper": [
+     "pattern:mate",
+     "?pattern:mate_utilities"
+    ]
+   }
+  }
+ },
+ {
+  "id": "budgie",
+  "name": "Budgie",
+  "sessions": [
+   "budgie-desktop"
+  ],
+  "detect": [
+   "Budgie",
+   "Budgie:GNOME"
+  ],
+  "wayland": false,
+  "x11": true,
+  "tiling": false,
+  "color": "#2d2440",
+  "layout": "budgie",
+  "desc": {
+   "de": "Modern, schlicht, mit Seitenleiste",
+   "en": "Modern and simple with a sidebar"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "xorg-server",
+     "budgie-desktop"
+    ],
+    "apt": [
+     "budgie-desktop"
+    ],
+    "dnf": [
+     "budgie-desktop"
+    ],
+    "zypper": [
+     "budgie"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "xorg-server",
+     "budgie-desktop",
+     "budgie-control-center",
+     "nemo",
+     "gnome-terminal"
+    ],
+    "apt": [
+     "budgie-desktop",
+     "?budgie-indicator-applet"
+    ],
+    "dnf": [
+     "@budgie-desktop|budgie-desktop"
+    ],
+    "zypper": [
+     "pattern:budgie|budgie"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "xorg-server",
+     "budgie",
+     "?budgie-extras",
+     "nemo",
+     "gnome-terminal"
+    ],
+    "apt": [
+     "ubuntu-budgie-desktop|budgie-desktop"
+    ],
+    "dnf": [
+     "@budgie-desktop|budgie-desktop",
+     "?@budgie-desktop-apps"
+    ],
+    "zypper": [
+     "pattern:budgie|budgie",
+     "?budgie-extras"
+    ]
+   }
+  }
+ },
+ {
+  "id": "lxqt",
+  "name": "LXQt",
+  "sessions": [
+   "lxqt",
+   "lxqt-wayland"
+  ],
+  "detect": [
+   "LXQt"
+  ],
+  "wayland": false,
+  "x11": true,
+  "tiling": false,
+  "color": "#1f2a3a",
+  "layout": "lxqt",
+  "desc": {
+   "de": "Sehr leicht, Qt-basiert",
+   "en": "Very light, Qt based"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "xorg-server",
+     "lxqt"
+    ],
+    "apt": [
+     "lxqt-core"
+    ],
+    "dnf": [
+     "@lxqt-desktop"
+    ],
+    "zypper": [
+     "pattern:lxqt"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "xorg-server",
+     "lxqt",
+     "breeze-icons",
+     "xdg-utils"
+    ],
+    "apt": [
+     "lxqt"
+    ],
+    "dnf": [
+     "@lxqt-desktop"
+    ],
+    "zypper": [
+     "pattern:lxqt"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "xorg-server",
+     "lxqt",
+     "breeze-icons",
+     "xdg-utils",
+     "featherpad",
+     "lximage-qt",
+     "qterminal"
+    ],
+    "apt": [
+     "lubuntu-desktop|task-lxqt-desktop"
+    ],
+    "dnf": [
+     "@lxqt-desktop",
+     "?@lxqt-apps"
+    ],
+    "zypper": [
+     "pattern:lxqt"
+    ]
+   }
+  }
+ },
+ {
+  "id": "cosmic",
+  "name": "COSMIC",
+  "sessions": [
+   "cosmic"
+  ],
+  "detect": [
+   "COSMIC"
+  ],
+  "wayland": true,
+  "x11": false,
+  "tiling": false,
+  "color": "#2a1f3d",
+  "layout": "cosmic",
+  "desc": {
+   "de": "Neuer Rust-Desktop von System76",
+   "en": "New Rust desktop by System76"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "cosmic-session",
+     "cosmic-files",
+     "cosmic-terminal"
+    ],
+    "apt": [
+     "cosmic-session"
+    ],
+    "dnf": [
+     "cosmic-session|@cosmic-desktop"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "cosmic"
+    ],
+    "apt": [
+     "cosmic-session",
+     "?cosmic-files",
+     "?cosmic-term"
+    ],
+    "dnf": [
+     "@cosmic-desktop|cosmic-session"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "cosmic",
+     "?cosmic-store",
+     "?cosmic-player"
+    ],
+    "apt": [
+     "pop-desktop|cosmic-session"
+    ],
+    "dnf": [
+     "@cosmic-desktop|cosmic-session",
+     "?@cosmic-desktop-apps"
+    ]
+   }
+  }
+ },
+ {
+  "id": "hyprland",
+  "name": "Hyprland",
+  "sessions": [
+   "hyprland"
+  ],
+  "detect": [
+   "Hyprland"
+  ],
+  "wayland": true,
+  "x11": false,
+  "tiling": true,
+  "color": "#123040",
+  "layout": "hyprland",
+  "desc": {
+   "de": "Kachel-Fenster mit Animationen (Wayland)",
+   "en": "Animated tiling compositor (Wayland)"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "hyprland",
+     "kitty"
+    ],
+    "apt": [
+     "hyprland",
+     "kitty"
+    ],
+    "dnf": [
+     "hyprland",
+     "kitty"
+    ],
+    "zypper": [
+     "hyprland",
+     "kitty"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi",
+     "xdg-desktop-portal-hyprland",
+     "polkit-kde-agent"
+    ],
+    "apt": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi"
+    ],
+    "dnf": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi"
+    ],
+    "zypper": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi",
+     "xdg-desktop-portal-hyprland",
+     "polkit-kde-agent",
+     "hyprpaper",
+     "hyprlock",
+     "hypridle",
+     "dunst",
+     "grim",
+     "slurp"
+    ],
+    "apt": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi",
+     "?hyprpaper",
+     "?hyprlock",
+     "dunst",
+     "grim",
+     "slurp"
+    ],
+    "dnf": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi",
+     "?hyprpaper",
+     "?hyprlock",
+     "dunst",
+     "grim",
+     "slurp"
+    ],
+    "zypper": [
+     "hyprland",
+     "kitty",
+     "waybar",
+     "wofi",
+     "?hyprpaper",
+     "?hyprlock",
+     "dunst",
+     "grim",
+     "slurp"
+    ]
+   }
+  }
+ },
+ {
+  "id": "sway",
+  "name": "Sway",
+  "sessions": [
+   "sway"
+  ],
+  "detect": [
+   "sway"
+  ],
+  "wayland": true,
+  "x11": false,
+  "tiling": true,
+  "color": "#20302a",
+  "layout": "sway",
+  "desc": {
+   "de": "i3-kompatibles Tiling für Wayland",
+   "en": "i3-compatible tiling for Wayland"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "sway",
+     "foot"
+    ],
+    "apt": [
+     "sway",
+     "foot"
+    ],
+    "dnf": [
+     "sway",
+     "foot"
+    ],
+    "zypper": [
+     "sway",
+     "foot"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "sway",
+     "foot",
+     "waybar",
+     "wofi",
+     "swaybg",
+     "swayidle",
+     "swaylock"
+    ],
+    "apt": [
+     "sway",
+     "foot",
+     "waybar",
+     "wofi",
+     "swaybg",
+     "swayidle",
+     "swaylock"
+    ],
+    "dnf": [
+     "sway",
+     "foot",
+     "waybar",
+     "wofi",
+     "swaybg",
+     "swayidle",
+     "swaylock"
+    ],
+    "zypper": [
+     "sway",
+     "foot",
+     "waybar",
+     "wofi",
+     "swaybg",
+     "swayidle",
+     "swaylock"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "sway",
+     "foot",
+     "waybar",
+     "wofi",
+     "swaybg",
+     "swayidle",
+     "swaylock",
+     "mako",
+     "grim",
+     "slurp"
+    ],
+    "apt": [
+     "sway",
+     "foot",
+     "waybar",
+     "wofi",
+     "swaybg",
+     "swayidle",
+     "swaylock",
+     "mako-notifier",
+     "grim",
+     "slurp"
+    ],
+    "dnf": [
+     "@sway-desktop-environment|sway",
+     "waybar",
+     "wofi",
+     "mako",
+     "grim",
+     "slurp"
+    ],
+    "zypper": [
+     "?pattern:sway",
+     "sway",
+     "waybar",
+     "wofi",
+     "mako",
+     "grim",
+     "slurp"
+    ]
+   }
+  }
+ },
+ {
+  "id": "i3",
+  "name": "i3",
+  "sessions": [
+   "i3"
+  ],
+  "detect": [
+   "i3"
+  ],
+  "wayland": false,
+  "x11": true,
+  "tiling": true,
+  "color": "#2a2a2a",
+  "layout": "i3",
+  "desc": {
+   "de": "Klassischer Tiling-Fenstermanager (X11)",
+   "en": "Classic tiling window manager (X11)"
+  },
+  "packages": {
+   "minimal": {
+    "pacman": [
+     "xorg-server",
+     "i3-wm",
+     "xterm"
+    ],
+    "apt": [
+     "i3-wm",
+     "xterm"
+    ],
+    "dnf": [
+     "i3",
+     "xterm"
+    ],
+    "zypper": [
+     "i3",
+     "xterm"
+    ]
+   },
+   "standard": {
+    "pacman": [
+     "xorg-server",
+     "i3-wm",
+     "i3status",
+     "i3lock",
+     "dmenu",
+     "xss-lock",
+     "alacritty"
+    ],
+    "apt": [
+     "i3"
+    ],
+    "dnf": [
+     "i3",
+     "i3status",
+     "i3lock",
+     "dmenu",
+     "alacritty"
+    ],
+    "zypper": [
+     "i3",
+     "i3status",
+     "i3lock",
+     "dmenu",
+     "alacritty"
+    ]
+   },
+   "full": {
+    "pacman": [
+     "xorg-server",
+     "i3-wm",
+     "i3status",
+     "i3lock",
+     "dmenu",
+     "xss-lock",
+     "alacritty",
+     "rofi",
+     "picom",
+     "feh",
+     "dunst"
+    ],
+    "apt": [
+     "i3",
+     "rofi",
+     "picom",
+     "feh",
+     "dunst",
+     "alacritty"
+    ],
+    "dnf": [
+     "i3",
+     "i3status",
+     "i3lock",
+     "dmenu",
+     "alacritty",
+     "rofi",
+     "picom",
+     "feh",
+     "dunst"
+    ],
+    "zypper": [
+     "i3",
+     "i3status",
+     "i3lock",
+     "dmenu",
+     "alacritty",
+     "rofi",
+     "picom",
+     "feh",
+     "dunst"
+    ]
+   }
+  }
+ }
+]

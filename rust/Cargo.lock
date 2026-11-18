@@ -788,7 +788,26 @@ checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "linuxaio"
-version = "0.1.0"
+version = "2.5.3"
+dependencies = [
+ "async-channel",
+ "bzip2",
+ "flate2",
+ "gio",
+ "glib",
+ "gtk4",
+ "hyprstudio",
+ "libc",
+ "once_cell",
+ "pangocairo",
+ "regex",
+ "serde",
+ "serde_json",
+ "tar",
+ "ureq",
+ "xz2",
+ "zip",
+]
 
 [[package]]
 name = "litemap"

@@ -1,6 +1,32 @@
 [package]
 name = "linuxaio"
-version = "0.1.0"
-edition = "2024"
+version = "2.5.3"
+edition.workspace = true
+license = "GPL-3.0-only"
 
 [dependencies]
+hyprstudio = { path = "../hyprstudio" }
+gtk.workspace = true
+glib.workspace = true
+gio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+regex.workspace = true
+once_cell.workspace = true
+async-channel.workspace = true
+ureq.workspace = true
+tar.workspace = true
+flate2.workspace = true
+xz2.workspace = true
+bzip2.workspace = true
+zip.workspace = true
+libc.workspace = true
+pangocairo.workspace = true
+
+[lib]
+name = "linuxaio"
+path = "src/lib.rs"
+
+[[bin]]
+name = "linux-aio"
+path = "src/main.rs"
