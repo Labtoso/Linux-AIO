@@ -71,7 +71,7 @@ pub fn preset(name: &str, base: Option<&Obj>) -> Obj {
     s
 }
 
-fn c(x: &str) -> String {
+pub fn c(x: &str) -> String {
     model::norm(x)[..7].to_string()
 }
 
