@@ -133,6 +133,18 @@ pub fn fill_ellipse(cr: &cairo::Context, cx: f64, cy: f64, rx: f64, ry: f64, c: 
 
 // ---------- Text ----------
 
+/// Schrift der Oberfläche (wie die Standardschrift der Qt-App), für Text ohne eigene Schriftart.
+pub fn ui_family() -> String {
+    thread_local! {
+        static FAM: std::cell::OnceCell<String> = const { std::cell::OnceCell::new() };
+    }
+    FAM.with(|f| f.get_or_init(|| {
+        let name = gtk::Settings::default().and_then(|s| s.gtk_font_name()).map(|s| s.to_string()).unwrap_or_default();
+        let fd = pango::FontDescription::from_string(&name);
+        fd.family().map(|f| f.to_string()).filter(|f| !f.is_empty()).unwrap_or_else(|| "Sans".into())
+    }).clone())
+}
+
 pub struct Font {
     pub family: String,
     pub px: f64,
@@ -148,6 +160,8 @@ impl Font {
         let mut fd = pango::FontDescription::new();
         if !self.family.is_empty() {
             fd.set_family(&self.family);
+        } else {
+            fd.set_family(&ui_family());
         }
         fd.set_absolute_size(self.px.max(1.0) * pango::SCALE as f64);
         fd.set_weight(self.weight);
@@ -385,4 +399,57 @@ pub fn icon_image(kind: &str, color: &str, size: i32) -> gtk::Image {
     let img = gtk::Image::from_paintable(Some(&icon(kind, color, size)));
     img.set_pixel_size(size);
     img
+}
+
+// ---------- Textur in logischer Größe ----------
+
+mod imp {
+    use gtk::subclass::prelude::*;
+    use gtk::{gdk, glib};
+    use std::cell::{Cell, RefCell};
+
+    #[derive(Default)]
+    pub struct Logical {
+        pub tex: RefCell<Option<gdk::Texture>>,
+        pub w: Cell<i32>,
+        pub h: Cell<i32>,
+    }
+
+    #[glib::object_subclass]
+    impl ObjectSubclass for Logical {
+        const NAME: &'static str = "HsLogicalPaintable";
+        type Type = super::Logical;
+        type Interfaces = (gdk::Paintable,);
+    }
+
+    impl ObjectImpl for Logical {}
+
+    impl gdk::subclass::paintable::PaintableImpl for Logical {
+        fn intrinsic_width(&self) -> i32 {
+            self.w.get()
+        }
+        fn intrinsic_height(&self) -> i32 {
+            self.h.get()
+        }
+        fn snapshot(&self, snapshot: &gdk::Snapshot, width: f64, height: f64) {
+            if let Some(t) = self.tex.borrow().as_ref() {
+                use gtk::prelude::*;
+                t.snapshot(snapshot, width, height);
+            }
+        }
+    }
+}
+
+glib::wrapper! {
+    pub struct Logical(ObjectSubclass<imp::Logical>) @implements gdk::Paintable;
+}
+
+/// Hochaufgelöste Textur (z. B. ×2) mit logischer Größe w×h – damit `gtk::Picture` nicht doppelt so groß wird.
+pub fn logical(tex: &gdk::Texture, w: i32, h: i32) -> Logical {
+    use gtk::subclass::prelude::ObjectSubclassIsExt;
+    let p: Logical = glib::Object::new();
+    *p.imp().tex.borrow_mut() = Some(tex.clone());
+    p.imp().w.set(w);
+    p.imp().h.set(h);
+    p
 }

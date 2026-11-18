@@ -232,7 +232,14 @@ impl Studio {
                     g.current_event_time());
             });
             grip.add_controller(g);
-            overlay.add_overlay(&grip);
+            // eigene Zeile unter dem Inhalt wie QSizeGrip (gleiche Höhe)
+            let grip_row = hbox(0);
+            grip_row.set_size_request(-1, 26);
+            grip_row.append(&spacer());
+            grip.set_margin_end(4);
+            grip.set_margin_bottom(4);
+            grip_row.append(&grip);
+            root.append(&grip_row);
         }
         if let Some(w) = &window {
             w.set_child(Some(&root));
@@ -879,6 +886,27 @@ impl Shell for Studio {
     }
     fn show_log(&self) {
         Studio::show_log(self)
+    }
+}
+
+impl super::kitty_page::TermWin for Studio {
+    fn conf(&self) -> Conf {
+        match self.me.borrow().upgrade() {
+            Some(me) => Studio::conf(&me),
+            None => Conf { cfg: self.cfg.clone(), save: Rc::new(|| {}) },
+        }
+    }
+    fn log(&self, text: &str) {
+        Studio::log(self, text)
+    }
+    fn set_status(&self, text: &str) {
+        Studio::set_status(self, text)
+    }
+    fn report(&self, ok: bool, info: &str) {
+        Studio::report(self, ok, info)
+    }
+    fn hypr_state(&self) -> Option<Obj> {
+        self.hp().map(|hp| hp.state.borrow().clone())
     }
 }
 

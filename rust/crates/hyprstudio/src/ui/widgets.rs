@@ -124,6 +124,10 @@ pub fn clear_box(b: &gtk::Box) {
     }
 }
 
+pub fn clear_listbox(b: &gtk::ListBox) {
+    b.remove_all();
+}
+
 /// Status als schlichter Text mit farbigem Punkt (grün = ok, gelb = Hinweis).
 pub fn set_chip(l: &gtk::Label, ok: bool, text: &str) {
     let col = if ok { theme::OK } else { theme::WARN };
@@ -538,27 +542,30 @@ impl Card {
         let c = Rc::new(Card { root, title, title_key: title_key.into(), grid, rows: RefCell::new(vec![]),
             segs: RefCell::new(vec![]), switches: RefCell::new(vec![]), fonts: RefCell::new(vec![]), host,
             loading: Rc::new(Cell::new(false)) });
+        c.grid.set_visible(false);
         c.retranslate();
         c
     }
 
     /// Zusätzliches Widget unten in die Karte (wie card.layout().addWidget).
     pub fn append<W: IsA<gtk::Widget>>(&self, w: &W) {
+        // wie card.layout().addWidget: unter das Raster ans Ende
         w.set_margin_start(18);
         w.set_margin_end(18);
-        self.root.remove(&self.grid);
-        self.root.append(&self.grid);
-        // Grid behält den unteren Abstand, das neue Widget kommt darunter
-        self.grid.set_margin_bottom(if self.rows.borrow().is_empty() { 0 } else { 6 });
         self.root.append(w);
-        w.set_margin_bottom(16);
         self.fix_bottom_margins();
     }
 
     fn fix_bottom_margins(&self) {
-        // nur das letzte Kind bekommt den unteren Innenabstand
+        // nur das letzte sichtbare Kind bekommt den unteren Innenabstand
         let mut c = self.root.first_child();
-        let last = self.root.last_child();
+        let mut last = self.root.last_child();
+        while let Some(l) = last.clone() {
+            if l.is_visible() || l == self.title.clone().upcast::<gtk::Widget>() {
+                break;
+            }
+            last = l.prev_sibling();
+        }
         while let Some(w) = c {
             if w != self.title.clone().upcast::<gtk::Widget>() {
                 w.set_margin_bottom(if Some(&w) == last.as_ref() { 16 } else { 0 });
@@ -574,6 +581,10 @@ impl Card {
     pub fn add_row(&self, key: &str, widget: &gtk::Widget, value: Option<&gtk::Widget>, tip: Option<&str>,
         refresh: Option<Box<dyn Fn(&Obj)>>, label_key: Option<&str>) -> gtk::Label {
         let r = self.rows.borrow().len() as i32;
+        if !self.grid.is_visible() {
+            self.grid.set_visible(true);
+            self.fix_bottom_margins();
+        }
         let lb = label("", "RowLabel");
         lb.set_size_request(130, -1);
         lb.set_valign(gtk::Align::Center);
@@ -923,7 +934,7 @@ impl PresetCard {
     }
 
     pub fn set_texture(&self, tex: &gdk::Texture) {
-        self.pic.set_paintable(Some(tex));
+        self.pic.set_paintable(Some(&super::draw::logical(tex, 196, 110)));
     }
 
     pub fn refresh(&self, selected: bool, applied: bool) {
@@ -1535,4 +1546,19 @@ pub fn scroller<W: IsA<gtk::Widget>>(child: &W) -> gtk::ScrolledWindow {
     sw.set_vexpand(true);
     sw.set_hexpand(true);
     sw
+}
+
+/// Eingabefeld mit Löschen-Knopf (wie QLineEdit mit setClearButtonEnabled).
+pub fn clear_entry() -> gtk::Entry {
+    let e = gtk::Entry::new();
+    e.connect_changed(|e| {
+        let icon = if e.text().is_empty() { None } else { Some("edit-clear-symbolic") };
+        e.set_secondary_icon_name(icon);
+    });
+    e.connect_icon_release(|e, pos| {
+        if pos == gtk::EntryIconPosition::Secondary {
+            e.set_text("");
+        }
+    });
+    e
 }

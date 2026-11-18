@@ -347,7 +347,6 @@ impl EditorPage {
         let side = vbox(4);
         side.add_css_class("Side");
         side.set_size_request(190, -1);
-        super::widgets::margins(&side, 10, 12, 10, 12);
         let mut nav = vec![];
         let mut first: Option<gtk::ToggleButton> = None;
         for key in kind.sections() {
@@ -388,6 +387,7 @@ impl EditorPage {
             acts.append(b);
         }
         top.append(&acts);
+        top.set_vexpand(false);
         let top_box = top;
         right.append(&top_box);
         let ext_head = hbox(8);

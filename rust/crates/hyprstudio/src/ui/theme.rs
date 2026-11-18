@@ -51,7 +51,18 @@ tooltip, tooltip.background {{ background: {SURFACE2}; color: {TEXT}; border: 1p
 tooltip label {{ color: {TEXT}; }}
 .Root {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 16px; }}
 .Title {{ font-size: 12pt; font-weight: 600; }}
-.Side {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}
+.Side {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; padding: 12px 10px; }}
+flowboxchild {{ padding: 0; background: transparent; outline: none; }}
+.Thumb {{ border: 2px solid transparent; border-radius: 12px; }}
+.Thumb.sel {{ border-color: {a}; }}
+.PicBg {{ background: #1b2430; border-radius: 10px; }}
+.Strong {{ font-weight: 600; }}
+.WsRow {{ padding: 6px 8px 6px 12px; }}
+button.Big {{ font-size: 11pt; }}
+list.ModList {{ background: {BG}; border: 1px solid {BORDER}; border-radius: 12px; padding: 6px; }}
+list.ModList row {{ background: {SURFACE2}; border: 1px solid {BORDER}; border-radius: 8px; padding: 6px 10px; margin: 2px 0; }}
+list.ModList row:selected {{ border-color: {a}; }}
+scrolledwindow.ModList {{ border: none; background: transparent; }}
 .Card {{ background: {SURFACE}; border: 1px solid {BORDER}; border-radius: 12px; }}
 .CardTitle {{ font-size: 10.5pt; font-weight: 600; }}
 .RowLabel {{ color: {MUTED}; }}

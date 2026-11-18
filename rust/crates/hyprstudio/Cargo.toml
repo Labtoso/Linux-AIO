@@ -23,3 +23,11 @@ libc.workspace = true
 bzip2.workspace = true
 zip.workspace = true
 pangocairo.workspace = true
+
+[lib]
+name = "hyprstudio"
+path = "src/lib.rs"
+
+[[bin]]
+name = "hypr-studio"
+path = "src/main.rs"

@@ -171,6 +171,7 @@ impl UserPresets {
             let Some(u) = w.upgrade() else { return };
             let Some(h) = u.host() else { return };
             let exists = store_copy(&h.conf().cfg.borrow(), &h.kind()).contains_key(&name);
+            let name2 = name.clone();
             let w2 = Rc::downgrade(&u);
             let go = move || {
                 let Some(u) = w2.upgrade() else { return };
@@ -189,7 +190,7 @@ impl UserPresets {
                 shell::status(&tf("up.saved", kw!("name" => name)));
             };
             if exists {
-                u.confirm(&tf("up.overwrite", kw!("name" => name.clone())), go);
+                u.confirm(&tf("up.overwrite", kw!("name" => name2)), go);
             } else {
                 go();
             }
@@ -233,6 +234,7 @@ impl UserPresets {
                             return;
                         }
                         let exists = store_copy(&conf.cfg.borrow(), &kind).contains_key(&new);
+                        let new2 = new.clone();
                         let conf2 = conf.clone();
                         let kind2 = kind.clone();
                         let go = move || {
@@ -251,7 +253,7 @@ impl UserPresets {
                             finish();
                         };
                         if exists {
-                            u.confirm(&tf("up.overwrite", kw!("name" => new.clone())), go);
+                            u.confirm(&tf("up.overwrite", kw!("name" => new2)), go);
                         } else {
                             go();
                         }

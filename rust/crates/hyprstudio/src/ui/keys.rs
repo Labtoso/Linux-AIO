@@ -611,7 +611,7 @@ impl BindRow {
 
 pub struct BindEditor {
     pub widget: gtk::Box,
-    pub search: gtk::SearchEntry,
+    pub search: gtk::Entry,
     btn_add: gtk::Button,
     btn_tpl: gtk::Button,
     btn_import: gtk::Button,
@@ -640,7 +640,7 @@ impl BindEditor {
         top.append(&spacer());
         let count = label("", "RowLabel");
         top.append(&count);
-        let search = gtk::SearchEntry::new();
+        let search = super::widgets::clear_entry();
         search.add_css_class("Search");
         search.set_size_request(-1, 40);
         widget.append(&search);
@@ -652,7 +652,7 @@ impl BindEditor {
             rows: RefCell::new(vec![]), user_store: RefCell::new(None), on_changed: RefCell::new(None),
             on_fix: RefCell::new(None), on_import: RefCell::new(None) });
         let w = Rc::downgrade(&e);
-        e.search.connect_search_changed(move |_| {
+        e.search.connect_changed(move |_| {
             if let Some(e) = w.upgrade() {
                 e.filter();
             }

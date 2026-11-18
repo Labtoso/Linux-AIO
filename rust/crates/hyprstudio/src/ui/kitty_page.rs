@@ -385,7 +385,7 @@ impl KittyEditor {
         applied.set_halign(gtk::Align::Start);
         col.append(&applied);
         col.append(&vspacer());
-        let btn_play = icon_button("play", super::theme::TEXT, 16, "", "");
+        let btn_play = button("", "");
         let btn_undo = button("", "");
         let btn_apply = button("", "Primary");
         for b in [&btn_play, &btn_undo, &btn_apply] {
@@ -393,6 +393,7 @@ impl KittyEditor {
             col.append(b);
         }
         top.append(&col);
+        top.set_vexpand(false);
         root.append(&top);
         let sub = Segmented::new(SUBS, "ks.");
         root.append(&sub.root);
@@ -773,7 +774,7 @@ impl KittyEditor {
         if let Some(u) = self.up.borrow().as_ref() {
             u.retranslate();
         }
-        set_button_text(&self.btn_play, &t("play"));
+        self.btn_play.set_label(&t("play"));
         self.btn_undo.set_label(&t("undo"));
         self.btn_apply.set_label(&t("apply"));
         self.btn_from.set_label(&t("from_hypr"));
