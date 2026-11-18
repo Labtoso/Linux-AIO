@@ -225,6 +225,47 @@ columnview header button {{ background: {SURFACE2}; border: none; border-right: 
 
 thread_local! {
     static PROVIDER: RefCell<Option<gtk::CssProvider>> = const { RefCell::new(None) };
+    static SCALE: std::cell::Cell<f64> = const { std::cell::Cell::new(1.0) };
+}
+
+/// Oberflächengröße (Linux AIO: 100/90/80 %) – alle pt/px-Werte werden aus dem Grundtext neu gerechnet.
+pub fn set_scale(f: f64) {
+    SCALE.with(|s| s.set(f));
+}
+
+pub fn scale() -> f64 {
+    SCALE.with(|s| s.get())
+}
+
+/// Alle pt/px-Werte eines Stylesheets skalieren (immer vom Grundtext aus; 1px-Rahmen bleiben 1px).
+pub fn scale_css(text: &str, factor: f64) -> String {
+    if (factor - 1.0).abs() < 0.001 {
+        return text.to_string();
+    }
+    static RE: once_cell::sync::Lazy<regex::Regex> =
+        once_cell::sync::Lazy::new(|| regex::Regex::new(r"(\d+(?:\.\d+)?)(pt|px)\b").unwrap());
+    let mut out = String::with_capacity(text.len());
+    let mut last = 0;
+    for c in RE.captures_iter(text) {
+        let m = c.get(0).unwrap();
+        let prev = text[..m.start()].chars().next_back();
+        if prev.map(|p| p.is_alphanumeric() || p == '_' || p == '#' || p == '.' || p == '-').unwrap_or(false) {
+            continue;
+        }
+        let v: f64 = c[1].parse().unwrap_or(0.0);
+        let unit = &c[2];
+        out.push_str(&text[last..m.start()]);
+        if unit == "px" && v <= 1.0 {
+            out.push_str(m.as_str());
+        } else if unit == "pt" {
+            out.push_str(&format!("{:.1}pt", v * factor));
+        } else {
+            out.push_str(&format!("{}px", ((v * factor).round() as i64).max(1)));
+        }
+        last = m.end();
+    }
+    out.push_str(&text[last..]);
+    out
 }
 
 /// Stylesheet für die ganze App setzen (bei Akzentwechsel neu).
@@ -238,7 +279,7 @@ pub fn apply(accent: &str) {
                 gtk::STYLE_PROVIDER_PRIORITY_APPLICATION + 10);
             *p = Some(prov);
         }
-        p.as_ref().unwrap().load_from_string(&css(accent));
+        p.as_ref().unwrap().load_from_string(&scale_css(&css(accent), scale()));
     });
     if let Some(s) = gtk::Settings::default() {
         s.set_gtk_application_prefer_dark_theme(true);

@@ -149,10 +149,17 @@ pub struct Segmented {
     pub btns: Vec<(String, gtk::ToggleButton)>,
     prefix: String,
     on_change: Cb<String>,
+    /// Übersetzung der Beschriftungen (Hypr Studio oder Linux AIO)
+    tr: Cell<fn(&str) -> String>,
 }
 
 impl Segmented {
     pub fn new(keys: &[&str], prefix: &str) -> Rc<Segmented> {
+        Self::new_tr(keys, prefix, t)
+    }
+
+    /// Wie `new`, aber mit eigener Übersetzung (Linux AIO hat ein eigenes Wörterbuch).
+    pub fn new_tr(keys: &[&str], prefix: &str, tr: fn(&str) -> String) -> Rc<Segmented> {
         let root = hbox(2);
         root.add_css_class("SegBox");
         root.set_halign(gtk::Align::Start);
@@ -170,7 +177,7 @@ impl Segmented {
             root.append(&b);
             btns.push((k.to_string(), b));
         }
-        let s = Rc::new(Segmented { root, btns, prefix: prefix.into(), on_change: RefCell::new(None) });
+        let s = Rc::new(Segmented { root, btns, prefix: prefix.into(), on_change: RefCell::new(None), tr: Cell::new(tr) });
         for (k, b) in &s.btns {
             let w = Rc::downgrade(&s);
             let k = k.clone();
@@ -207,7 +214,7 @@ impl Segmented {
 
     pub fn retranslate(&self) {
         for (k, b) in &self.btns {
-            b.set_label(&t(&format!("{}{}", self.prefix, k)));
+            b.set_label(&(self.tr.get())(&format!("{}{}", self.prefix, k)));
         }
     }
 }
@@ -973,6 +980,12 @@ pub struct NavHeader {
     arrow: gtk::DrawingArea,
     text: gtk::Label,
     pub buttons: RefCell<Vec<gtk::ToggleButton>>,
+    /// weitere Widgets, die eingeklappt ganz verschwinden (Linux AIO: Listen)
+    pub widgets: RefCell<Vec<gtk::Widget>>,
+    /// nach jedem Auf-/Zuklappen
+    pub on_sync: Cb<bool>,
+    /// Übersetzung der Überschrift
+    pub tr: Cell<fn(&str) -> String>,
 }
 
 impl NavHeader {
@@ -990,7 +1003,8 @@ impl NavHeader {
         row.append(&text);
         button.set_child(Some(&row));
         let h = Rc::new(NavHeader { button, conf, gid: gid.into(), key: key.into(), arrow, text,
-            buttons: RefCell::new(vec![]) });
+            buttons: RefCell::new(vec![]), widgets: RefCell::new(vec![]), on_sync: RefCell::new(None),
+            tr: Cell::new(t) });
         let w = Rc::downgrade(&h);
         h.arrow.set_draw_func(move |a, cr, wd, ht| {
             let Some(h) = w.upgrade() else { return };
@@ -1052,12 +1066,18 @@ impl NavHeader {
         for b in self.buttons.borrow().iter() {
             b.set_visible(!c || b.is_active());
         }
+        for w in self.widgets.borrow().iter() {
+            w.set_visible(!c);
+        }
         self.retranslate();
         self.arrow.queue_draw();
+        if let Some(f) = self.on_sync.borrow().as_ref() {
+            f(c);
+        }
     }
 
     pub fn retranslate(&self) {
-        self.text.set_text(&t(&format!("nav.{}", self.key)));
+        self.text.set_text(&(self.tr.get())(&format!("nav.{}", self.key)));
         self.button.set_tooltip_text(Some(&t(if self.collapsed() { "nav.unfold" } else { "nav.fold" })));
     }
 }
