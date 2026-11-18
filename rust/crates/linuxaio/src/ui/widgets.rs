@@ -228,8 +228,9 @@ impl Tile {
         let w = Rc::downgrade(&t);
         t.dot.set_draw_func(move |_, cr, wd, ht| {
             let Some(t) = w.upgrade() else { return };
-            if let Some(c) = t.dot_color.borrow().as_ref() {
-                draw::fill_ellipse(cr, wd as f64 / 2.0, ht as f64 / 2.0, 4.0, 4.0, Rgba::hex(c));
+            let c = t.dot_color.borrow().clone();
+            if let Some(c) = c {
+                draw::fill_ellipse(cr, wd as f64 / 2.0, ht as f64 / 2.0, 4.0, 4.0, Rgba::hex(&c));
             }
         });
         let click = gtk::GestureClick::new();

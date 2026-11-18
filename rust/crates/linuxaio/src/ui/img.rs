@@ -118,3 +118,27 @@ pub fn darker(c: hyprstudio::ui::draw::Rgba, k: f64) -> hyprstudio::ui::draw::Rg
 pub fn pt(p: f64) -> f64 {
     p * 96.0 / 72.0
 }
+
+/// Bilddaten, die zwischen Threads wandern dürfen (Pixbuf selbst darf das nicht).
+pub struct Raw {
+    data: gtk::glib::Bytes,
+    alpha: bool,
+    w: i32,
+    h: i32,
+    stride: i32,
+}
+
+impl Raw {
+    pub fn from(pb: &Pixbuf) -> Raw {
+        Raw { data: pb.read_pixel_bytes(), alpha: pb.has_alpha(), w: pb.width(), h: pb.height(), stride: pb.rowstride() }
+    }
+
+    pub fn pixbuf(&self) -> Pixbuf {
+        Pixbuf::from_bytes(&self.data, gtk::gdk_pixbuf::Colorspace::Rgb, self.alpha, 8, self.w, self.h, self.stride)
+    }
+}
+
+/// Im Hintergrund laden (verkleinert) → `Raw`.
+pub fn load_raw(path: &Path, limit: i32) -> Option<Raw> {
+    load(path, limit).map(|pb| Raw::from(&pb))
+}
