@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=SDDM Studio
+GenericName=Login Themes
+GenericName[de]=Anmelde-Themes
+Comment=Apply, test and install SDDM login themes
+Comment[de]=SDDM-Anmelde-Themes anwenden, testen und installieren
+Exec=sddm-studio
+Icon=de.labtosostudios.sddmstudio
+Terminal=false
+Categories=GTK;System;Settings;
+Keywords=sddm;login;theme;greeter;kde;store;
+StartupWMClass=de.labtosostudios.sddmstudio
+StartupNotify=false

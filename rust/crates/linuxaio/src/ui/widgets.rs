@@ -13,7 +13,6 @@ use std::rc::Rc;
 
 pub type Cb<T> = RefCell<Option<Box<dyn Fn(T)>>>;
 
-pub const APP_SVG: &[u8] = include_bytes!("../../../../../src/linuxaio/assets/linux-aio.svg");
 
 /// Segment-Umschalter mit Linux-AIO-Texten.
 pub fn seg(keys: &[&str], prefix: &str) -> Rc<Segmented> {
@@ -23,10 +22,10 @@ pub fn seg(keys: &[&str], prefix: &str) -> Rc<Segmented> {
 /// Programmsymbol (Tux) in Pixelgröße.
 pub fn app_icon(size: i32) -> gtk::Image {
     let theme_has = gtk::gdk::Display::default()
-        .map(|d| gtk::IconTheme::for_display(&d).has_icon(crate::APP_ID)).unwrap_or(false);
+        .map(|d| gtk::IconTheme::for_display(&d).has_icon(crate::edition::ed().id)).unwrap_or(false);
     let img = if theme_has {
-        gtk::Image::from_icon_name(crate::APP_ID)
-    } else if let Some(pb) = img::from_bytes_at(APP_SVG, size * 2, size * 2) {
+        gtk::Image::from_icon_name(crate::edition::ed().id)
+    } else if let Some(pb) = img::from_bytes_at(crate::edition::ed().icon_svg, size * 2, size * 2) {
         gtk::Image::from_paintable(Some(&img::texture(&pb)))
     } else {
         gtk::Image::new()

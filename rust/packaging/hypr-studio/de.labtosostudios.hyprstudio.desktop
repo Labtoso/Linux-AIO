@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Hypr Studio
+GenericName=Hyprland Customizer
+GenericName[de]=Hyprland gestalten
+Comment=Customize Hyprland and Waybar with a click
+Comment[de]=Hyprland und Waybar per Klick gestalten
+Exec=hypr-studio
+Icon=de.labtosostudios.hyprstudio
+Terminal=false
+Categories=GTK;Settings;DesktopSettings;
+Keywords=hyprland;waybar;rofi;wofi;fuzzel;launcher;theme;rice;gaps;blur;animation;shortcuts;
+StartupWMClass=de.labtosostudios.hyprstudio
+StartupNotify=false

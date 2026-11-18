@@ -641,6 +641,12 @@ impl ThemePage {
         self.rebuild();
     }
 
+    /// Testhilfe: Quelle umschalten (wie ein Klick auf „Installiert“ / „Installieren“).
+    pub fn show_source(self: &Rc<Self>, mode: &str) {
+        self.src.select(mode);
+        self.set_mode(mode);
+    }
+
     /// Globale Suche: Theme-Namen ins Suchfeld.
     pub fn set_search(&self, text: &str) {
         self.search_edit.set_text(text);

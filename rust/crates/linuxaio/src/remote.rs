@@ -23,7 +23,7 @@ pub const MAX_ARCHIVE: usize = 600 * 1024 * 1024;
 pub const MAX_UNPACKED: u64 = 3 * 1024 * 1024 * 1024;
 
 pub fn ua() -> String {
-    format!("Linux-AIO/{} (LabtosoStudios)", crate::VERSION)
+    format!("{}/{} (LabtosoStudios)", crate::edition::ed().name.replace(' ', "-"), crate::edition::ed().version)
 }
 
 pub fn cache() -> PathBuf {

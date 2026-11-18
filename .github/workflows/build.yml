@@ -1,0 +1,126 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['site/**', '**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      release: ${{ steps.v.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V=$(tr -d ' \n\r' < VERSION)
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]] && ! gh release view "v$V" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "release=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    name: Linux x86_64
+    needs: version
+    # Ubuntu 24.04: GTK 4.14 und eine ältere glibc → läuft auf Arch, Fedora, openSUSE, Debian 13, Ubuntu 24.04+
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libfontconfig-dev librsvg2-bin zip xvfb
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Tests
+        working-directory: rust
+        run: cargo test --workspace
+      - name: Build
+        working-directory: rust
+        run: cargo build --release --workspace
+      - name: Package
+        run: |
+          ver() { grep -m1 '^version' "rust/crates/$1/Cargo.toml" | cut -d'"' -f2; }
+          AIO=$(ver linuxaio); SDDM=$(ver sddmstudio); HYPR=$(ver hyprstudio)
+          mkdir -p out
+          sh rust/packaging/package.sh linux-aio rust/target/release/linux-aio "$AIO" out
+          sh rust/packaging/package.sh sddm-studio rust/target/release/sddm-studio "$SDDM" out
+          sh rust/packaging/package.sh hypr-studio rust/target/release/hypr-studio "$HYPR" out
+          # einzelne Programmdateien: für die Update-Funktion in den Apps (mit Prüfsumme)
+          cp rust/target/release/linux-aio "out/Linux-AIO-$AIO-x86_64"
+          cp rust/target/release/sddm-studio "out/SDDM-Studio-$SDDM-x86_64"
+          cp rust/target/release/hypr-studio "out/Hypr-Studio-$HYPR-x86_64"
+          # frühere Version (AppImage) holt sich darüber das Update auf die neue
+          cp rust/target/release/linux-aio "out/Linux-AIO-$AIO-x86_64.AppImage"
+          (cd out && sha256sum * > SHA256SUMS)
+          printf '{"linux-aio":"%s","sddm-studio":"%s","hypr-studio":"%s"}\n' "$AIO" "$SDDM" "$HYPR" > out/apps.json
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: out/*
+          if-no-files-found: error
+
+  release:
+    name: Release
+    if: needs.version.outputs.release == 'true'
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: out
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          APPS="$(cat out/apps.json)"; rm out/apps.json
+          # jedes Release bekommt eine Beschreibung: die Notizen-Datei, sonst die Commits seit dem letzten Release
+          NOTES=".github/releases/v$V.md"
+          if [ ! -s "$NOTES" ]; then
+            git fetch -q --tags origin || true
+            PREV="$(git tag -l 'v*' --sort=-v:refname | grep -vx "v$V" | head -n1)"
+            NOTES="$(mktemp)"
+            { echo "## What changed"; git log --no-merges --format='- %s' ${PREV:+$PREV..}HEAD | grep -v '^- Download page' | head -n 40; } > "$NOTES"
+          fi
+          FULL="$(mktemp)"; cat "$NOTES" > "$FULL"
+          printf '\n## Install\nDownload **Linux-AIO.zip**, **SDDM-Studio.zip** or **Hypr-Studio.zip** (also on https://linux.labtoso.de), unzip it and run `sh Install.sh`.\n' >> "$FULL"
+          gh release create "v$V" out/* --target "$GITHUB_SHA" --title "Linux AIO $V" --notes-file "$FULL" --latest
+          echo "$APPS" > "$RUNNER_TEMP/apps.json"
+      # die Website zeigt die neue Version sofort
+      - name: Download page
+        env:
+          GH_TOKEN: ${{ github.token }}
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          git config user.name Labtoso
+          git config user.email 235880825+Labtoso@users.noreply.github.com
+          APPS="$(cat "$RUNNER_TEMP/apps.json")"
+          for i in 1 2 3; do
+            git fetch -q origin main && git checkout -q -B main origin/main
+            printf '{"tag_name":"v%s","published_at":"%s","apps":%s}\n' "$V" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$APPS" > site/version.json
+            git add site/version.json
+            git diff --cached --quiet && break
+            git commit -qm "Download page: version $V" && git push -q origin main && break
+            sleep 5
+          done
+          gh workflow run pages.yml --ref main

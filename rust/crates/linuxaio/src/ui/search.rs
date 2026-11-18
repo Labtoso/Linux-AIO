@@ -3,7 +3,7 @@
 
 use super::settings_page::sections;
 use super::widgets::search_entry;
-use super::win::{win, AioPage, TABS};
+use super::win::{tabs, win, AioPage};
 use crate::i18n::{self, t};
 use crate::{catalog, desktops, looks, plymouth, sddm};
 use gtk::prelude::*;
@@ -96,7 +96,7 @@ pub fn entries(data: &Data, current_de: &str) -> Vec<Hit> {
     let names: std::collections::HashMap<&str, &str> = data.de.iter().map(|(d, n, _)| (d.as_str(), n.as_str())).collect();
     let inst: Vec<&str> = data.de.iter().filter(|(_, _, ok)| *ok).map(|(d, _, _)| d.as_str()).collect();
     let set = t("tab.settings");
-    let mut res: Vec<(String, String, Target)> = TABS.iter().map(|k| (t(&format!("tab.{k}")), String::new(), Target::Tab(k.to_string()))).collect();
+    let mut res: Vec<(String, String, Target)> = tabs().iter().map(|k| (t(&format!("tab.{k}")), String::new(), Target::Tab(k.to_string()))).collect();
     for (d, n, _) in &data.de {
         res.push((n.clone(), t("tab.de"), Target::De(d.clone())));
     }

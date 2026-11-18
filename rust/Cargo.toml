@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/hyprstudio", "crates/linuxaio"]
+members = ["crates/hyprstudio", "crates/linuxaio", "crates/sddmstudio"]
 
 [workspace.package]
 edition = "2021"

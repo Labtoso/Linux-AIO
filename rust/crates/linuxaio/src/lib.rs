@@ -8,6 +8,8 @@ pub const APP_NAME: &str = "Linux AIO";
 pub const REPO_URL: &str = "https://github.com/Labtoso/Linux-AIO";
 pub const LICENSE: &str = "GPL-3.0-only";
 
+pub mod edition;
+pub mod app;
 pub mod i18n;
 pub mod ini;
 pub mod usercmd;

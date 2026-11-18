@@ -2,12 +2,13 @@
 //! derselben ID wie das Fenster (Wayland app_id = Name der .desktop-Datei) und das Tux-Symbol in hicolor angelegt,
 //! damit Docks das richtige Symbol zeigen. Das PNG zeichnet der Aufrufer.
 
+use crate::edition::ed;
 use crate::usercmd;
 use hyprstudio::util;
 use std::path::{Path, PathBuf};
 
 pub fn system_entry() -> PathBuf {
-    PathBuf::from(format!("/usr/share/applications/{}.desktop", crate::APP_ID))
+    PathBuf::from(format!("/usr/share/applications/{}.desktop", ed().id))
 }
 
 /// Befehl, der diese Kopie des Programms startet (nur außerhalb von /usr).
@@ -26,12 +27,11 @@ pub fn launcher() -> Option<String> {
 
 pub fn entry_text(exec_cmd: &str) -> String {
     format!("[Desktop Entry]\nType=Application\nName={}\n\
-             Comment=Desktops, SDDM, Plymouth and desktop settings in one place\n\
-             Comment[de]=Desktops, SDDM, Plymouth und Desktop-Einstellungen an einem Ort\n\
+             Comment={}\nComment[de]={}\n\
              Exec={}\nIcon={}\nTerminal=false\nCategories=System;Settings;\n\
              StartupWMClass={}\nStartupNotify=false\n\
-             Keywords=desktop;gnome;plasma;hyprland;sddm;plymouth;cursor;fonts;tweaks;\n",
-            crate::APP_NAME, exec_cmd, crate::APP_ID, crate::APP_ID)
+             Keywords={}\n",
+            ed().name, ed().comment, ed().comment_de, exec_cmd, ed().id, ed().id, ed().keywords)
 }
 
 /// Eintrag schreiben/auffrischen. `render_png(size, path)` zeichnet das Symbol. True, wenn sich etwas geändert hat.
@@ -41,7 +41,7 @@ pub fn ensure(render_png: Option<&dyn Fn(i32, &Path)>, log: &dyn Fn(&str)) -> bo
     }
     let Some(cmd) = launcher() else { return false };
     let data = util::xdg_data();
-    let entry = data.join("applications").join(format!("{}.desktop", crate::APP_ID));
+    let entry = data.join("applications").join(format!("{}.desktop", ed().id));
     let text = entry_text(&cmd);
     let mut changed = false;
     let old = if entry.is_file() { util::read_text(&entry) } else { String::new() };
@@ -55,7 +55,7 @@ pub fn ensure(render_png: Option<&dyn Fn(i32, &Path)>, log: &dyn Fn(&str)) -> bo
         log(&format!("→ {}", entry.display()));
     }
     for size in [48, 128, 256] {
-        let icon = data.join(format!("icons/hicolor/{s}x{s}/apps/{}.png", crate::APP_ID, s = size));
+        let icon = data.join(format!("icons/hicolor/{s}x{s}/apps/{}.png", ed().id, s = size));
         if let (false, Some(r)) = (icon.is_file(), render_png) {
             let _ = std::fs::create_dir_all(icon.parent().unwrap());
             r(size, &icon);

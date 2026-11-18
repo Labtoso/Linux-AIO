@@ -125,6 +125,9 @@ impl Panel {
         root.append(&seg_scale.root);
         root.append(&l_hypr);
         root.append(&seg_hypr.root);
+        // SDDM Studio hat kein Hypr Studio
+        l_hypr.set_visible(crate::edition::is_aio());
+        seg_hypr.root.set_visible(crate::edition::is_aio());
         root.append(&l_upd);
         root.append(&seg_upd.root);
         root.append(&b_restart);
@@ -183,7 +186,7 @@ impl Panel {
         }
         self.css.load_from_string(&css);
         self.info.set_text(&format!("{} · {} · v{}\nLabtosoStudios · GPL-3.0", system::distro_name(),
-            backend.unwrap_or("–"), crate::VERSION));
+            backend.unwrap_or("–"), crate::edition::ed().version));
     }
 }
 

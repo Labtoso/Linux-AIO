@@ -1,4 +1,4 @@
-//! Nach Updates suchen: neueste v-Version von Labtoso/Linux-AIO (das Release „assets“ wird ignoriert), Änderungen,
+//! Nach Updates suchen: neueste Programmdatei dieser App in den v-Releases von Labtoso/Linux-AIO (das Release „assets“ wird ignoriert), Änderungen,
 //! Download des Programms mit sha256-Prüfung (SHA256SUMS im Release), atomarer Austausch von ~/.local/bin/Linux-AIO
 //! (das alte kommt nach ~/.local/share/LabtosoStudios/linuxaio/old/<Version>/). Einstellungen bleiben.
 
@@ -15,7 +15,18 @@ use std::time::Duration;
 pub const API: &str = "https://api.github.com/repos/Labtoso/Linux-AIO/releases?per_page=20";
 /// Endung der Programmdatei im Release (Linux-AIO-<Version>-x86_64)
 pub const ASSET_SUFFIX: &str = "-x86_64";
-pub const ASSET_PREFIX: &str = "Linux-AIO-";
+
+/// Programmdatei dieser App: Linux-AIO-<Version>-x86_64 bzw. SDDM-Studio-<Version>-x86_64
+fn prefix() -> &'static str {
+    crate::edition::ed().asset_prefix
+}
+
+/// Version aus dem Dateinamen (ein Release enthält alle Apps mit eigener Version).
+fn asset_version(name: &str) -> Option<String> {
+    let v = name.strip_prefix(prefix())?.strip_suffix(ASSET_SUFFIX)?;
+    let ok = v.split('.').count() == 3 && v.split('.').all(|p| !p.is_empty() && p.chars().all(|c| c.is_ascii_digit()));
+    ok.then(|| v.to_string())
+}
 
 pub fn vtuple(v: &str) -> Vec<u64> {
     static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\d+").unwrap());
@@ -61,11 +72,11 @@ pub fn latest(releases: Option<Vec<Value>>) -> Result<Option<Info>, SourceError>
         }
         let assets = r.get("assets").and_then(|v| v.as_array()).cloned().unwrap_or_default();
         let name_of = |a: &Value| a.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let app = assets.iter().find(|a| { let n = name_of(a); n.starts_with(ASSET_PREFIX) && n.ends_with(ASSET_SUFFIX) });
+        let app = assets.iter().find(|a| asset_version(&name_of(a)).is_some());
         let sums = assets.iter().find(|a| name_of(a) == "SHA256SUMS");
         let (Some(app), Some(sums)) = (app, sums) else { continue };
         let url = |a: &Value| a.get("browser_download_url").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let info = Info { version: tag[1..].to_string(), notes: r.get("body").and_then(|v| v.as_str()).unwrap_or("").into(),
+        let info = Info { version: asset_version(&name_of(app)).unwrap_or_default(), notes: r.get("body").and_then(|v| v.as_str()).unwrap_or("").into(),
                           app_url: url(app), app_name: name_of(app), sums_url: url(sums),
                           size: app.get("size").and_then(|v| v.as_u64()).unwrap_or(0) };
         if best.as_ref().map(|b| vtuple(&info.version) > vtuple(&b.version)).unwrap_or(true) {
@@ -89,13 +100,18 @@ fn latest_without_api() -> Result<Option<Info>, SourceError> {
         return Ok(None);
     }
     let base = format!("https://github.com/Labtoso/Linux-AIO/releases/download/{}/", tag);
-    let name = format!("{}{}{}", ASSET_PREFIX, &tag[1..], ASSET_SUFFIX);
-    Ok(Some(Info { version: tag[1..].into(), notes: String::new(), app_url: format!("{}{}", base, name), app_name: name,
-                   sums_url: format!("{}SHA256SUMS", base), size: 0 }))
+    // Name der Programmdatei steht in SHA256SUMS
+    let sums = String::from_utf8_lossy(&get(&format!("{}SHA256SUMS", base))?).into_owned();
+    let Some(name) = sums.lines().filter_map(|l| l.split_whitespace().last()).find(|n| asset_version(n).is_some()) else {
+        return Ok(None);
+    };
+    let name = name.trim_start_matches('*').to_string();
+    Ok(Some(Info { version: asset_version(&name).unwrap_or_default(), notes: String::new(), app_url: format!("{}{}", base, name),
+                   app_name: name, sums_url: format!("{}SHA256SUMS", base), size: 0 }))
 }
 
 pub fn newer(info: Option<&Info>) -> bool {
-    info.map(|i| vtuple(&i.version) > vtuple(crate::VERSION)).unwrap_or(false)
+    info.map(|i| vtuple(&i.version) > vtuple(crate::edition::ed().version)).unwrap_or(false)
 }
 
 pub fn short_notes(notes: &str, lines: usize) -> String {
@@ -104,7 +120,14 @@ pub fn short_notes(notes: &str, lines: usize) -> String {
 }
 
 pub fn target() -> PathBuf {
-    usercmd::real_home().join(".local/bin/Linux-AIO")
+    let bin = usercmd::real_home().join(".local/bin");
+    // läuft schon eine Kopie in ~/.local/bin (auch die frühere Linux-AIO.AppImage): genau die ersetzen
+    if let Ok(me) = std::env::current_exe() {
+        if me.parent() == Some(bin.as_path()) {
+            return me;
+        }
+    }
+    bin.join(crate::edition::ed().local_name)
 }
 
 /// Laden → sha256 prüfen → altes Programm nach old/ → neues atomar an seinen Platz.
@@ -117,7 +140,7 @@ pub fn install(info: &Info, progress: &mut dyn FnMut(u32), log: &dyn Fn(&str)) -
     }
     let dst = target();
     let _ = std::fs::create_dir_all(dst.parent().unwrap());
-    let part = dst.with_file_name("Linux-AIO.part");
+    let part = dst.with_file_name(format!("{}.part", crate::edition::ed().local_name));
     let agent = ureq::AgentBuilder::new().timeout(Duration::from_secs(60)).build();
     let off = |e: String| {
         let _ = std::fs::remove_file(&part);
@@ -147,9 +170,9 @@ pub fn install(info: &Info, progress: &mut dyn FnMut(u32), log: &dyn Fn(&str)) -
     }
     let _ = std::fs::set_permissions(&part, std::fs::Permissions::from_mode(0o755));
     if dst.is_file() {
-        let old = usercmd::real_home().join(".local/share/LabtosoStudios/linuxaio/old").join(crate::VERSION);
+        let old = usercmd::real_home().join(".local/share/LabtosoStudios").join(crate::edition::ed().key).join("old").join(crate::edition::ed().version);
         let _ = std::fs::create_dir_all(&old);
-        let _ = hyprstudio::util::copy2(&dst, &old.join("Linux-AIO"));
+        let _ = hyprstudio::util::copy2(&dst, &old.join(crate::edition::ed().local_name));
         log(&format!("{} → {}", dst.display(), old.display()));
     }
     std::fs::rename(&part, &dst).map_err(|e| SourceError::new("remote.offline", &e.to_string()))?; // atomar
@@ -168,6 +191,7 @@ mod tests {
           {"tag_name": "v3.0.1", "assets": [{"name": "Linux-AIO-3.0.1-x86_64", "browser_download_url": "a", "size": 5},
                                              {"name": "SHA256SUMS", "browser_download_url": "s"}]},
           {"tag_name": "v3.0.10", "assets": [{"name": "Linux-AIO-3.0.10-x86_64", "browser_download_url": "b"},
+                                              {"name": "SDDM-Studio-1.0.4-x86_64", "browser_download_url": "c"},
                                               {"name": "SHA256SUMS", "browser_download_url": "s"}]},
           {"tag_name": "v9.0.0", "draft": true, "assets": []}]"#).unwrap();
         let i = latest(Some(rel)).unwrap().unwrap();

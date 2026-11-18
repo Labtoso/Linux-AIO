@@ -7,6 +7,7 @@ use super::settings_page::SettingsPage;
 use super::style;
 use super::theme_page::ThemePage;
 use super::widgets::{app_icon, seg};
+use crate::edition::ed;
 use crate::i18n::{self, t, tf};
 use crate::{presetfile, pyjson, safety, system, updater, usercmd};
 use gtk::prelude::*;
@@ -24,8 +25,10 @@ use std::io::BufRead;
 use std::path::{Path, PathBuf};
 use std::rc::{Rc, Weak};
 
-pub const TABS: &[&str] = &["de", "sddm", "ply", "settings"];
-pub const INSTALLED_HELPER: &str = "/usr/lib/labtoso-linuxaio/linuxaio-helper";
+/// Tabs dieser Ausgabe (SDDM Studio: nur „sddm“).
+pub fn tabs() -> &'static [&'static str] {
+    ed().tabs
+}
 
 /// Was jede Seite dem Fenster bietet.
 pub trait AioPage {
@@ -43,7 +46,7 @@ pub trait AioPage {
 }
 
 pub fn config_path() -> PathBuf {
-    util::xdg_config().join("LabtosoStudios").join("linuxaio.json")
+    util::xdg_config().join("LabtosoStudios").join(ed().cfg_file)
 }
 
 pub fn load_cfg() -> Obj {
@@ -126,10 +129,10 @@ pub struct Win {
 impl Win {
     pub fn new(app: &gtk::Application) -> Rc<Win> {
         let mut c = load_cfg();
-        if c.s("version") != crate::VERSION {
+        if c.s("version") != ed().version {
             // jede neue Version startet auf Englisch
             c.insert("lang".into(), json!("en"));
-            c.insert("version".into(), json!(crate::VERSION));
+            c.insert("version".into(), json!(ed().version));
             save_cfg(&c);
         }
         let lang = if c.s("lang").is_empty() { "en".to_string() } else { c.s("lang").to_string() };
@@ -138,16 +141,16 @@ impl Win {
         let th = palettes::legacy(&th).unwrap_or(th);
         let th = if palettes::theme_color(&th).is_some() { th } else { "01".into() };
         c.insert("theme".into(), json!(th));
-        if !TABS.contains(&c.s("tab")) {
-            c.insert("tab".into(), json!("de"));
+        if !tabs().contains(&c.s("tab")) {
+            c.insert("tab".into(), json!(tabs()[0]));
         }
         let backend = system::detect_backend().or_else(|| usercmd::dry().then(|| "pacman".to_string()));
         let running = system::running_desktop();
         let cfg = Rc::new(RefCell::new(c));
 
         let window = gtk::ApplicationWindow::new(app);
-        window.set_title(Some(crate::APP_NAME));
-        window.set_icon_name(Some(crate::APP_ID));
+        window.set_title(Some(ed().name));
+        window.set_icon_name(Some(ed().id));
         window.set_decorated(false);
         window.add_css_class("hs-window");
         window.set_default_size(1360, 880);
@@ -169,11 +172,12 @@ impl Win {
         gear.set_size_request(36, 36);
         gear.set_valign(gtk::Align::Center);
         cursor_hand(&gear);
-        let title = label(crate::APP_NAME, "Title");
+        let title = label(ed().name, "Title");
         let left = hbox(10);
         left.append(&gear);
         left.append(&title);
-        let tabs = seg(TABS, "tab.");
+        let tabs = seg(ed().tabs, "tab.");
+        tabs.root.set_visible(ed().tabs.len() > 1);
         tabs.root.remove_css_class("SegBox");
         tabs.root.add_css_class("ATabBox");
         let right = hbox(6);
@@ -306,21 +310,33 @@ impl Win {
         });
         w.apply_theme();
 
-        let sb = SearchBox::new();
-        search_slot.append(&sb.entry);
-        let _ = w.search.set(sb);
-        let de = DePage::new();
-        w.stack.add_named(&de.widget(), Some("de"));
-        let _ = w.de_page.set(de);
-        let sp = ThemePage::new_sddm();
-        w.stack.add_named(&sp.widget(), Some("sddm"));
-        let _ = w.sddm_page.set(sp);
-        let pp = ThemePage::new_ply();
-        w.stack.add_named(&pp.widget(), Some("ply"));
-        let _ = w.ply_page.set(pp);
-        let st = SettingsPage::new();
-        w.stack.add_named(&st.widget(), Some("settings"));
-        let _ = w.settings_page.set(st);
+        // SDDM Studio: nur der SDDM-Tab, ohne Suche
+        let has = |k: &str| ed().tabs.contains(&k);
+        if ed().tabs.len() > 1 {
+            let sb = SearchBox::new();
+            search_slot.append(&sb.entry);
+            let _ = w.search.set(sb);
+        }
+        if has("de") {
+            let de = DePage::new();
+            w.stack.add_named(&de.widget(), Some("de"));
+            let _ = w.de_page.set(de);
+        }
+        if has("sddm") {
+            let sp = ThemePage::new_sddm();
+            w.stack.add_named(&sp.widget(), Some("sddm"));
+            let _ = w.sddm_page.set(sp);
+        }
+        if has("ply") {
+            let pp = ThemePage::new_ply();
+            w.stack.add_named(&pp.widget(), Some("ply"));
+            let _ = w.ply_page.set(pp);
+        }
+        if has("settings") {
+            let st = SettingsPage::new();
+            w.stack.add_named(&st.widget(), Some("settings"));
+            let _ = w.settings_page.set(st);
+        }
         w.connect();
         w.retranslate();
         if let Some(p) = w.sddm_page.get() {
@@ -513,8 +529,8 @@ impl Win {
             let mut a = vec!["--helper".to_string()];
             a.extend(args);
             (me.to_string_lossy().into_owned(), a)
-        } else if Path::new(INSTALLED_HELPER).is_file() {
-            let mut a = vec![INSTALLED_HELPER.to_string()];
+        } else if Path::new(ed().helper).is_file() {
+            let mut a = vec![ed().helper.to_string()];
             a.extend(args);
             ("pkexec".into(), a)
         } else {
@@ -679,7 +695,7 @@ impl Win {
     // ----- Tabs -----
 
     pub fn set_tab(self: &Rc<Self>, tab: &str) {
-        let tab = if TABS.contains(&tab) { tab } else { "de" };
+        let tab = if tabs().contains(&tab) { tab } else { tabs()[0] };
         self.cfg.borrow_mut().insert("tab".into(), json!(tab));
         self.save();
         self.tabs.select(tab);
@@ -808,7 +824,7 @@ impl Win {
                 Ok(info) => {
                     if !updater::newer(info.as_ref()) {
                         if !quiet {
-                            w.set_status(&tf("upd.none", kw!("ver" => crate::VERSION)));
+                            w.set_status(&tf("upd.none", kw!("ver" => ed().version)));
                         }
                         return;
                     }
@@ -824,7 +840,7 @@ impl Win {
     }
 
     fn offer_update(self: &Rc<Self>, info: updater::Info) {
-        let text = format!("{}\n\n{}", tf("upd.ask", kw!("ver" => info.version, "cur" => crate::VERSION)),
+        let text = format!("{}\n\n{}", tf("upd.ask", kw!("ver" => info.version, "cur" => ed().version)),
             updater::short_notes(&info.notes, 12));
         dialogs::confirm(self.parent().as_ref(), &t("upd.check"), &text, Some(&t("upd.install")), false, move |ok| {
             if !ok {
@@ -1005,8 +1021,8 @@ fn about_dialog(w: &Win) {
     let top = hbox(16);
     top.append(&app_icon(72));
     let col = vbox(0);
-    col.append(&label(crate::APP_NAME, "DeName"));
-    col.append(&label(&format!("{} {} · LabtosoStudios", t("about.version"), crate::VERSION), "ALabel"));
+    col.append(&label(ed().name, "DeName"));
+    col.append(&label(&format!("{} {} · LabtosoStudios", t("about.version"), ed().version), "ALabel"));
     top.append(&col);
     f.body.append(&top);
     let markup = tf("about.text", kw!("url" => crate::REPO_URL)).replace("<br>", "\n");
@@ -1069,7 +1085,7 @@ pub fn activate(app: &gtk::Application) {
 /// AppImage/einzelne Datei: Startmenü-Eintrag + Symbol mit der App-ID des Fensters.
 fn integrate() {
     let render = |size: i32, path: &Path| {
-        if let Some(pb) = super::img::from_bytes_at(super::widgets::APP_SVG, size, size) {
+        if let Some(pb) = super::img::from_bytes_at(crate::edition::ed().icon_svg, size, size) {
             let _ = pb.savev(path, "png", &[]);
         }
     };
@@ -1100,6 +1116,13 @@ fn shots(shot: String, steps: String) {
                 }
             } else {
                 w.set_tab(parts[0]);
+                // sddm:store / ply:store → Store-Ansicht
+                if parts.len() > 1 && (parts[0] == "sddm" || parts[0] == "ply") {
+                    let p = if parts[0] == "sddm" { w.sddm_page.get() } else { w.ply_page.get() };
+                    if let Some(p) = p {
+                        p.show_source(parts[1]);
+                    }
+                }
             }
             if let Some(sp) = w.settings_page.get() {
                 if parts[0] == "settings" && parts.len() > 2 && parts[1] == "adv" {
