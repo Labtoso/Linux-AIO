@@ -95,15 +95,24 @@ fn rules(sel_btn: &str, sel_img: &str, p: &Obj, gtk: u8) -> Vec<String> {
     let mut out = vec![format!("{sel_btn} {{ background: none; box-shadow: none; border: none; outline: none; \
         min-width: 0; min-height: 0; padding: 0 {}px; margin: 0; }}", if shape != "wide" { 4 } else { 0 })];
     if shape == "circle" || shape == "square" {
-        let icon = if gtk == 4 { (size - 6).max(8) } else { 16 };
-        let pad = if gtk == 4 { ((size - icon) / 2).max(0) } else { ((size - 16).div_euclid(2)).max(0) };
-        let radius = if shape == "circle" { "100%" } else { "4px" };
+        // Die Form wird als Hintergrundbild fester Größe gemalt (mittig, ohne Wiederholung). So bleibt der Knopf
+        // ein Kreis, auch wenn eine App (z. B. libadwaita/Shelly) das Symbol in der Höhe streckt – vorher
+        // wurden daraus dunkle Ovale ohne Symbol.
+        let icon = if gtk == 4 { (size - 8).clamp(8, 16) } else { 16 };
+        let r = size as f64 / 2.0;
         let size_rule = if gtk == 4 { format!(" -gtk-icon-size: {icon}px;") } else { String::new() };
-        out.push(format!("{img} {{ border-radius: {radius}; padding: {pad}px; min-width: 0; min-height: 0; \
-            box-shadow: none;{size_rule} }}"));
+        out.push(format!("{img} {{ background-color: transparent; background-repeat: no-repeat; \
+            background-position: center; background-size: {size}px {size}px; border-radius: 0; padding: 0; \
+            min-width: {size}px; min-height: {size}px; box-shadow: none; opacity: 1;{size_rule} }}"));
         for (cls, key) in [("close", "close"), ("minimize", "min"), ("maximize", "max")] {
             let c = p.s(key);
-            out.push(format!("{sel_btn}.{cls} {sel_img} {{ background-color: {}; }}", if c.is_empty() { "transparent" } else { c }));
+            let c = if c.is_empty() { "transparent" } else { c };
+            let paint = if shape == "circle" {
+                format!("radial-gradient(circle {r}px at center, {c} 0, {c} {:.1}px, transparent {r}px)", r - 0.6)
+            } else {
+                format!("linear-gradient({c}, {c})")
+            };
+            out.push(format!("{sel_btn}.{cls} {sel_img} {{ background-image: {paint}; }}"));
         }
         let dark = "rgba(0,0,0,0.65)";
         let light = p.s("icon_color");
@@ -113,10 +122,10 @@ fn rules(sel_btn: &str, sel_img: &str, p: &Obj, gtk: u8) -> Vec<String> {
                 out.push(format!("{sel_btn}:hover {sel_img} {{ color: {}; }}", if light.is_empty() { dark } else { light }));
             }
             "never" => out.push(format!("{img} {{ color: transparent; }}")),
-            _ if !light.is_empty() => out.push(format!("{img} {{ color: {light}; }}")),
-            _ => {}
+            _ => out.push(format!("{img} {{ color: {}; }}", if light.is_empty() { dark } else { light })),
         }
-        out.push(format!("{sel_btn}:hover {sel_img}, {sel_btn}:active {sel_img} {{ box-shadow: inset 0 0 0 20px rgba(255,255,255,0.15); }}"));
+        let hover = if gtk == 4 { "filter: brightness(1.18);" } else { "opacity: 0.85;" };
+        out.push(format!("{sel_btn}:hover {sel_img}, {sel_btn}:active {sel_img} {{ {hover} }}"));
     } else if shape == "wide" {
         // Windows: breite Flächen, Schließen wird rot
         out.push(format!("{sel_btn} {{ min-width: {}px; border-radius: 0; }}", size + 16));
@@ -328,5 +337,9 @@ mod tests {
         let text = format!("a {{}}\n\n{}\n", c);
         assert_eq!(super::strip(&text), "a {}\n\n");
         assert!(super::THEMES.contains_key("macos"));
+        // feste Kreisgröße statt border-radius auf gestreckter Fläche
+        let r = super::css("round", 4);
+        assert!(r.contains("radial-gradient(circle 12px at center"), "{r}");
+        assert!(r.contains("background-size: 24px 24px"));
     }
 }

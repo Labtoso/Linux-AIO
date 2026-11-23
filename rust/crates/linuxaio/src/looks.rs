@@ -284,6 +284,25 @@ fn s(v: &str) -> Value {
     Value::String(v.into())
 }
 
+/// KDE Plasma: Größe zuerst in kcminputrc (plasma-apply-cursortheme übernimmt sie von dort),
+/// dann das Theme über das Plasma-Werkzeug. Klappt das nicht (fehlt, findet das Theme nicht, ältere
+/// Plasma-Version), selbst eintragen und Plasma/KWin über D-Bus Bescheid geben.
+fn plasma_cursor(name: &str, sz: &str, log: &dyn Fn(&str)) -> bool {
+    let rc = usercmd::config_dir().join("kcminputrc");
+    usercmd::ini_set(&rc, "Mouse", "cursorSize", sz);
+    let (ok, out) = usercmd::run(&["plasma-apply-cursortheme", name]);
+    if ok || out.contains("already") || out.contains("bereits") {
+        return true;
+    }
+    usercmd::ini_set(&rc, "Mouse", "cursorTheme", name);
+    // KGlobalSettings::ChangeCursor = 5 – laufende KDE-Programme laden den Zeiger neu
+    usercmd::run(&["dbus-send", "--session", "--type=signal", "/KGlobalSettings",
+                   "org.kde.KGlobalSettings.notifyChange", "int32:5", "int32:0"]);
+    usercmd::run(&["dbus-send", "--session", "--type=signal", "/KWin", "org.kde.KWin.reloadConfig"]);
+    log("Plasma: Mauszeiger in kcminputrc eingetragen – falls er sich noch nicht ändert, einmal neu anmelden.");
+    true
+}
+
 pub fn apply_cursor(de: &str, name: &str, size: i64, log: &dyn Fn(&str)) -> bool {
     let gs = usercmd::gset;
     let mut ok = true;
@@ -305,10 +324,7 @@ pub fn apply_cursor(de: &str, name: &str, size: i64, log: &dyn Fn(&str)) -> bool
             ok = usercmd::run(&["xfconf-query", "-c", "xsettings", "-p", "/Gtk/CursorThemeName", "-s", name]).0;
             usercmd::run(&["xfconf-query", "-c", "xsettings", "-p", "/Gtk/CursorThemeSize", "-s", &sz]);
         }
-        "plasma" => {
-            ok = usercmd::run(&["plasma-apply-cursortheme", name]).0;
-            usercmd::ini_set(&usercmd::config_dir().join("kcminputrc"), "Mouse", "cursorSize", &sz);
-        }
+        "plasma" => ok = plasma_cursor(name, &sz, log),
         "lxqt" => {
             let p = usercmd::config_dir().join("lxqt/session.conf");
             usercmd::ini_set(&p, "Mouse", "cursor_theme", name);

@@ -1,553 +1,394 @@
 <!doctype html>
-<html lang="de">
+<html lang="de" data-l="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#06070d">
-<meta name="description" content="Linux AIO, SDDM Studio und Hypr Studio: Desktops, Anmeldebildschirm, Bootsplash und Hyprland per Klick. Kostenlos, Open Source, in Rust.">
-<title>Linux AIO · Linux, alles an einem Ort</title>
-<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<meta name="description" content="Linux AIO, SDDM Studio und Hypr Studio: Desktops, Anmeldebildschirm, Bootsplash und Hyprland einrichten. Kostenlos, Open Source, in Rust.">
+<meta name="theme-color" content="#efeae0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151410" media="(prefers-color-scheme: dark)">
+<title>Linux AIO · Handbuch und Download</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..900,0..100,0..1;1,9..144,300..900,0..100,0..1&family=Schibsted+Grotesk:wght@400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #06070d; --bg2: #0d0f19; --line: #1b1e2c; --line2: #2a2e42;
-  --paper: #eef0ff; --muted: #959ab5; --dim: #5b607c;
-  --accent: #4f7cff; --acc-rgb: 79,124,255; --ink: #060c22; --accent2: #38d6ff;
-  --serif: Fraunces, Georgia, serif; --sans: 'Schibsted Grotesk', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
-  --gut: clamp(16px, 4vw, 48px);
-  color-scheme: dark;
+  --paper: #efeae0; --paper2: #e6e0d3; --ink: #1c1b17; --ink2: #55524a; --rule: #c9c2b3; --rule2: #1c1b17;
+  --red: #c8401e; --code: #1c1b17; --codefg: #efeae0;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace; --sans: 'IBM Plex Sans', system-ui, sans-serif; --serif: 'Instrument Serif', Georgia, serif;
+  --side: 16px;
 }
-:root[data-accent=green] { --accent: #2fd283; --acc-rgb: 47,210,131; --ink: #03140b; --accent2: #c8f25a; }
-:root[data-accent=purple] { --accent: #9b6dff; --acc-rgb: 155,109,255; --ink: #110a26; --accent2: #ff6fd8; }
+@media (prefers-color-scheme: dark) {
+  :root { --paper: #151410; --paper2: #1e1c17; --ink: #e9e3d4; --ink2: #a39d8e; --rule: #3a372f; --rule2: #e9e3d4;
+          --red: #ff7a52; --code: #0b0a08; --codefg: #e9e3d4; }
+}
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-html, body { margin: 0; overflow-x: hidden; }
-body { background: var(--bg); color: var(--paper); font: 17px/1.6 var(--sans); -webkit-font-smoothing: antialiased; }
-body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: .07; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
-a { color: inherit; text-decoration: none; }
-button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
-::selection { background: var(--accent); color: var(--ink); }
+html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.6 var(--sans); }
+a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+a:hover { color: var(--red); }
+::selection { background: var(--red); color: var(--paper); }
+html[data-l=de] [lang=en], html[data-l=en] [lang=de] { display: none !important; }
+code, kbd, .m { font-family: var(--mono); font-size: .9em; }
+code { background: var(--paper2); padding: 1px 5px; }
 
-/* top bar */
-.bar { position: fixed; top: 0; left: 0; right: 0; z-index: 30; display: flex; align-items: center; gap: 18px; height: 64px; padding: 0 var(--gut); background: linear-gradient(rgba(6,7,13,.86), rgba(6,7,13,0)); }
-.gear { width: 36px; height: 36px; display: grid; place-items: center; margin-left: -8px; transition: transform .5s cubic-bezier(.3,1.4,.5,1); }
-.gear:hover { transform: rotate(90deg); }
-.gear svg { width: 21px; height: 21px; }
-.word { display: inline-flex; align-items: center; gap: 10px; font: italic 800 24px/1 var(--serif); font-variation-settings: 'SOFT' 100, 'WONK' 1; letter-spacing: -.02em; white-space: nowrap; }
-.word img { width: 32px; height: 32px; }
-.bar nav { margin-left: auto; display: flex; gap: 6px; }
-.cat { position: relative; }
-.cbtn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px 0 14px; border-radius: 18px; font: 500 13px var(--mono); text-transform: uppercase; letter-spacing: .06em; transition: background .2s; }
-.cbtn:hover, .cat.open .cbtn { background: rgba(255,255,255,.08); }
-.cbtn svg { width: 14px; height: 14px; transition: transform .25s; }
-.cat.open .cbtn svg { transform: rotate(180deg); }
-.menu { position: absolute; top: calc(100% + 10px); right: 0; min-width: 280px; padding: 8px; border-radius: 18px; background: rgba(13,15,25,.94); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid var(--line2); box-shadow: 0 30px 80px -20px #000; opacity: 0; transform: translateY(-6px); pointer-events: none; transition: opacity .18s, transform .22s cubic-bezier(.2,.9,.2,1); }
-.cat.open .menu { opacity: 1; transform: none; pointer-events: auto; }
-.menu a { display: block; padding: 10px 12px; border-radius: 12px; transition: background .15s; }
-.menu a:hover { background: rgba(255,255,255,.07); }
-.menu b { display: block; font: italic 600 19px/1.2 var(--serif); font-variation-settings: 'SOFT' 100; }
-.menu small { display: block; color: var(--muted); font-size: 13px; line-height: 1.35; margin-top: 2px; }
-.wp { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 16px 0 12px; border-radius: 18px; background: linear-gradient(100deg, var(--accent), var(--accent2)); color: var(--ink); font: 600 13px var(--mono); text-transform: uppercase; letter-spacing: .06em; transition: transform .2s, box-shadow .2s; flex: none; }
-.wp:hover { transform: translateY(-1px); box-shadow: 0 8px 26px -8px var(--accent); }
-.wp svg { width: 15px; height: 15px; }
-@media (max-width: 760px) { .bar nav { display: none; } .bar .wp { margin-left: auto; } }
-@media (max-width: 420px) { .word span { display: none; } }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--side); }
 
-/* settings panel */
-.scrim { position: fixed; inset: 0; z-index: 60; background: rgba(4,5,10,.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); opacity: 0; pointer-events: none; transition: opacity .3s; }
-.panel { position: fixed; z-index: 61; top: 0; left: 0; bottom: 0; width: min(380px, 100vw); padding: 26px var(--gut) 30px; background: rgba(13,15,25,.82); backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px); border-right: 1px solid var(--line2); border-radius: 0 28px 28px 0; transform: translateX(-102%); transition: transform .45s cubic-bezier(.2,.9,.2,1); display: flex; flex-direction: column; gap: 34px; }
-body.set-open .scrim { opacity: 1; pointer-events: auto; }
-body.set-open .panel { transform: none; }
-.panel-h { display: flex; justify-content: space-between; align-items: center; }
-.panel-h h3 { margin: 0; font: italic 700 30px var(--serif); }
-.x { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; border: 1px solid var(--line2); }
-.x:hover { border-color: var(--paper); }
-.opt .lbl { font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
-.choice { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
-.choice button { display: flex; align-items: center; gap: 14px; padding: 15px 2px; border-bottom: 1px solid var(--line); text-align: left; color: var(--muted); font-size: 17px; }
-.choice button::after { content: ''; margin-left: auto; width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--line2); }
-.choice button.on { color: var(--paper); }
-.choice button.on::after { background: var(--paper); border-color: var(--paper); }
-.choice i { width: 22px; height: 22px; border-radius: 50%; }
-.panel small { margin-top: auto; font: 12px var(--mono); color: var(--dim); }
+/* Kopf: wie die erste Seite eines Handbuchs */
+.top { border-bottom: 2px solid var(--rule2); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 52px; font: 500 13px var(--mono); letter-spacing: .02em; }
+.top img { width: 26px; height: 26px; }
+.top .sp { flex: 1; }
+.top nav { display: flex; gap: 18px; }
+.top nav a { text-decoration: none; }
+.lang { display: flex; border: 1px solid var(--rule2); }
+.lang button { font: 500 12px var(--mono); background: none; color: var(--ink); border: 0; padding: 3px 8px; cursor: pointer; }
+html[data-l=de] .lang [data-set=de], html[data-l=en] .lang [data-set=en] { background: var(--ink); color: var(--paper); }
 
-/* hero */
-.hero { position: relative; min-height: 100svh; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: 3vw; padding: 110px var(--gut) 120px; overflow: hidden; }
-.hero h1 { margin: 0; font: 800 clamp(52px, 8.4vw, 150px)/.86 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 30, 'WONK' 0; letter-spacing: -.045em; position: relative; z-index: 2; }
-.hero h1 em, .th h2 em { font-style: italic; font-weight: 400; font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1; background: linear-gradient(100deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; letter-spacing: -.03em; padding-right: .08em; }
-.hero .lead { max-width: 500px; color: var(--muted); font-size: 19px; margin: 34px 0; position: relative; z-index: 2; }
-.hero .lead b { color: var(--paper); font-weight: 600; }
-.ctas { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; position: relative; z-index: 2; }
-.btn { display: inline-flex; align-items: center; gap: 12px; height: 54px; padding: 0 26px; border-radius: 999px; font-weight: 600; font-size: 16px; border: 1px solid var(--line2); transition: background .2s, color .2s, border-color .2s; white-space: nowrap; }
-.btn:hover { border-color: var(--paper); }
-.btn.solid { background: var(--paper); color: var(--bg); border-color: var(--paper); }
-.btn.solid:hover { background: var(--accent); border-color: var(--accent); color: var(--ink); }
-.btn svg { width: 18px; height: 18px; flex: none; }
-.meta { margin-top: 26px; font: 12px var(--mono); color: var(--dim); display: flex; gap: 8px 22px; flex-wrap: wrap; position: relative; z-index: 2; }
-.meta b { color: var(--muted); font-weight: 500; }
-.wash { position: absolute; border-radius: 50%; filter: blur(90px); pointer-events: none; opacity: .34; z-index: 0; }
-.wash.a { width: 46vw; height: 46vw; right: 2%; top: 6%; background: var(--accent); }
-.wash.b { width: 30vw; height: 30vw; right: -6%; top: 48%; background: var(--accent2); opacity: .2; }
-.hero::after { content: ''; position: absolute; inset: auto 0 0 0; height: 30%; background: linear-gradient(transparent, var(--bg)); pointer-events: none; z-index: 1; }
-.stack { position: relative; z-index: 2; aspect-ratio: 16 / 11; perspective: 2200px; }
-.stack img { position: absolute; width: 82%; border-radius: 14px; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 50px 110px -30px #000, 0 30px 90px -40px rgba(var(--acc-rgb), .7); transition: transform .8s cubic-bezier(.2,.9,.2,1), opacity .6s; }
-.stack img:nth-child(1) { left: 0; top: 0; transform: rotateY(12deg) rotateX(3deg) translateZ(-120px); opacity: .55; }
-.stack img:nth-child(2) { left: 9%; top: 12%; transform: rotateY(12deg) rotateX(3deg) translateZ(-40px); opacity: .8; }
-.stack img:nth-child(3) { left: 18%; top: 24%; transform: rotateY(12deg) rotateX(3deg) translateZ(40px); }
-.stack:hover img:nth-child(1) { transform: rotateY(6deg) translate(-4%, -4%) translateZ(-120px); }
-.stack:hover img:nth-child(3) { transform: rotateY(6deg) translate(3%, 3%) translateZ(40px); }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; padding-top: 100px; } .stack { margin-top: 20px; } }
+.cover { padding: 56px 0 40px; border-bottom: 1px solid var(--rule); }
+.cover .meta { display: flex; flex-wrap: wrap; gap: 6px 28px; font: 13px var(--mono); color: var(--ink2); margin-bottom: 28px; }
+.cover .meta b { color: var(--ink); font-weight: 500; }
+.cover h1 { font: 400 clamp(48px, 9.5vw, 124px)/.92 var(--serif); letter-spacing: -.02em; margin: 0; }
+.cover h1 i { color: var(--red); }
+.cover .sub { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 32px; align-items: end; margin-top: 32px; }
+.cover p { font-size: 19px; max-width: 34em; margin: 0; }
+.go { display: inline-flex; align-items: center; gap: 12px; background: var(--ink); color: var(--paper); text-decoration: none; padding: 14px 18px;
+      font: 500 15px var(--mono); border: 2px solid var(--ink); white-space: nowrap; }
+.go:hover { background: var(--red); border-color: var(--red); color: var(--paper); }
+.go small { opacity: .7; font-size: 12px; }
+.note { font: 12px var(--mono); color: var(--ink2); margin-top: 8px; text-align: right; }
 
-/* marquee */
-.marq { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); overflow: hidden; white-space: nowrap; padding: 18px 0; }
-.marq div { display: inline-block; animation: mq 40s linear infinite; font: italic 400 clamp(26px, 3.4vw, 46px)/1 var(--serif); font-variation-settings: 'SOFT' 100; color: var(--muted); }
-.marq span { margin: 0 .5em; }
-.marq span.d { color: var(--accent); font-style: normal; }
-@keyframes mq { to { transform: translateX(-50%); } }
+/* Kapitel */
+.ch { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; padding-top: 48px; padding-bottom: 48px; border-bottom: 1px solid var(--rule); }
+.ch > header { font: 13px var(--mono); color: var(--ink2); }
+.ch > header .n { display: block; font: 400 56px/1 var(--serif); color: var(--ink); margin-bottom: 6px; }
+.ch h2 { font: 400 clamp(32px, 5vw, 46px)/1.05 var(--serif); margin: 0 0 18px; letter-spacing: -.01em; }
+.ch h2 i { color: var(--red); }
+.ch .lead { font-size: 18px; max-width: 40em; margin: 0 0 28px; }
 
-/* sections as tracks */
-.track { padding: clamp(80px, 11vw, 150px) var(--gut); border-bottom: 1px solid var(--line); }
-.th { display: grid; grid-template-columns: 140px 1fr; gap: 24px; margin-bottom: clamp(48px, 6vw, 80px); }
-.th .no { font: 500 13px var(--mono); color: var(--dim); padding-top: 14px; }
-.th .no b { color: var(--accent); font-weight: 500; display: block; font-size: 15px; margin-bottom: 4px; }
-.th h2 { margin: 0; font: 700 clamp(40px, 6.4vw, 104px)/.92 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 40; letter-spacing: -.04em; }
-.th p { color: var(--muted); max-width: 640px; margin: 22px 0 0; font-size: 19px; }
-.body { margin-left: 164px; }
-@media (max-width: 760px) { .th { grid-template-columns: 1fr; gap: 6px; } .body { margin-left: 0; } }
-.rv { opacity: 0; transform: translateY(30px); transition: opacity .9s, transform .9s cubic-bezier(.2,.9,.2,1); }
-.rv.in { opacity: 1; transform: none; }
+/* Datenblatt: die drei Programme */
+.sheet { width: 100%; border-collapse: collapse; font-size: 15px; }
+.sheet th { font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: .06em; text-align: left; color: var(--ink2);
+            border-bottom: 2px solid var(--rule2); padding: 8px 12px 8px 0; }
+.sheet td { border-bottom: 1px solid var(--rule); padding: 18px 12px 18px 0; vertical-align: top; }
+.sheet td:last-child, .sheet th:last-child { padding-right: 0; text-align: right; }
+.app { display: flex; gap: 12px; align-items: flex-start; }
+.app img { width: 36px; height: 36px; flex: none; margin-top: 2px; }
+.app b { font: 600 17px var(--sans); display: block; }
+.app span { color: var(--ink2); font-size: 14px; }
+.sheet ul { margin: 0; padding-left: 18px; color: var(--ink2); font-size: 14px; }
+.sheet .m { white-space: nowrap; }
+.dl { display: inline-block; font: 500 14px var(--mono); text-decoration: none; border: 2px solid var(--ink); padding: 7px 12px; white-space: nowrap; }
+.dl:hover { background: var(--ink); color: var(--paper); }
+.dl.main { background: var(--ink); color: var(--paper); }
+.dl.main:hover { background: var(--red); border-color: var(--red); }
+.raw { display: block; font: 12px var(--mono); color: var(--ink2); margin-top: 8px; }
 
-/* A1 apps */
-.apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; }
-.app { display: flex; flex-direction: column; border: 1px solid var(--line2); border-radius: 22px; overflow: hidden; background: var(--bg2); transition: border-color .3s, transform .3s; }
-.app:hover { border-color: rgba(var(--acc-rgb), .7); transform: translateY(-4px); }
-.app figure { margin: 0; aspect-ratio: 16 / 10.3; overflow: hidden; border-bottom: 1px solid var(--line); }
-.app figure img { width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; transition: transform .8s; }
-.app:hover figure img { transform: scale(1.04); }
-.app .in2 { padding: 24px 24px 26px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
-.app .hd { display: flex; align-items: center; gap: 12px; }
-.app .hd img { width: 40px; height: 40px; }
-.app h3 { margin: 0; font: italic 700 30px/1 var(--serif); font-variation-settings: 'SOFT' 100; }
-.app .tag { font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); }
-.app p { margin: 0; color: var(--muted); font-size: 15.5px; }
-.app ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-size: 14.5px; color: var(--muted); }
-.app li::before { content: '→ '; color: var(--accent); }
-.app .get { margin-top: auto; display: inline-flex; align-items: center; justify-content: space-between; gap: 10px; height: 48px; padding: 0 20px; border-radius: 999px; background: var(--paper); color: var(--bg); font-weight: 600; }
-.app .get:hover { background: var(--accent); color: var(--ink); }
-.app .get small { font: 12px var(--mono); opacity: .7; }
-@media (max-width: 1100px) { .apps { grid-template-columns: 1fr; max-width: 640px; } }
+/* Funktionsliste als Register */
+.reg { columns: 2 300px; column-gap: 40px; margin: 0; padding: 0; list-style: none; }
+.reg li { break-inside: avoid; padding: 12px 0; border-top: 1px solid var(--rule); display: grid; grid-template-columns: 40px minmax(0, 1fr); }
+.reg li > .m { color: var(--red); }
+.reg b { font-weight: 600; }
+.reg p { margin: 2px 0 0; color: var(--ink2); font-size: 15px; }
 
-/* A2 features */
-.feat { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); border-top: 1px solid var(--line2); }
-.feat div { padding: 28px 28px 26px 0; border-bottom: 1px solid var(--line); }
-.feat h4 { margin: 0 0 8px; font: italic 600 23px/1.2 var(--serif); font-variation-settings: 'SOFT' 100; }
-.feat h4 i { font: 500 12px var(--mono); font-style: normal; color: var(--accent); margin-right: 10px; }
-.feat p { margin: 0; color: var(--muted); font-size: 15.5px; }
+/* Abbildungen */
+.figs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 28px 24px; }
+figure { margin: 0; grid-column: span 3; }
+figure.big { grid-column: span 6; }
+figure.s2 { grid-column: span 2; }
+figure img { display: block; width: 100%; height: auto; border: 1px solid var(--rule2); background: #111; }
+figcaption { font: 13px/1.5 var(--mono); color: var(--ink2); margin-top: 8px; }
+figcaption b { color: var(--ink); font-weight: 600; margin-right: 6px; }
 
-/* A3 shots */
-.shots { overflow: hidden; }
-.sh-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--line2); border-radius: 999px; width: max-content; max-width: 100%; overflow-x: auto; margin-bottom: 26px; }
-.sh-tabs button { height: 40px; padding: 0 18px; border-radius: 999px; font: italic 600 17px var(--serif); font-variation-settings: 'SOFT' 100; color: var(--muted); white-space: nowrap; transition: background .25s, color .25s; }
-.sh-tabs button.on { background: var(--paper); color: var(--bg); }
-.stage { position: relative; aspect-ratio: 1360 / 880; border-radius: 18px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255,255,255,.08), 0 60px 120px -50px rgba(var(--acc-rgb), .7); background: #000; max-width: 1360px; }
-.stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top left; display: block; clip-path: circle(0% at 50% 50%); transition: clip-path 1s cubic-bezier(.7,0,.2,1); }
-.stage img.on { clip-path: circle(150% at 50% 50%); z-index: 1; }
-.cap { padding: 18px 2px 0; color: var(--muted); font-size: 15px; max-width: 900px; }
+/* Installation */
+.steps { counter-reset: s; margin: 0 0 28px; padding: 0; list-style: none; max-width: 44em; }
+.steps li { counter-increment: s; display: grid; grid-template-columns: 34px minmax(0, 1fr); padding: 6px 0; }
+.steps li::before { content: counter(s) "."; font: 500 15px var(--mono); color: var(--red); }
+.term { background: var(--code); color: var(--codefg); font: 14px/1.6 var(--mono); }
+.term .hd { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid #3a372f; font-size: 12px; color: #a39d8e; }
+.term button { font: 500 12px var(--mono); background: none; color: var(--codefg); border: 1px solid #5a564b; padding: 3px 10px; cursor: pointer; }
+.term button:hover { border-color: var(--codefg); }
+.term pre { margin: 0; padding: 14px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+.term .p { color: #ff7a52; user-select: none; }
+.cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; margin-top: 32px; }
+.cols h3 { font: 600 13px var(--mono); text-transform: uppercase; letter-spacing: .06em; margin: 0 0 8px; }
+.cols p { margin: 0 0 8px; color: var(--ink2); font-size: 15px; }
 
-/* B1 downloads */
-.dls { border-top: 1px solid var(--line2); }
-.dl { position: relative; display: grid; grid-template-columns: 1.1fr 1fr auto; gap: 24px; align-items: center; padding: 34px 16px; margin: 0 -16px; border-bottom: 1px solid var(--line2); overflow: hidden; isolation: isolate; }
-.dl::before { content: ''; position: absolute; inset: 0; background: var(--accent); transform: scaleY(0); transform-origin: bottom; transition: transform .45s cubic-bezier(.2,.9,.2,1); z-index: -1; }
-.dl:hover::before { transform: scaleY(1); }
-.dl:hover, .dl:hover .d p, .dl:hover .d small, .dl:hover .go { color: var(--ink); }
-.dl .n { font: 700 clamp(40px, 6.2vw, 100px)/.9 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 40; letter-spacing: -.045em; transition: transform .45s cubic-bezier(.2,.9,.2,1); }
-.dl:hover .n { transform: translateX(14px); font-style: italic; }
-.dl .d p { margin: 0; color: var(--muted); font-size: 16px; max-width: 440px; transition: color .3s; }
-.dl .d small { display: block; margin-top: 8px; font: 12px var(--mono); color: var(--dim); transition: color .3s; }
-.dl .go { width: 74px; height: 74px; border-radius: 50%; border: 1px solid currentColor; display: grid; place-items: center; color: var(--paper); margin-right: 8px; transition: color .3s; }
-.dl .go svg { width: 26px; height: 26px; transition: transform .35s; }
-.dl:hover .go svg { transform: translateY(4px); }
-@media (max-width: 760px) { .dl { grid-template-columns: 1fr auto; } .dl .d { grid-column: 1 / -1; grid-row: 2; } .dl .go { width: 54px; height: 54px; } }
-.binr { display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 30px; font: 13px var(--mono); color: var(--dim); }
-.binr a { color: var(--paper); border-bottom: 1px solid var(--line2); }
-.binr a:hover { border-color: var(--accent); color: var(--accent); }
+/* Fragen */
+dl.faq { margin: 0; max-width: 48em; }
+.faq dt { font-weight: 600; padding-top: 18px; border-top: 1px solid var(--rule); }
+.faq dt:first-child { border-top: 0; padding-top: 0; }
+.faq dd { margin: 4px 0 18px; color: var(--ink2); }
 
-/* B2 install */
-.tabs { display: flex; gap: 28px; flex-wrap: wrap; border-bottom: 1px solid var(--line2); margin-bottom: 36px; }
-.tabs button { padding: 14px 0; font: italic 500 24px var(--serif); color: var(--dim); position: relative; }
-.tabs button.on { color: var(--paper); }
-.tabs button.on::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--accent); }
-.pane { display: none; grid-template-columns: 1.25fr 1fr; gap: clamp(28px, 5vw, 72px); }
-.pane.on { display: grid; }
-@media (max-width: 900px) { .pane.on { grid-template-columns: 1fr; } }
-.term { background: #04050a; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; align-self: start; min-width: 0; }
-.term-h { display: flex; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); font: 12px var(--mono); color: var(--dim); }
-.term-h button { margin-left: auto; font: 500 12px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-.term-h button:hover { color: var(--accent); }
-.term pre { margin: 0; padding: 20px; font: 13.5px/1.75 var(--mono); color: #d6daf0; white-space: pre-wrap; overflow-wrap: anywhere; }
-.term [data-cmd] { user-select: all; -webkit-user-select: all; }
-.term .p { color: var(--accent); user-select: none; }
-.term .o { color: var(--dim); }
-.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
-.steps li { counter-increment: s; position: relative; padding: 0 0 22px 52px; color: var(--muted); font-size: 16px; }
-.steps li::before { content: counter(s, decimal-leading-zero); position: absolute; left: 0; top: -4px; font: italic 600 26px/1 var(--serif); color: var(--paper); }
-.steps code, .notes code { font: 13px var(--mono); color: var(--paper); background: var(--bg2); padding: 1px 6px; border-radius: 4px; word-break: break-all; }
-.steps b { color: var(--paper); }
+footer { padding: 28px 0 48px; font: 13px var(--mono); color: var(--ink2); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
 
-/* B3 faq */
-.notes { columns: 3 280px; column-gap: 48px; column-rule: 1px solid var(--line); }
-.notes div { break-inside: avoid; margin-bottom: 34px; }
-.notes h4 { margin: 0 0 8px; font: italic 600 22px/1.2 var(--serif); font-variation-settings: 'SOFT' 100; }
-.notes p { margin: 0; color: var(--muted); font-size: 15.5px; }
-.notes a { color: var(--accent2); text-decoration: underline; text-underline-offset: 3px; }
-
-footer { padding: 60px var(--gut) 0; overflow: hidden; }
-.fl { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font: 12px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
-.fl a:hover { color: var(--paper); }
-.big { margin: 28px 0 0; text-align: center; font: italic 800 clamp(70px, 19vw, 300px)/.85 var(--serif); font-variation-settings: 'opsz' 144, 'SOFT' 100, 'WONK' 1; letter-spacing: -.05em; background: linear-gradient(100deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; padding-bottom: .12em; white-space: nowrap; }
-@media (prefers-reduced-motion: reduce) { .marq div { animation: none; } .rv { opacity: 1; transform: none; } }
+@media (max-width: 860px) {
+  .ch { grid-template-columns: minmax(0, 1fr); gap: 12px; padding-top: 36px; padding-bottom: 36px; }
+  .ch > header .n { display: inline; font-size: 30px; margin-right: 8px; }
+  .cover { padding-top: 36px; }
+  .cover .sub { grid-template-columns: minmax(0, 1fr); }
+  .note { text-align: left; }
+  .top nav { display: none; }
+  figure, figure.s2 { grid-column: span 6; }
+  .cols { grid-template-columns: minmax(0, 1fr); }
+  .sheet thead { display: none; }
+  .sheet tr { display: block; border-bottom: 1px solid var(--rule); padding: 16px 0; }
+  .sheet td { display: block; border: 0; padding: 4px 0; }
+  .sheet td.m { display: inline-block; margin-right: 16px; color: var(--ink2); }
+  .sheet td:last-child { text-align: left; padding-top: 10px; }
+}
 </style>
 </head>
 <body>
 
-<header class="bar">
-  <button class="gear" id="gear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-  <a class="word" href="/"><img src="/icon.svg" alt=""><span>Linux AIO</span></a>
+<div class="top"><div class="wrap">
+  <img src="./icon.svg" alt="">
+  <span>LINUX AIO</span>
+  <span class="sp"></span>
   <nav>
-    <div class="cat"><button class="cbtn" aria-expanded="false"><span data-t="catApps"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-      <div class="menu"><a href="#apps"><b>Linux AIO</b><small data-t="mAio"></small></a><a href="#apps"><b>SDDM Studio</b><small data-t="mSddm"></small></a><a href="#apps"><b>Hypr Studio</b><small data-t="mHypr"></small></a><a href="#shots"><b data-t="navShots"></b><small data-t="mShots"></small></a></div></div>
-    <div class="cat"><button class="cbtn" aria-expanded="false"><span data-t="catMore"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-      <div class="menu"><a href="#install"><b data-t="navInst"></b><small data-t="mInst"></small></a><a href="#faq"><b>FAQ</b><small data-t="mFaq"></small></a><a href="https://github.com/Labtoso/Linux-AIO" target="_blank" rel="noopener"><b>GitHub</b><small data-t="mGh"></small></a></div></div>
+    <a href="#programme"><span lang="de">Programme</span><span lang="en">Programs</span></a>
+    <a href="#abbildungen"><span lang="de">Abbildungen</span><span lang="en">Figures</span></a>
+    <a href="#installation">Installation</a>
+    <a href="#fragen"><span lang="de">Fragen</span><span lang="en">FAQ</span></a>
   </nav>
-  <a class="wp" href="#download"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span>Download</span></a>
-</header>
+  <div class="lang" role="group" aria-label="Sprache / Language"><button type="button" data-set="de">DE</button><button type="button" data-set="en">EN</button></div>
+</div></div>
 
-<div class="scrim" id="scrim"></div>
-<aside class="panel" id="panel">
-  <div class="panel-h"><h3 data-t="settings"></h3><button class="x" id="close" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-  <div class="opt"><div class="lbl" data-t="lang"></div><div class="choice"><button data-l="de">Deutsch</button><button data-l="en">English</button></div></div>
-  <div class="opt"><div class="lbl" data-t="accent"></div><div class="choice">
-    <button data-a="blue"><i style="background:#4f7cff"></i><span data-t="blue"></span></button>
-    <button data-a="green"><i style="background:#2fd283"></i><span data-t="green"></span></button>
-    <button data-a="purple"><i style="background:#9b6dff"></i><span data-t="purple"></span></button>
-  </div></div>
-  <small>Linux AIO · LabtosoStudios</small>
-</aside>
+<main>
+<section class="cover"><div class="wrap">
+  <div class="meta">
+    <span><span lang="de">Ausgabe</span><span lang="en">Edition</span> <b data-v="linux-aio">3.0.0</b></span>
+    <span><span lang="de">Stand</span><span lang="en">Released</span> <b data-date>18.11.2026</b></span>
+    <span>x86_64 · GTK 4 · Rust</span>
+    <span>GPL-3.0 / MIT</span>
+  </div>
+  <h1 lang="de">Linux einrichten,<br><i>ohne</i> zehn Konfig&shy;dateien.</h1>
+  <h1 lang="en">Set up Linux<br><i>without</i> ten config files.</h1>
+  <div class="sub">
+    <p lang="de">Linux AIO installiert Desktops, wechselt Anmeldebildschirm und Bootsplash und stellt GNOME, Plasma und Hyprland ein. Wer nur einen Teil braucht, nimmt SDDM Studio oder Hypr Studio.</p>
+    <p lang="en">Linux AIO installs desktops, switches the login screen and boot splash, and sets up GNOME, Plasma and Hyprland. If you only need one part, take SDDM Studio or Hypr Studio.</p>
+    <div>
+      <a class="go" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip" download>
+        <span lang="de">Linux AIO laden</span><span lang="en">Download Linux AIO</span> <small>ZIP ↓</small></a>
+      <div class="note"><span lang="de">Lädt direkt, ohne Umweg.</span><span lang="en">Downloads directly.</span></div>
+    </div>
+  </div>
+</div></section>
 
-<section class="hero">
-  <div class="wash a"></div><div class="wash b"></div>
+<section class="wrap ch" id="programme">
+  <header><span class="n">1</span><span lang="de">Die Programme</span><span lang="en">The programs</span></header>
   <div>
-    <h1 data-h="h1"></h1>
-    <p class="lead" data-h="lead"></p>
-    <div class="ctas">
-      <a class="btn solid" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip" data-dl><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M7 11l5 5 5-5M5 20h14"/></svg><span data-t="ctaDl"></span></a>
-      <a class="btn" href="#apps"><span data-t="ctaApps"></span></a>
-    </div>
-    <div class="meta"><span><span data-t="metaVer"></span> <b data-ver="linux-aio">3.0.0</b></span><span><b data-t="metaFree"></b></span><span><b>GPL-3.0</b></span><span><b>Rust · GTK 4</b></span></div>
-  </div>
-  <div class="stack" aria-hidden="true">
-    <img src="/shots/hypr-studio.webp" alt="" loading="eager">
-    <img src="/shots/sddm-studio.webp" alt="" loading="eager">
-    <img src="/shots/aio-desktops.webp" alt="" loading="eager">
+    <h2 lang="de">Drei Programme, <i>gleicher Code.</i></h2>
+    <h2 lang="en">Three programs, <i>same code.</i></h2>
+    <p class="lead" lang="de">Linux AIO enthält alles. SDDM Studio und Hypr Studio sind Teile davon als eigene, kleine Apps: gleiche Bedienung, gleiche Dateien.</p>
+    <p class="lead" lang="en">Linux AIO contains everything. SDDM Studio and Hypr Studio are parts of it as small apps of their own: same handling, same files.</p>
+    <table class="sheet">
+      <thead><tr><th><span lang="de">Programm</span><span lang="en">Program</span></th><th><span lang="de">Kann</span><span lang="en">Does</span></th><th>Version</th><th><span lang="de">Lizenz</span><span lang="en">License</span></th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td><div class="app"><img src="./icon.svg" alt=""><div><b>Linux AIO</b><span lang="de">Alles in einem</span><span lang="en">All in one</span></div></div></td>
+          <td>
+            <ul lang="de"><li>Desktops installieren und entfernen</li><li>SDDM- und Plymouth-Themes</li><li>Mauszeiger, Symbole, Schriften, Titelleiste</li><li>Hyprland, Kitty, Alacritty, yay</li></ul>
+            <ul lang="en"><li>Install and remove desktops</li><li>SDDM and Plymouth themes</li><li>Cursors, icons, fonts, title bar</li><li>Hyprland, Kitty, Alacritty, yay</li></ul>
+          </td>
+          <td class="m" data-v="linux-aio">3.0.0</td>
+          <td class="m">GPL-3.0</td>
+          <td><a class="dl main" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip" download>ZIP ↓</a>
+            <a class="raw" data-raw="Linux-AIO" href="https://github.com/Labtoso/Linux-AIO/releases/latest"><span lang="de">nur Programmdatei</span><span lang="en">binary only</span></a></td>
+        </tr>
+        <tr>
+          <td><div class="app"><img src="./sddm-studio.svg" alt=""><div><b>SDDM Studio</b><span lang="de">Anmeldebildschirm</span><span lang="en">Login screen</span></div></div></td>
+          <td>
+            <ul lang="de"><li>Themes anwenden, vorher testen, entfernen</li><li>Themes aus dem KDE Store laden</li><li>installiert SDDM selbst, falls es fehlt</li></ul>
+            <ul lang="en"><li>Apply, test and remove themes</li><li>Get themes from the KDE Store</li><li>installs SDDM itself if missing</li></ul>
+          </td>
+          <td class="m" data-v="sddm-studio">1.0.0</td>
+          <td class="m">GPL-3.0</td>
+          <td><a class="dl" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/SDDM-Studio.zip" download>ZIP ↓</a>
+            <a class="raw" data-raw="SDDM-Studio" href="https://github.com/Labtoso/Linux-AIO/releases/latest"><span lang="de">nur Programmdatei</span><span lang="en">binary only</span></a></td>
+        </tr>
+        <tr>
+          <td><div class="app"><img src="./hypr-studio.svg" alt=""><div><b>Hypr Studio</b><span>Hyprland</span></div></div></td>
+          <td>
+            <ul lang="de"><li>Presets für Hyprland, Waybar und Launcher</li><li>Hintergrund, Mauszeiger, Sperrbildschirm</li><li>jeder Bereich einzeln rückgängig</li></ul>
+            <ul lang="en"><li>Presets for Hyprland, Waybar and launchers</li><li>Wallpaper, cursor, lock screen</li><li>undo each area on its own</li></ul>
+          </td>
+          <td class="m" data-v="hypr-studio">2.0.0</td>
+          <td class="m">MIT</td>
+          <td><a class="dl" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Hypr-Studio.zip" download>ZIP ↓</a>
+            <a class="raw" data-raw="Hypr-Studio" href="https://github.com/Labtoso/Linux-AIO/releases/latest"><span lang="de">nur Programmdatei</span><span lang="en">binary only</span></a></td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </section>
 
-<div class="marq" aria-hidden="true"><div id="marq"></div></div>
+<section class="wrap ch" id="inhalt">
+  <header><span class="n">2</span><span lang="de">Was drin ist</span><span lang="en">What's inside</span></header>
+  <div>
+    <h2 lang="de">Register</h2>
+    <h2 lang="en">Index</h2>
+    <ul class="reg" lang="de">
+      <li><span class="m">2.1</span><div><b>Desktops</b><p>GNOME, Plasma, Hyprland, Xfce, Cinnamon, MATE, Budgie, LXQt, COSMIC und mehr: installieren, als Standard setzen, entfernen.</p></div></li>
+      <li><span class="m">2.2</span><div><b>SDDM</b><p>Anmelde-Themes anwenden, vorher in einem Fenster testen, aus dem KDE Store installieren.</p></div></li>
+      <li><span class="m">2.3</span><div><b>Plymouth</b><p>Bootsplash-Themes mit animierter Vorschau.</p></div></li>
+      <li><span class="m">2.4</span><div><b>Mauszeiger und Symbole</b><p>Bibata-Mauszeiger und Symbol-Themes für jeden Desktop, mit Prüfsumme geladen.</p></div></li>
+      <li><span class="m">2.5</span><div><b>GNOME</b><p>Das, was sonst in GNOME Tweaks steht, dazu Titelleisten-Knöpfe, Fensterecken, Schriften und Startprogramme.</p></div></li>
+      <li><span class="m">2.6</span><div><b>Plasma</b><p>Farbschema, Plasma-Design, Mauszeiger und Symbole.</p></div></li>
+      <li><span class="m">2.7</span><div><b>Hyprland</b><p>Hypr Studio komplett eingebaut.</p></div></li>
+      <li><span class="m">2.8</span><div><b>Terminals</b><p>Kitty und Alacritty mit einem gemeinsamen Editor und denselben Presets.</p></div></li>
+      <li><span class="m">2.9</span><div><b>Presets</b><p>Alles als <code>.linuxaio</code>-Datei sichern und auf dem nächsten Rechner laden.</p></div></li>
+      <li><span class="m">2.10</span><div><b>Suche</b><p>Ein Suchfeld für Seiten, Einstellungen und Themes: <kbd>Strg</kbd>+<kbd>F</kbd>.</p></div></li>
+    </ul>
+    <ul class="reg" lang="en">
+      <li><span class="m">2.1</span><div><b>Desktops</b><p>GNOME, Plasma, Hyprland, Xfce, Cinnamon, MATE, Budgie, LXQt, COSMIC and more: install, set as default, remove.</p></div></li>
+      <li><span class="m">2.2</span><div><b>SDDM</b><p>Apply login themes, test them in a window first, install from the KDE Store.</p></div></li>
+      <li><span class="m">2.3</span><div><b>Plymouth</b><p>Boot splash themes with an animated preview.</p></div></li>
+      <li><span class="m">2.4</span><div><b>Cursors and icons</b><p>Bibata cursors and icon themes for every desktop, checked by checksum.</p></div></li>
+      <li><span class="m">2.5</span><div><b>GNOME</b><p>What you would find in GNOME Tweaks, plus title bar buttons, window corners, fonts and autostart.</p></div></li>
+      <li><span class="m">2.6</span><div><b>Plasma</b><p>Colour scheme, Plasma style, cursors and icons.</p></div></li>
+      <li><span class="m">2.7</span><div><b>Hyprland</b><p>All of Hypr Studio, built in.</p></div></li>
+      <li><span class="m">2.8</span><div><b>Terminals</b><p>Kitty and Alacritty share one editor and the same presets.</p></div></li>
+      <li><span class="m">2.9</span><div><b>Presets</b><p>Save everything as a <code>.linuxaio</code> file and load it on the next machine.</p></div></li>
+      <li><span class="m">2.10</span><div><b>Search</b><p>One search box for pages, settings and themes: <kbd>Ctrl</kbd>+<kbd>F</kbd>.</p></div></li>
+    </ul>
+  </div>
+</section>
 
-<section class="track" id="apps">
-  <div class="th rv"><div class="no"><b>A1</b><span data-t="sideA"></span></div><div><h2 data-h="a1h"></h2><p data-t="a1p"></p></div></div>
-  <div class="apps rv">
-    <article class="app">
-      <figure><img src="/shots/aio-desktops.webp" alt="Linux AIO" loading="lazy"></figure>
-      <div class="in2">
-        <div class="hd"><img src="/icon.svg" alt=""><div><div class="tag" data-t="tAio"></div><h3>Linux AIO</h3></div></div>
-        <p data-t="pAio"></p>
-        <ul><li data-t="lAio1"></li><li data-t="lAio2"></li><li data-t="lAio3"></li><li data-t="lAio4"></li></ul>
-        <a class="get" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip" data-dl><span data-t="get"></span><small>Linux-AIO.zip · v<span data-ver="linux-aio">3.0.0</span></small></a>
+<section class="wrap ch" id="abbildungen">
+  <header><span class="n">3</span><span lang="de">Abbildungen</span><span lang="en">Figures</span></header>
+  <div>
+    <h2 lang="de">So sieht es <i>aus.</i></h2>
+    <h2 lang="en">What it <i>looks like.</i></h2>
+    <div class="figs">
+      <figure class="big"><img src="./shots/aio-desktops.webp" width="1360" height="880" loading="lazy" alt="Linux AIO: Desktops">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 1</b><span lang="de">Linux AIO, Desktops: Vorschau und drei Paket-Varianten je Desktop.</span><span lang="en">Linux AIO, desktops: preview and three package variants per desktop.</span></figcaption></figure>
+      <figure><img src="./shots/sddm-studio.webp" width="1360" height="880" loading="lazy" alt="SDDM Studio">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 2</b><span lang="de">SDDM Studio: Theme testen, bevor es angewendet wird.</span><span lang="en">SDDM Studio: test a theme before applying it.</span></figcaption></figure>
+      <figure><img src="./shots/hypr-studio.webp" width="1220" height="860" loading="lazy" alt="Hypr Studio">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 3</b><span lang="de">Hypr Studio: Hyprland-Presets mit Vorschau.</span><span lang="en">Hypr Studio: Hyprland presets with preview.</span></figcaption></figure>
+      <figure class="s2"><img src="./shots/aio-cursor.webp" loading="lazy" alt="Mauszeiger">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 4</b><span lang="de">Mauszeiger und Symbole.</span><span lang="en">Cursors and icons.</span></figcaption></figure>
+      <figure class="s2"><img src="./shots/aio-titlebar.webp" loading="lazy" alt="Titelleiste">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 5</b><span lang="de">GNOME: Titelleisten-Knöpfe.</span><span lang="en">GNOME: title bar buttons.</span></figcaption></figure>
+      <figure class="s2"><img src="./shots/aio-kitty.webp" loading="lazy" alt="Kitty">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 6</b><span lang="de">Kitty mit Live-Vorschau.</span><span lang="en">Kitty with live preview.</span></figcaption></figure>
+      <figure><img src="./shots/aio-gnome.webp" loading="lazy" alt="GNOME">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 7</b><span lang="de">GNOME-Einstellungen.</span><span lang="en">GNOME settings.</span></figcaption></figure>
+      <figure><img src="./shots/hypr-waybar.webp" loading="lazy" alt="Waybar">
+        <figcaption><b><span lang="de">Abb.</span><span lang="en">Fig.</span> 8</b><span lang="de">Waybar-Presets in denselben Farben.</span><span lang="en">Waybar presets in the same colours.</span></figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<section class="wrap ch" id="installation">
+  <header><span class="n">4</span>Installation</header>
+  <div>
+    <h2 lang="de">In einer Minute <i>installiert.</i></h2>
+    <h2 lang="en">Installed in <i>a minute.</i></h2>
+    <ol class="steps" lang="de">
+      <li><span>ZIP laden und entpacken.</span></li>
+      <li><span><code>sh Install.sh</code> ausführen. Fehlen GTK 4 oder polkit, kommen sie mit (pacman, apt, dnf, zypper). Auf Arch entsteht ein echtes pacman-Paket.</span></li>
+      <li><span>Die App steht im Startmenü. Entfernen mit <code>sh Uninstall.sh</code>, deine Einstellungen bleiben.</span></li>
+    </ol>
+    <ol class="steps" lang="en">
+      <li><span>Download the ZIP and unpack it.</span></li>
+      <li><span>Run <code>sh Install.sh</code>. GTK 4 or polkit come along if missing (pacman, apt, dnf, zypper). On Arch a real pacman package is built.</span></li>
+      <li><span>The app is in your start menu. Remove it with <code>sh Uninstall.sh</code>, your settings stay.</span></li>
+    </ol>
+    <div class="term">
+      <div class="hd"><span><span lang="de">oder alles in einem Befehl</span><span lang="en">or all in one command</span></span><button type="button" data-copy><span lang="de">Kopieren</span><span lang="en">Copy</span></button></div>
+      <pre><span class="p">$ </span><span id="cmd">cd /tmp &amp;&amp; curl -fLO https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip &amp;&amp; unzip -o Linux-AIO.zip &amp;&amp; sh Linux-AIO/Install.sh</span></pre>
+    </div>
+    <div class="cols">
+      <div>
+        <h3 lang="de">Andere App</h3><h3 lang="en">Other app</h3>
+        <p lang="de">Für SDDM Studio oder Hypr Studio im Befehl <code>Linux-AIO</code> durch <code>SDDM-Studio</code> oder <code>Hypr-Studio</code> ersetzen.</p>
+        <p lang="en">For SDDM Studio or Hypr Studio, replace <code>Linux-AIO</code> in the command with <code>SDDM-Studio</code> or <code>Hypr-Studio</code>.</p>
       </div>
-    </article>
-    <article class="app">
-      <figure><img src="/shots/sddm-studio.webp" alt="SDDM Studio" loading="lazy"></figure>
-      <div class="in2">
-        <div class="hd"><img src="/sddm-studio.svg" alt=""><div><div class="tag" data-t="tSddm"></div><h3>SDDM Studio</h3></div></div>
-        <p data-t="pSddm"></p>
-        <ul><li data-t="lSddm1"></li><li data-t="lSddm2"></li><li data-t="lSddm3"></li></ul>
-        <a class="get" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/SDDM-Studio.zip" data-dl><span data-t="get"></span><small>SDDM-Studio.zip · v<span data-ver="sddm-studio">1.0.0</span></small></a>
+      <div>
+        <h3 lang="de">Ohne Installation</h3><h3 lang="en">Without installing</h3>
+        <p lang="de">Die einzelne Programmdatei läuft auch so. Updates holt sie sich selbst über das Zahnrad, mit Prüfsumme.</p>
+        <p lang="en">The single binary runs as is. It fetches updates itself from the gear menu, checked by checksum.</p>
       </div>
-    </article>
-    <article class="app">
-      <figure><img src="/shots/hypr-studio.webp" alt="Hypr Studio" loading="lazy"></figure>
-      <div class="in2">
-        <div class="hd"><img src="/hypr-studio.svg" alt=""><div><div class="tag" data-t="tHypr"></div><h3>Hypr Studio</h3></div></div>
-        <p data-t="pHypr"></p>
-        <ul><li data-t="lHypr1"></li><li data-t="lHypr2"></li><li data-t="lHypr3"></li></ul>
-        <a class="get" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Hypr-Studio.zip" data-dl><span data-t="get"></span><small>Hypr-Studio.zip · v<span data-ver="hypr-studio">2.0.0</span></small></a>
-      </div>
-    </article>
-  </div>
-</section>
-
-<section class="track" id="features">
-  <div class="th rv"><div class="no"><b>A2</b><span data-t="sideA"></span></div><div><h2 data-h="a2h"></h2><p data-t="a2p"></p></div></div>
-  <div class="body feat rv" id="feat"></div>
-</section>
-
-<section class="track shots" id="shots">
-  <div class="th rv"><div class="no"><b>A3</b><span data-t="sideA"></span></div><div><h2 data-h="a3h"></h2><p data-t="a3p"></p></div></div>
-  <div class="body rv">
-    <div class="sh-tabs" id="shtabs"></div>
-    <div class="stage" id="stage"></div>
-    <p class="cap" id="cap"></p>
-  </div>
-</section>
-
-<section class="track" id="download">
-  <div class="th rv"><div class="no"><b>B1</b><span data-t="sideB"></span></div><div><h2 data-h="b1h"></h2><p data-t="b1p"></p></div></div>
-  <div class="body rv">
-    <div class="dls">
-      <a class="dl" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip" data-dl><div class="n">Linux AIO</div><div class="d"><p data-t="dAio"></p><small>Linux-AIO.zip · v<span data-ver="linux-aio">3.0.0</span> · x86_64</small></div><div class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M6 13l6 6 6-6"/></svg></div></a>
-      <a class="dl" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/SDDM-Studio.zip" data-dl><div class="n">SDDM Studio</div><div class="d"><p data-t="dSddm"></p><small>SDDM-Studio.zip · v<span data-ver="sddm-studio">1.0.0</span> · x86_64</small></div><div class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M6 13l6 6 6-6"/></svg></div></a>
-      <a class="dl" href="https://github.com/Labtoso/Linux-AIO/releases/latest/download/Hypr-Studio.zip" data-dl><div class="n">Hypr Studio</div><div class="d"><p data-t="dHypr"></p><small>Hypr-Studio.zip · v<span data-ver="hypr-studio">2.0.0</span> · x86_64</small></div><div class="go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M6 13l6 6 6-6"/></svg></div></a>
-    </div>
-    <div class="binr" id="binr"><span data-t="bins"></span></div>
-  </div>
-</section>
-
-<section class="track" id="install">
-  <div class="th rv"><div class="no"><b>B2</b><span data-t="sideB"></span></div><div><h2 data-h="b2h"></h2><p data-t="b2p"></p></div></div>
-  <div class="body rv">
-    <div class="tabs"><button data-tab="zip" class="on" data-t="tabZip"></button><button data-tab="term" data-t="tabTerm"></button><button data-tab="file" data-t="tabFile"></button></div>
-    <div class="pane on" data-pane="zip">
-      <div class="term"><div class="term-h">bash</div>
-<pre><span class="p">$</span> unzip Linux-AIO.zip
-<span class="p">$</span> sh Linux-AIO/Install.sh
-<span class="o">==> Arch erkannt: baue pacman-Paket
-==> Fertig: Linux AIO steht im Startmenü</span></pre></div>
-      <ol class="steps"><li data-h="z1"></li><li data-h="z2"></li><li data-h="z3"></li></ol>
-    </div>
-    <div class="pane" data-pane="term">
-      <div class="term"><div class="term-h"><span data-t="oneCmd"></span><button data-copy="t1" data-t="copy"></button></div>
-<pre><span class="p">$</span> <span data-cmd="t1">cd /tmp &amp;&amp; curl -fLO https://github.com/Labtoso/Linux-AIO/releases/latest/download/Linux-AIO.zip &amp;&amp; unzip -o Linux-AIO.zip &amp;&amp; sh Linux-AIO/Install.sh</span></pre></div>
-      <ol class="steps"><li data-h="t1"></li><li data-h="t2"></li></ol>
-    </div>
-    <div class="pane" data-pane="file">
-      <div class="term"><div class="term-h">bash</div>
-<pre><span class="p">$</span> chmod +x Linux-AIO-<span data-ver="linux-aio">3.0.0</span>-x86_64
-<span class="p">$</span> ./Linux-AIO-<span data-ver="linux-aio">3.0.0</span>-x86_64</pre></div>
-      <ol class="steps"><li data-h="f1"></li><li data-h="f2"></li></ol>
     </div>
   </div>
 </section>
 
-<section class="track" id="faq">
-  <div class="th rv"><div class="no"><b>B3</b><span data-t="sideB"></span></div><div><h2 data-h="b3h"></h2></div></div>
-  <div class="body notes rv">
-    <div><h4 data-t="q1"></h4><p data-h="a1"></p></div>
-    <div><h4 data-t="q2"></h4><p data-h="a2"></p></div>
-    <div><h4 data-t="q3"></h4><p data-h="a3"></p></div>
-    <div><h4 data-t="q4"></h4><p data-h="a4"></p></div>
-    <div><h4 data-t="q5"></h4><p data-h="a5"></p></div>
-    <div><h4 data-t="q6"></h4><p data-h="a6"></p></div>
-    <div><h4 data-t="q7"></h4><p data-h="a7"></p></div>
+<section class="wrap ch" id="fragen">
+  <header><span class="n">5</span><span lang="de">Fragen</span><span lang="en">Questions</span></header>
+  <div>
+    <dl class="faq" lang="de">
+      <dt>Welche Distributionen?</dt><dd>Arch und Arch-basierte (CachyOS, EndeavourOS, Manjaro) am besten, dazu Fedora, openSUSE, Debian 13 und Ubuntu 24.04 oder neuer. Gebraucht wird GTK 4.12 oder neuer.</dd>
+      <dt>Was ist neu in 3.0?</dt><dd>Alle drei Apps sind jetzt in Rust geschrieben, ohne Python und Qt, und starten schneller. Seiten, Einstellungen und Dateien sind gleich geblieben.</dd>
+      <dt>Bleiben meine Einstellungen?</dt><dd>Ja. Die neue Version liest dieselben Dateien unter <code>~/.config/LabtosoStudios</code>.</dd>
+      <dt>Warum fragt die App nach dem Passwort?</dt><dd>Desktops, SDDM und Plymouth liegen im System. Dafür startet ein kleiner Helfer über polkit. Alles andere läuft als normaler Benutzer.</dd>
+      <dt>Kann ich es gefahrlos ausprobieren?</dt><dd><code>DEMANAGER_DRYRUN=1 linux-aio</code> startet den Testmodus. Dann wird nichts am System geändert.</dd>
+      <dt>Kostet das etwas?</dt><dd>Nein. Linux AIO und SDDM Studio stehen unter GPL-3.0, Hypr Studio unter MIT. Der Quellcode liegt auf <a href="https://github.com/Labtoso/Linux-AIO">GitHub</a>.</dd>
+    </dl>
+    <dl class="faq" lang="en">
+      <dt>Which distributions?</dt><dd>Arch and Arch-based (CachyOS, EndeavourOS, Manjaro) work best, plus Fedora, openSUSE, Debian 13 and Ubuntu 24.04 or newer. GTK 4.12 or newer is needed.</dd>
+      <dt>What is new in 3.0?</dt><dd>All three apps are now written in Rust, without Python and Qt, and start faster. Pages, settings and files stayed the same.</dd>
+      <dt>Do my settings stay?</dt><dd>Yes. The new version reads the same files under <code>~/.config/LabtosoStudios</code>.</dd>
+      <dt>Why does the app ask for a password?</dt><dd>Desktops, SDDM and Plymouth live in the system. A small helper starts through polkit for that. Everything else runs as your normal user.</dd>
+      <dt>Can I try it safely?</dt><dd><code>DEMANAGER_DRYRUN=1 linux-aio</code> starts test mode. Nothing on the system is changed then.</dd>
+      <dt>Does it cost anything?</dt><dd>No. Linux AIO and SDDM Studio are GPL-3.0, Hypr Studio is MIT. The source code is on <a href="https://github.com/Labtoso/Linux-AIO">GitHub</a>.</dd>
+    </dl>
   </div>
 </section>
+</main>
 
-<footer>
-  <div class="fl"><span>© LabtosoStudios</span><span><a href="https://github.com/Labtoso/Linux-AIO" target="_blank" rel="noopener">GitHub</a> &nbsp;/&nbsp; <a href="https://github.com/Labtoso/Linux-AIO/releases" target="_blank" rel="noopener" data-t="all"></a> &nbsp;/&nbsp; <a href="https://musik.labtoso.de" target="_blank" rel="noopener">Streyn</a></span></div>
-  <div class="big" aria-hidden="true">Linux AIO</div>
-</footer>
+<footer><div class="wrap">
+  <span>Labtoso Studios · Linux AIO</span>
+  <span><a href="https://github.com/Labtoso/Linux-AIO">GitHub</a> · <a href="https://github.com/Labtoso/Linux-AIO/releases"><span lang="de">alle Versionen</span><span lang="en">all versions</span></a> · <a href="https://musik.labtoso.de/">musik.labtoso.de</a></span>
+</div></footer>
 
 <script>
-const T = {
-  de: {
-    catApps: 'Apps', catMore: 'Mehr', navShots: 'Bilder', navInst: 'Installieren',
-    mAio: 'Desktops, SDDM, Plymouth und alle Einstellungen', mSddm: 'Nur die Anmelde-Themes, als eigene App', mHypr: 'Hyprland und Waybar per Klick gestalten',
-    mShots: 'So sieht es aus', mInst: 'Ein Befehl, fertig', mFaq: 'Häufige Fragen', mGh: 'Quellcode und alle Versionen',
-    settings: 'Einstellungen', lang: 'Sprache', accent: 'Akzentfarbe', blue: 'Blau', green: 'Grün', purple: 'Lila',
-    h1: 'Linux,<br><em>alles an</em><br>einem Ort.',
-    lead: 'Desktops installieren, Anmeldebildschirm und Bootsplash wechseln, GNOME, Plasma und Hyprland einstellen. <b>Drei Apps, ein Look</b>, jetzt komplett in Rust.',
-    ctaDl: 'Linux AIO laden', ctaApps: 'Alle drei Apps', metaVer: 'Version', metaFree: 'Kostenlos',
-    marq: ['GNOME', 'KDE Plasma', 'Hyprland', 'SDDM', 'Plymouth', 'Waybar', 'Kitty', 'Alacritty', 'Bibata', 'Papirus', 'Nerd Fonts', 'yay', 'Xfce', 'Cinnamon', 'Rust', 'GTK 4'],
-    sideA: 'Seite A', sideB: 'Seite B',
-    a1h: 'Drei Apps.<br><em>Ein Look.</em>', a1p: 'Linux AIO hat alles. Wer nur den Anmeldebildschirm oder nur Hyprland will, nimmt SDDM Studio oder Hypr Studio: gleicher Code, gleiche Bedienung.',
-    tAio: 'Alles in einem', tSddm: 'Anmeldebildschirm', tHypr: 'Hyprland',
-    pAio: 'Desktops, SDDM, Plymouth und die Einstellungen jedes Desktops. Der laufende Desktop ist vorgewählt.',
-    lAio1: 'GNOME, Plasma, Hyprland, Xfce und mehr installieren', lAio2: 'SDDM- und Plymouth-Themes mit Vorschau', lAio3: 'Mauszeiger, Symbole, Schriften, Titelleiste', lAio4: 'Kitty, Alacritty und yay mit einem Klick',
-    pSddm: 'Der SDDM-Tab von Linux AIO als eigenes, kleines Programm.',
-    lSddm1: 'Themes anwenden, testen, entfernen', lSddm2: 'Themes aus dem KDE Store laden', lSddm3: 'SDDM selbst installieren, falls es fehlt',
-    pHypr: 'Hyprland, Waybar und Launcher per Klick gestalten. Auch in Linux AIO eingebaut.',
-    lHypr1: 'Presets für Hyprland, Waybar und Launcher', lHypr2: 'Hintergrund, Mauszeiger, Sperrbildschirm', lHypr3: 'Jeder Bereich einzeln rückgängig',
-    get: 'Laden',
-    a2h: 'Was alles<br><em>drin ist.</em>', a2p: 'Alles, was du sonst in fünf Programmen und zehn Konfig-Dateien suchst.',
-    feat: [
-      ['01', 'Desktops', 'GNOME, Plasma, Hyprland, Xfce, Cinnamon, MATE, Budgie, LXQt, COSMIC und mehr: installieren, als Standard setzen, entfernen.'],
-      ['02', 'SDDM', 'Anmelde-Themes anwenden, vorher testen, aus dem KDE Store installieren.'],
-      ['03', 'Plymouth', 'Bootsplash-Themes mit animierter Vorschau.'],
-      ['04', 'Mauszeiger & Symbole', '29 Bibata-Mauszeiger und 20 Symbol-Themes, Prüfsumme geprüft, für jeden Desktop.'],
-      ['05', 'GNOME', 'Alles aus GNOME Tweaks, Titelleisten-Knöpfe, Fensterecken, obere Leiste, Schriften, Startprogramme, Anmeldebildschirm.'],
-      ['06', 'Hyprland', 'Das komplette Hypr Studio, eingebettet oder als eigenes Fenster.'],
-      ['07', 'Terminals', 'Kitty und Alacritty teilen sich einen Editor mit denselben Presets.'],
-      ['08', 'Presets', 'Alles als .linuxaio-Datei sichern und auf dem nächsten Rechner wieder laden.'],
-      ['09', 'Suche', 'Ein Suchfeld für Seiten, Einstellungen und Themes. Strg+F.']
-    ],
-    a3h: 'So sieht’s<br><em>aus.</em>', a3p: 'Echte Bilder aus den Apps. Keine Mockups.',
-    shots: [
-      ['Desktops', '/shots/aio-desktops.webp', 'Linux AIO: Desktops installieren, mit Vorschau und drei Paket-Varianten.'],
-      ['SDDM Studio', '/shots/sddm-studio.webp', 'SDDM Studio: Themes mit großer Vorschau, testen vor dem Anwenden.'],
-      ['Mauszeiger', '/shots/aio-cursor.webp', 'Mauszeiger und Symbole für jeden Desktop, direkt aus dem Release geladen.'],
-      ['Titelleiste', '/shots/aio-titlebar.webp', 'GNOME: Knöpfe, Seite und Knopf-Themes, auch für Firefox und Zen.'],
-      ['Kitty', '/shots/aio-kitty.webp', 'Kitty und Alacritty mit Live-Vorschau und gemeinsamen Presets.'],
-      ['Hypr Studio', '/shots/hypr-studio.webp', 'Hypr Studio: Hyprland-Presets mit Vorschau.'],
-      ['Waybar', '/shots/hypr-waybar.webp', 'Waybar-Presets in denselben Farben wie alles andere.']
-    ],
-    b1h: 'Hol dir<br><em>die Apps.</em>', b1p: 'Ein Klick lädt die ZIP direkt. Entpacken, Install.sh starten, fertig.',
-    dAio: 'Alles in einem: Desktops, SDDM, Plymouth und Einstellungen.', dSddm: 'Nur die SDDM-Anmelde-Themes.', dHypr: 'Hyprland und Waybar gestalten.',
-    bins: 'Nur die Programmdatei →',
-    b2h: 'Installiert<br><em>in einer Minute.</em>', b2p: 'Install.sh erkennt deine Distribution. Auf Arch wird ein echtes pacman-Paket gebaut.',
-    tabZip: 'ZIP', tabTerm: 'Terminal', tabFile: 'Ohne Installation', oneCmd: 'Ein Befehl', copy: 'Markieren', marked: 'Markiert · Strg+C',
-    z1: 'ZIP laden und entpacken.', z2: '<code>sh Install.sh</code> ausführen. Fehlt GTK 4 oder polkit, wird es mitinstalliert (pacman, apt, dnf, zypper).', z3: 'Die App steht im Startmenü. Entfernen mit <code>sh Uninstall.sh</code>, deine Einstellungen bleiben.',
-    t1: 'Lädt die neueste Version und installiert sie. Für SDDM Studio oder Hypr Studio <code>Linux-AIO</code> durch <code>SDDM-Studio</code> bzw. <code>Hypr-Studio</code> ersetzen.', t2: 'Den gleichen Befehl später noch mal ausführen bringt die neueste Version.',
-    f1: 'Die einzelne Programmdatei läuft auch ohne Installation. Beim ersten Start legt sie einen Startmenü-Eintrag an.', f2: 'Updates holt sie sich selbst (Zahnrad › Nach Updates suchen), mit Prüfsumme.',
-    b3h: 'Gut zu<br><em>wissen.</em>',
-    q1: 'Welche Distributionen?', a1: 'Arch und Arch-basierte (CachyOS, EndeavourOS, Manjaro) am besten, dazu Fedora, openSUSE, Debian 13 und Ubuntu 24.04 oder neuer. Gebraucht wird GTK 4.12 oder neuer.',
-    q2: 'Was ist neu in 3.0?', a2: 'Alle drei Apps sind jetzt in Rust geschrieben. Kein Python und kein Qt mehr, schnellerer Start. Seiten, Einstellungen, Dateien und Pfade sind gleich geblieben.',
-    q3: 'Bleiben meine Einstellungen?', a3: 'Ja. Die neue Version liest dieselben Dateien unter <code>~/.config/LabtosoStudios</code>. Presets, installierte Themes und Mauszeiger bleiben.',
-    q4: 'Warum fragt die App nach dem Passwort?', a4: 'Desktops, SDDM und Plymouth liegen im System. Dafür startet ein kleiner Helfer über polkit (pkexec). Alles andere läuft als normaler Benutzer.',
-    q5: 'SDDM Studio oder Linux AIO?', a5: 'Linux AIO enthält SDDM Studio und Hypr Studio komplett. Die einzelnen Apps sind für alle, die nur das eine wollen.',
-    q6: 'Kostet das was?', a6: 'Nein. Linux AIO und SDDM Studio stehen unter GPL-3.0, Hypr Studio unter MIT. Der Quellcode liegt auf <a href="https://github.com/Labtoso/Linux-AIO">GitHub</a>.',
-    q7: 'Kann ich es gefahrlos ausprobieren?', a7: 'Ja: <code>DEMANAGER_DRYRUN=1 linux-aio</code> startet den Testmodus. Dann wird nur in den Cache geschrieben, nichts am System geändert.',
-    all: 'Alle Versionen'
-  },
-  en: {
-    catApps: 'Apps', catMore: 'More', navShots: 'Screens', navInst: 'Install',
-    mAio: 'Desktops, SDDM, Plymouth and every setting', mSddm: 'Just the login themes, as its own app', mHypr: 'Style Hyprland and Waybar with a click',
-    mShots: 'What it looks like', mInst: 'One command, done', mFaq: 'Common questions', mGh: 'Source code and all versions',
-    settings: 'Settings', lang: 'Language', accent: 'Accent colour', blue: 'Blue', green: 'Green', purple: 'Purple',
-    h1: 'Linux,<br><em>all in</em><br>one place.',
-    lead: 'Install desktops, switch the login screen and boot splash, set up GNOME, Plasma and Hyprland. <b>Three apps, one look</b>, now fully written in Rust.',
-    ctaDl: 'Get Linux AIO', ctaApps: 'All three apps', metaVer: 'Version', metaFree: 'Free',
-    marq: ['GNOME', 'KDE Plasma', 'Hyprland', 'SDDM', 'Plymouth', 'Waybar', 'Kitty', 'Alacritty', 'Bibata', 'Papirus', 'Nerd Fonts', 'yay', 'Xfce', 'Cinnamon', 'Rust', 'GTK 4'],
-    sideA: 'Side A', sideB: 'Side B',
-    a1h: 'Three apps.<br><em>One look.</em>', a1p: 'Linux AIO has it all. If you only want the login screen or only Hyprland, take SDDM Studio or Hypr Studio: same code, same handling.',
-    tAio: 'All in one', tSddm: 'Login screen', tHypr: 'Hyprland',
-    pAio: 'Desktops, SDDM, Plymouth and the settings of every desktop. The running desktop is preselected.',
-    lAio1: 'Install GNOME, Plasma, Hyprland, Xfce and more', lAio2: 'SDDM and Plymouth themes with previews', lAio3: 'Cursors, icons, fonts, title bar', lAio4: 'Kitty, Alacritty and yay with one click',
-    pSddm: 'The SDDM tab of Linux AIO as its own small program.',
-    lSddm1: 'Apply, test and remove themes', lSddm2: 'Get themes from the KDE Store', lSddm3: 'Install SDDM itself if it is missing',
-    pHypr: 'Style Hyprland, Waybar and launchers with a click. Also built into Linux AIO.',
-    lHypr1: 'Presets for Hyprland, Waybar and launchers', lHypr2: 'Wallpaper, cursor, lock screen', lHypr3: 'Undo every area on its own',
-    get: 'Download',
-    a2h: 'What’s<br><em>inside.</em>', a2p: 'Everything you would otherwise hunt for in five programs and ten config files.',
-    feat: [
-      ['01', 'Desktops', 'GNOME, Plasma, Hyprland, Xfce, Cinnamon, MATE, Budgie, LXQt, COSMIC and more: install, set as default, remove.'],
-      ['02', 'SDDM', 'Apply login themes, test them first, install them from the KDE Store.'],
-      ['03', 'Plymouth', 'Boot splash themes with animated previews.'],
-      ['04', 'Cursors & icons', '29 Bibata cursors and 20 icon themes, checksum verified, for every desktop.'],
-      ['05', 'GNOME', 'Everything from GNOME Tweaks, title bar buttons, window corners, top bar, fonts, startup apps, login screen.'],
-      ['06', 'Hyprland', 'The complete Hypr Studio, embedded or in its own window.'],
-      ['07', 'Terminals', 'Kitty and Alacritty share one editor with the same presets.'],
-      ['08', 'Presets', 'Save everything to a .linuxaio file and load it on your next machine.'],
-      ['09', 'Search', 'One search field for pages, settings and themes. Ctrl+F.']
-    ],
-    a3h: 'This is<br><em>what it looks like.</em>', a3p: 'Real screenshots from the apps. No mockups.',
-    shots: [
-      ['Desktops', '/shots/aio-desktops.webp', 'Linux AIO: install desktops, with preview and three package variants.'],
-      ['SDDM Studio', '/shots/sddm-studio.webp', 'SDDM Studio: themes with a big preview, test before you apply.'],
-      ['Cursors', '/shots/aio-cursor.webp', 'Cursors and icons for every desktop, loaded straight from the release.'],
-      ['Title bar', '/shots/aio-titlebar.webp', 'GNOME: buttons, side and button themes, also for Firefox and Zen.'],
-      ['Kitty', '/shots/aio-kitty.webp', 'Kitty and Alacritty with live preview and shared presets.'],
-      ['Hypr Studio', '/shots/hypr-studio.webp', 'Hypr Studio: Hyprland presets with preview.'],
-      ['Waybar', '/shots/hypr-waybar.webp', 'Waybar presets in the same colours as everything else.']
-    ],
-    b1h: 'Get<br><em>the apps.</em>', b1p: 'One click downloads the ZIP directly. Unzip, run Install.sh, done.',
-    dAio: 'All in one: desktops, SDDM, Plymouth and settings.', dSddm: 'Only the SDDM login themes.', dHypr: 'Style Hyprland and Waybar.',
-    bins: 'Just the program file →',
-    b2h: 'Installed<br><em>in a minute.</em>', b2p: 'Install.sh detects your distribution. On Arch it builds a real pacman package.',
-    tabZip: 'ZIP', tabTerm: 'Terminal', tabFile: 'No install', oneCmd: 'One command', copy: 'Select', marked: 'Selected · Ctrl+C',
-    z1: 'Download the ZIP and unzip it.', z2: 'Run <code>sh Install.sh</code>. GTK 4 and polkit are installed too if missing (pacman, apt, dnf, zypper).', z3: 'The app is in your start menu. Remove it with <code>sh Uninstall.sh</code>; your settings stay.',
-    t1: 'Downloads the newest version and installs it. For SDDM Studio or Hypr Studio replace <code>Linux-AIO</code> with <code>SDDM-Studio</code> or <code>Hypr-Studio</code>.', t2: 'Running the same command again later brings the newest version.',
-    f1: 'The single program file also runs without installing. On first start it adds a start menu entry.', f2: 'It fetches updates itself (gear › Check for updates), checksum verified.',
-    b3h: 'Good to<br><em>know.</em>',
-    q1: 'Which distributions?', a1: 'Arch and Arch-based (CachyOS, EndeavourOS, Manjaro) work best, plus Fedora, openSUSE, Debian 13 and Ubuntu 24.04 or newer. GTK 4.12 or newer is needed.',
-    q2: 'What’s new in 3.0?', a2: 'All three apps are now written in Rust. No more Python or Qt, faster start. Pages, settings, files and paths stayed the same.',
-    q3: 'Do my settings stay?', a3: 'Yes. The new version reads the same files under <code>~/.config/LabtosoStudios</code>. Presets, installed themes and cursors stay.',
-    q4: 'Why does the app ask for my password?', a4: 'Desktops, SDDM and Plymouth live in the system. For that a small helper starts through polkit (pkexec). Everything else runs as your normal user.',
-    q5: 'SDDM Studio or Linux AIO?', a5: 'Linux AIO contains SDDM Studio and Hypr Studio completely. The single apps are for everyone who only wants that one thing.',
-    q6: 'Does it cost anything?', a6: 'No. Linux AIO and SDDM Studio are GPL-3.0, Hypr Studio is MIT. The source is on <a href="https://github.com/Labtoso/Linux-AIO">GitHub</a>.',
-    q7: 'Can I try it safely?', a7: 'Yes: <code>DEMANAGER_DRYRUN=1 linux-aio</code> starts the test mode. It only writes to the cache and changes nothing on your system.',
-    all: 'All versions'
+(function () {
+  var root = document.documentElement;
+  function setLang(l) {
+    root.dataset.l = l; root.lang = l;
+    try { localStorage.setItem('la-lang', l); } catch (e) {}
   }
-};
-const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch {} return v; };
-let lang = store('lang') || ((navigator.language || 'en').toLowerCase().startsWith('de') ? 'de' : 'en');
-let shot = 0;
-const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  var saved = null;
+  try { saved = localStorage.getItem('la-lang'); } catch (e) {}
+  setLang(saved || ((navigator.language || 'de').slice(0, 2) === 'de' ? 'de' : 'en'));
+  document.querySelectorAll('.lang button').forEach(function (b) {
+    b.addEventListener('click', function () { setLang(b.dataset.set); });
+  });
 
-function apply() {
-  const L = T[lang];
-  document.documentElement.lang = lang;
-  $$('[data-t]').forEach((e) => { const v = L[e.dataset.t]; if (typeof v === 'string') e.textContent = v; });
-  $$('[data-h]').forEach((e) => { const v = L[e.dataset.h]; if (typeof v === 'string') e.innerHTML = v; });
-  const m = L.marq.map((w, i) => `<span>${w}</span><span class="d">✦</span>`).join('');
-  $('#marq').innerHTML = m + m;
-  $('#feat').innerHTML = L.feat.map(([n, h, p]) => `<div><h4><i>${n}</i>${h}</h4><p>${p}</p></div>`).join('');
-  $('#shtabs').innerHTML = L.shots.map(([n], i) => `<button data-i="${i}" class="${i === shot ? 'on' : ''}">${n}</button>`).join('');
-  $('#stage').innerHTML = L.shots.map(([n, src], i) => `<img src="${src}" alt="${n}" loading="lazy" class="${i === shot ? 'on' : ''}">`).join('');
-  $('#cap').textContent = L.shots[shot][2];
-  $$('#shtabs button').forEach((b) => b.onclick = () => show(+b.dataset.i));
-  $$('[data-l]').forEach((b) => b.classList.toggle('on', b.dataset.l === lang));
-}
-function show(i) {
-  shot = i;
-  $$('#shtabs button').forEach((b, j) => b.classList.toggle('on', j === i));
-  $$('#stage img').forEach((im, j) => im.classList.toggle('on', j === i));
-  $('#cap').textContent = T[lang].shots[i][2];
-}
-function accent(a) {
-  if (a === 'blue') delete document.documentElement.dataset.accent; else document.documentElement.dataset.accent = a;
-  $$('[data-a]').forEach((b) => b.classList.toggle('on', b.dataset.a === a));
-  store('accent', a);
-}
-$$('[data-l]').forEach((b) => b.onclick = () => { lang = store('lang', b.dataset.l); apply(); });
-$$('[data-a]').forEach((b) => b.onclick = () => accent(b.dataset.a));
-accent(store('accent') || 'blue');
-const setOpen = (on) => document.body.classList.toggle('set-open', on);
-$('#gear').onclick = () => setOpen(true);
-$('#close').onclick = $('#scrim').onclick = () => setOpen(false);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { setOpen(false); $$('.cat').forEach((c) => c.classList.remove('open')); } });
-$$('.cat').forEach((c) => {
-  $('.cbtn', c).onclick = (e) => { e.stopPropagation(); const o = !c.classList.contains('open'); $$('.cat').forEach((x) => x.classList.remove('open')); c.classList.toggle('open', o); };
-  $$('.menu a', c).forEach((a) => a.onclick = () => c.classList.remove('open'));
-});
-document.addEventListener('click', () => $$('.cat').forEach((c) => c.classList.remove('open')));
-$$('.tabs button').forEach((b) => b.onclick = () => {
-  $$('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
-  $$('.pane').forEach((p) => p.classList.toggle('on', p.dataset.pane === b.dataset.tab));
-});
-$$('[data-copy]').forEach((b) => b.onclick = () => {
-  const el = $(`[data-cmd="${b.dataset.copy}"]`);
-  const r = document.createRange(); r.selectNodeContents(el);
-  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
-  try { navigator.clipboard.writeText(el.textContent); } catch {}
-  b.textContent = T[lang].marked; setTimeout(() => b.textContent = T[lang].copy, 1800);
-});
-apply();
-const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .08 });
-$$('.rv').forEach((e) => io.observe(e));
-// version.json schreibt jedes Release (keine Limits, kein Warten)
-const BASE = 'https://github.com/Labtoso/Linux-AIO/releases/latest/download/';
-function useRelease(r) {
-  if (!r || !r.apps) return;
-  $$('[data-ver]').forEach((e) => { const v = r.apps[e.dataset.ver]; if (v) e.textContent = v; });
-  const files = [['Linux-AIO', r.apps['linux-aio']], ['SDDM-Studio', r.apps['sddm-studio']], ['Hypr-Studio', r.apps['hypr-studio']]];
-  const tag = r.tag_name;
-  $('#binr').insertAdjacentHTML('beforeend', files.filter(([, v]) => v).map(([n, v]) =>
-    `<a href="https://github.com/Labtoso/Linux-AIO/releases/download/${tag}/${n}-${v}-x86_64">${n}-${v}-x86_64</a>`).join(''));
-}
-fetch('/version.json?' + Date.now(), { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).then(useRelease).catch(() => {});
+  var btn = document.querySelector('[data-copy]');
+  btn.addEventListener('click', function () {
+    var text = document.getElementById('cmd').textContent;
+    var done = function () {
+      btn.querySelector('[lang=de]').textContent = 'Kopiert';
+      btn.querySelector('[lang=en]').textContent = 'Copied';
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, function () {});
+  });
+
+  // version.json schreibt der Release-Bot bei jedem Release
+  var BASE = 'https://github.com/Labtoso/Linux-AIO/releases/download/';
+  fetch('./version.json?' + Date.now(), { cache: 'no-store' })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) {
+      if (!j || !j.apps) return;
+      document.querySelectorAll('[data-v]').forEach(function (el) {
+        if (j.apps[el.dataset.v]) el.textContent = j.apps[el.dataset.v];
+      });
+      var key = { 'Linux-AIO': 'linux-aio', 'SDDM-Studio': 'sddm-studio', 'Hypr-Studio': 'hypr-studio' };
+      document.querySelectorAll('[data-raw]').forEach(function (a) {
+        var v = j.apps[key[a.dataset.raw]];
+        if (v && j.tag_name) { a.href = BASE + j.tag_name + '/' + a.dataset.raw + '-' + v + '-x86_64'; a.setAttribute('download', ''); }
+      });
+      if (j.published_at) {
+        var d = new Date(j.published_at);
+        if (!isNaN(d)) document.querySelector('[data-date]').textContent = d.toLocaleDateString('de-DE');
+      }
+    })
+    .catch(function () {});
+})();
 </script>
 </body>
 </html>
