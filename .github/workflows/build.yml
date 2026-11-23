@@ -10,6 +10,11 @@ permissions:
   contents: write
   actions: write
 
+# nie zwei Builds gleichzeitig (sonst zwei Versuche, dasselbe Release anzulegen)
+concurrency:
+  group: build
+  cancel-in-progress: false
+
 jobs:
   version:
     name: Version
@@ -88,11 +93,16 @@ jobs:
         with:
           name: release
           path: out
+      # Erst version.json committen, dann das Release auf genau diesen Bot-Commit setzen.
+      # Grund: GITHUB_TOKEN darf keinen Tag auf einen Commit setzen, der Workflow-Dateien ändert
+      # (HTTP 403 „Resource not accessible by integration“). Der Bot-Commit ändert nur site/version.json.
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           V: ${{ needs.version.outputs.version }}
         run: |
+          git config user.name Labtoso
+          git config user.email 235880825+Labtoso@users.noreply.github.com
           APPS="$(cat out/apps.json)"; rm out/apps.json
           # jedes Release bekommt eine Beschreibung: die Notizen-Datei, sonst die Commits seit dem letzten Release
           NOTES=".github/releases/v$V.md"
@@ -104,23 +114,19 @@ jobs:
           fi
           FULL="$(mktemp)"; cat "$NOTES" > "$FULL"
           printf '\n## Install\nDownload **Linux-AIO.zip**, **SDDM-Studio.zip** or **Hypr-Studio.zip** (also on https://linux.labtoso.de), unzip it and run `sh Install.sh`.\n' >> "$FULL"
-          gh release create "v$V" out/* --target "$GITHUB_SHA" --title "Linux AIO $V" --notes-file "$FULL" --latest
-          echo "$APPS" > "$RUNNER_TEMP/apps.json"
-      # die Website zeigt die neue Version sofort
-      - name: Download page
-        env:
-          GH_TOKEN: ${{ github.token }}
-          V: ${{ needs.version.outputs.version }}
-        run: |
-          git config user.name Labtoso
-          git config user.email 235880825+Labtoso@users.noreply.github.com
-          APPS="$(cat "$RUNNER_TEMP/apps.json")"
+          TARGET="$GITHUB_SHA"
           for i in 1 2 3; do
             git fetch -q origin main && git checkout -q -B main origin/main
             printf '{"tag_name":"v%s","published_at":"%s","apps":%s}\n' "$V" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$APPS" > site/version.json
             git add site/version.json
-            git diff --cached --quiet && break
-            git commit -qm "Download page: version $V" && git push -q origin main && break
+            git diff --cached --quiet && { TARGET="$(git rev-parse HEAD)"; break; }
+            git commit -qm "Download page: version $V" && git push -q origin main && { TARGET="$(git rev-parse HEAD)"; break; }
             sleep 5
           done
+          gh release create "v$V" out/* --target "$TARGET" --title "Linux AIO $V" --notes-file "$FULL" --latest
+      # die Website zeigt die neue Version sofort
+      - name: Download page
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           gh workflow run pages.yml --ref main
