@@ -70,6 +70,8 @@ scrolledwindow.ModList {{ border: none; background: transparent; }}
 .PageTitle {{ font-size: 15pt; font-weight: 600; }}
 .PanelTitle {{ font-size: 13pt; font-weight: 600; }}
 .Label {{ color: {MUTED}; font-size: 9pt; }}
+.ExtLink link, .ExtLink link:visited {{ color: {MUTED}; text-decoration: underline; }}
+.ExtLink link:hover {{ color: {TEXT}; }}
 .Status {{ color: {MUTED}; }}
 .Mono {{ font-family: {MONO}; color: {TEXT}; }}
 .Code {{ font-family: {MONO}; font-size: 9pt; color: {MUTED}; background: {BG}; border-radius: 6px; padding: 4px 8px; }}

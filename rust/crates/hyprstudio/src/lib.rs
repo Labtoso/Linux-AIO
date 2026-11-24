@@ -4,6 +4,8 @@
 //! Die Logik (ohne Oberfläche) liegt in den Modulen oben, die GTK-Oberfläche unter [`ui`].
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// Zentrales Impressum (wird nur verlinkt, keine eigene Seite in der App).
+pub const IMPRINT_URL: &str = "https://labtoso.de/impressum";
 pub const APP_ID: &str = "de.labtosostudios.hyprstudio";
 pub const APP_NAME: &str = "Hypr Studio";
 

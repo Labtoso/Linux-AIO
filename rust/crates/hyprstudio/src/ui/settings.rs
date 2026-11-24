@@ -1,4 +1,5 @@
-//! Einstellungen (links einfahrendes Panel): Sprache, Akzentfarbe, Alles zurücksetzen, Erweitert (Config-Format).
+//! Einstellungen (links einfahrendes Panel): Sprache, Akzentfarbe, Alles zurücksetzen, Erweitert (Config-Format),
+//! ganz unten Version und der Link zum Impressum (öffnet im Browser).
 //! Dazu die Bestätigung für „Alles zurücksetzen“.
 
 use super::dialogs::Frame;
@@ -98,6 +99,9 @@ impl SettingsPanel {
         info.set_wrap(true);
         info.set_margin_top(14);
         main.append(&info);
+        let imprint = super::widgets::ext_link("Impressum", crate::IMPRINT_URL);
+        imprint.set_margin_top(4);
+        main.append(&imprint);
         pages.add_named(&main, Some("main"));
         // Erweiterte Einstellungen: zweite Seite im selben Panel
         let adv = vbox(12);
@@ -174,7 +178,7 @@ impl SettingsPanel {
         self.title.set_text(&t("settings"));
         self.l_lang.set_text(&t("language"));
         self.l_theme.set_text(&t("theme"));
-        self.l_reset.set_text(&t("reset.section"));
+        self.l_reset.set_text(&t("reset.btn"));
         self.btn_reset.set_label(&t("reset.button"));
         self.btn_reset.set_tooltip_text(Some(&t("reset.tip")));
         self.btn_adv.set_label(&t("adv.button"));

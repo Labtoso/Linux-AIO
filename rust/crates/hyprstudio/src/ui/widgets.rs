@@ -19,6 +19,34 @@ pub fn cursor_hand<W: IsA<gtk::Widget>>(w: &W) {
     w.set_cursor_from_name(Some("pointer"));
 }
 
+/// Öffnet eine Web-Adresse im Standardbrowser des Nutzers (nie im App-Fenster):
+/// zuerst `xdg-open`, sonst über GTK/Desktop-Portal.
+pub fn open_url<W: IsA<gtk::Widget>>(from: &W, url: &str) {
+    if crate::model::dry() {
+        return;
+    }
+    if crate::util::has("xdg-open") && crate::util::spawn_detached(&["xdg-open", url]).is_ok() {
+        return;
+    }
+    let win = from.root().and_downcast::<gtk::Window>();
+    gtk::UriLauncher::new(url).launch(win.as_ref(), gtk::gio::Cancellable::NONE, |_| {});
+}
+
+/// Dezenter Text-Link (z. B. „Impressum“), der extern im Browser aufgeht.
+pub fn ext_link(text: &str, url: &str) -> gtk::Label {
+    let l = gtk::Label::new(None);
+    l.set_markup(&format!("<a href=\"{}\">{}</a>", glib::markup_escape_text(url), glib::markup_escape_text(text)));
+    l.set_halign(gtk::Align::Start);
+    l.add_css_class("Label");
+    l.add_css_class("ExtLink");
+    l.set_tooltip_text(Some(url));
+    l.connect_activate_link(|l, uri| {
+        open_url(l, uri);
+        glib::Propagation::Stop
+    });
+    l
+}
+
 pub fn label(text: &str, class: &str) -> gtk::Label {
     let l = gtk::Label::new(Some(text));
     l.set_xalign(0.0);
